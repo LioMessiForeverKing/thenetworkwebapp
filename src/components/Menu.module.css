@@ -1,0 +1,153 @@
+:root {
+  --menu-width: 780px;
+  --menu-button-size: 96px;
+}
+
+.menuButton {
+  position: fixed;
+  top: 14px;
+  left: 14px;
+  width: var(--menu-button-size);
+  height: var(--menu-button-size);
+  display: grid;
+  place-items: center;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  z-index: 20;
+  transform: translateX(0);
+  transition: transform 0.2s ease;
+}
+
+.menuButton.hidden {
+  display: none;
+}
+
+.menuButton.inner {
+  position: absolute;
+  left: auto;
+  right: 14px;
+  top: 14px;
+  transform: none;
+  z-index: 21;
+  display: none;
+}
+
+.menuLines {
+  width: 48px;
+  height: 32px;
+  display: grid;
+  gap: 10px;
+}
+
+.menuLines span {
+  display: block;
+  height: 6px;
+  background: #0f172a;
+  border-radius: 999px;
+}
+
+.menuPanel {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: var(--menu-width);
+  height: 100vh;
+  background: #ffffff;
+  border-right: 1px solid #e5e7eb;
+  box-shadow: 18px 0 32px rgba(0, 0, 0, 0.08);
+  transform: translateX(-100%);
+  transition: transform 0.2s ease;
+  z-index: 19;
+  display: flex;
+  align-items: flex-start;
+  padding: 20px;
+}
+
+.menuPanel.open {
+  transform: translateX(0);
+}
+
+.menuButton.open {
+  transform: translateX(calc(var(--menu-width) - var(--menu-button-size) - 34px));
+}
+
+.menuTitle {
+  font-family: "SF Pro Display", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  font-size: 72px;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: 0.01em;
+}
+
+.menuContent {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 16px;
+  font-family: "SF Pro Display", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  font-size: 72px;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: 0.01em;
+}
+
+.menuContent a {
+  text-decoration: none;
+  color: inherit;
+  transition: color 0.15s ease;
+  cursor: pointer;
+}
+
+.menuContent a:hover {
+  color: #d1d5db;
+}
+
+.menuFooter {
+  position: absolute;
+  bottom: 24px;
+  left: 24px;
+  right: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-family: "SF Pro Display", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.toggle {
+  width: 64px;
+  height: 34px;
+  border-radius: 999px;
+  background: #e5e7eb;
+  border: 1px solid #d1d5db;
+  position: relative;
+  cursor: pointer;
+  transition: background 0.15s ease, border 0.15s ease;
+}
+
+.toggle::after {
+  content: "";
+  position: absolute;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #ffffff;
+  top: 2px;
+  left: 2px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
+  transition: transform 0.15s ease;
+}
+
+.toggle.active {
+  background: #0f172a;
+  border-color: #0f172a;
+}
+
+.toggle.active::after {
+  transform: translateX(30px);
+}
+

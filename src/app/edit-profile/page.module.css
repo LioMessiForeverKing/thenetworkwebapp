@@ -1,0 +1,216 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  padding: 80px 20px 100px;
+  background-color: #ffffff;
+  color: #000000;
+  font-family: var(--font-inter, sans-serif);
+}
+
+.title {
+  font-size: 24px;
+  font-weight: 700;
+  margin-bottom: 24px;
+  color: #000;
+}
+
+.avatarBlock {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 32px;
+}
+
+.avatar {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background-color: #f0f0f0;
+  background-size: cover;
+  background-position: center;
+  margin-bottom: 12px;
+  border: 1px solid #e0e0e0;
+}
+
+.avatarHint {
+  color: #666;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.fieldRow {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+}
+
+.input {
+  width: 100%;
+  padding: 12px 16px;
+  border-radius: 12px;
+  border: 1px solid #e0e0e0;
+  background: #f9f9f9;
+  color: #000;
+  font-size: 15px;
+  outline: none;
+  transition: all 0.2s;
+}
+
+.input:focus {
+  border-color: #000;
+  background: #fff;
+}
+
+.input::placeholder {
+  color: #999;
+}
+
+.textarea {
+  width: 100%;
+  padding: 12px 16px;
+  border-radius: 12px;
+  border: 1px solid #e0e0e0;
+  background: #f9f9f9;
+  color: #000;
+  font-size: 15px;
+  outline: none;
+  resize: none;
+  font-family: inherit;
+  transition: all 0.2s;
+}
+
+.textarea:focus {
+  border-color: #000;
+  background: #fff;
+}
+
+.textarea::placeholder {
+  color: #999;
+}
+
+.hint {
+  font-size: 12px;
+  color: #666;
+  font-style: italic;
+}
+
+.footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(10px);
+  border-top: 1px solid #eee;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 100;
+}
+
+.progress {
+  display: flex;
+  flex-direction: column;
+}
+
+.progressStrong {
+  font-size: 14px;
+  margin-bottom: 2px;
+  color: #000;
+}
+
+.progressSpan {
+  font-size: 12px;
+  color: #666;
+}
+
+.saveBtn {
+  background: #000;
+  color: #fff;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 20px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.saveBtn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.saveBtn:active {
+  opacity: 0.9;
+}
+
+.connectionCard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px;
+  background: #f9f9f9;
+  border-radius: 12px;
+  border: 1px solid #e0e0e0;
+}
+
+.connectionCardHeader {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #000;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.ytIcon {
+  width: 24px;
+  height: 24px;
+  background: #ff0000;
+  color: white;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 8px;
+  font-weight: 800;
+}
+
+.platformIcon {
+  width: 24px;
+  height: 24px;
+  background: #ddd;
+  border-radius: 4px;
+}
+
+.statusConnected {
+  color: #4CAF50;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.statusNotConnected {
+  color: #999;
+  font-size: 13px;
+}
+
+.statusIncoming {
+  color: #999;
+  font-size: 12px;
+  font-style: italic;
+}
