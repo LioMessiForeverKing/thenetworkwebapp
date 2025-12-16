@@ -36,9 +36,11 @@ export default function Menu() {
       if (active) {
         document.documentElement.style.filter = 'invert(1) hue-rotate(180deg)';
         document.documentElement.style.backgroundColor = '#111827';
+        document.documentElement.classList.add('theme-inverted');
       } else {
         document.documentElement.style.filter = '';
         document.documentElement.style.backgroundColor = '';
+        document.documentElement.classList.remove('theme-inverted');
       }
     };
 
@@ -50,6 +52,13 @@ export default function Menu() {
   };
 
   const handleLogout = async () => {
+    // Reset invert state before logging out
+    setIsInverted(false);
+    localStorage.removeItem('theme_inverted');
+    document.documentElement.style.filter = '';
+    document.documentElement.style.backgroundColor = '';
+    document.documentElement.classList.remove('theme-inverted');
+
     const supabase = createClient();
     await supabase.auth.signOut();
     router.push('/login');

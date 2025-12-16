@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { YouTubeService } from '@/services/youtube';
-import styles from './page.module.css';
 
 const STATUS_MESSAGES = [
     'Syncing your YouTube data...',
@@ -87,69 +86,50 @@ export default function BuildingPage() {
 
     if (loading) {
         return (
-            <div className={styles.container}>
-                <div className={styles.loader}></div>
+             <div className="flex items-center justify-center min-h-screen bg-white">
+                <div className="w-8 h-8 border-4 border-black border-t-transparent rounded-full animate-spin"></div>
             </div>
         );
     }
 
     return (
-        <div className={styles.container}>
-            {/* Progress Bar */}
-            <div className={styles.progressContainer}>
-                <span className={styles.progressLabel}>Build your Digital DNA</span>
-                <div className={styles.progressBar}>
-                    <div className={styles.progressFill} style={{ width: '100%' }}></div>
-                </div>
-                <span className={styles.progressPercent}>100%</span>
-            </div>
+        <div className="min-h-screen bg-white flex flex-col items-center py-12 px-4 relative overflow-hidden">
+             {/* Progress Bar Container */}
+             <div className="w-full max-w-[600px] flex flex-col gap-2 mb-12">
+                 <div className="flex justify-between items-end mb-2">
+                     <span className="text-[15px] font-normal text-black font-display">Build your Digital DNA</span>
+                     <span className="text-[15px] font-normal text-black font-display">100%</span>
+                 </div>
+                 <div className="w-full h-[10px] bg-white border border-black relative">
+                     <div className="absolute top-0 left-0 h-full w-full bg-gradient-to-b from-[#252525] to-[#454545]"></div>
+                 </div>
+             </div>
 
-            <main className={styles.main}>
-                {/* DNA Animation */}
-                <div className={styles.dnaContainer}>
-                    {isComplete ? (
-                        <div className={styles.successIcon}>
-                            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+             {/* Animation Area */}
+             <div className="flex-1 flex flex-col items-center justify-center w-full max-w-[600px] text-center">
+                 <div className="relative w-64 h-64 flex items-center justify-center mb-8">
+                     {isComplete ? (
+                         <div className="text-green-500 animate-bounce">
+                             <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                 <polyline points="20 6 9 17 4 12"></polyline>
-                            </svg>
-                        </div>
-                    ) : (
-                        <div className={styles.dnaHelix}>
-                            <div className={styles.strand1}></div>
-                            <div className={styles.strand2}></div>
-                            <div className={styles.particles}>
-                                {[...Array(12)].map((_, i) => (
-                                    <div
-                                        key={i}
-                                        className={styles.particle}
-                                        style={{
-                                            animationDelay: `${i * 0.15}s`,
-                                            left: `${15 + (i % 4) * 20}%`,
-                                            top: `${10 + Math.floor(i / 4) * 30}%`
-                                        }}
-                                    ></div>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-                </div>
-
-                {/* Status Text */}
-                <div className={styles.statusContainer}>
-                    {isComplete ? (
-                        <>
-                            <h2 className={styles.completeTitle}>DNA Created!</h2>
-                            <p className={styles.completeText}>Taking you to your network...</p>
-                        </>
-                    ) : (
-                        <>
-                            <h2 className={styles.processingTitle}>Constructing your Digital DNA</h2>
-                            <p className={styles.statusText}>{STATUS_MESSAGES[statusIndex]}</p>
-                            {error && <p className={styles.errorText}>{error}</p>}
-                        </>
-                    )}
-                </div>
-            </main>
+                             </svg>
+                         </div>
+                     ) : (
+                         <div className="relative w-32 h-32">
+                             <div className="absolute top-0 left-0 w-full h-full border-4 border-gray-200 rounded-full"></div>
+                             <div className="absolute top-0 left-0 w-full h-full border-4 border-black border-t-transparent rounded-full animate-spin"></div>
+                         </div>
+                     )}
+                 </div>
+                 
+                 <h2 className="text-[30px] font-bold text-black font-display mb-4">
+                    {isComplete ? 'DNA Created!' : 'Constructing your Digital DNA'}
+                 </h2>
+                 <p className="text-[16px] text-gray-600 font-display">
+                    {isComplete ? 'Taking you to your network...' : STATUS_MESSAGES[statusIndex]}
+                 </p>
+                 {error && <p className="text-red-500 mt-4 font-display">{error}</p>}
+             </div>
         </div>
     );
 }

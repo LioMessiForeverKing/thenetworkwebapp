@@ -65,7 +65,9 @@ export default function AuthCallback() {
 
             // Determine if user needs to complete profile setup
             // New user = no profile, OR profile exists but hasn't completed setup (no age = hasn't gone through wizard)
-            const needsProfileSetup = !profile || profile.age === null;
+            // FORCE_ONBOARDING: Set to true to always show onboarding for testing
+            const FORCE_ONBOARDING = true;
+            const needsProfileSetup = FORCE_ONBOARDING || !profile || profile.age === null;
 
             if (needsProfileSetup) {
                 // New user or incomplete profile - send to profile setup wizard

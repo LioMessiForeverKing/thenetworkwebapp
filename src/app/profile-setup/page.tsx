@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useAuth } from '@/contexts/AuthContext';
 import { createClient } from '@/lib/supabase';
-import styles from './page.module.css';
 
 export default function ProfileSetupPage() {
     const { user, loading } = useAuth();
@@ -119,126 +118,105 @@ export default function ProfileSetupPage() {
 
     if (loading) {
         return (
-            <div className={styles.container}>
-                <div className={styles.loader}></div>
+             <div className="flex items-center justify-center min-h-screen bg-white">
+                <div className="w-8 h-8 border-4 border-black border-t-transparent rounded-full animate-spin"></div>
             </div>
         );
     }
 
     return (
-        <div className={styles.container}>
-            {/* Progress Bar */}
-            <div className={styles.progressContainer}>
-                <span className={styles.progressLabel}>Build your Digital DNA</span>
-                <div className={styles.progressBar}>
-                    <div className={styles.progressFill} style={{ width: '33%' }}></div>
-                </div>
-                <span className={styles.progressPercent}>33%</span>
-            </div>
+        <div className="min-h-screen bg-white flex flex-col items-center py-12 px-4 relative overflow-hidden">
+             {/* Progress Bar Container */}
+             <div className="w-full max-w-[600px] flex flex-col gap-2 mb-12">
+                 <div className="flex justify-between items-end mb-2">
+                     <span className="text-[15px] font-normal text-black font-display">Build your Digital DNA</span>
+                     <span className="text-[15px] font-normal text-black font-display">25%</span>
+                 </div>
+                 <div className="w-full h-[10px] bg-white border border-black relative">
+                     <div className="absolute top-0 left-0 h-full w-1/4 bg-gradient-to-b from-[#252525] to-[#454545]"></div>
+                 </div>
+             </div>
 
-            <main className={styles.main}>
-                <h1 className={styles.title}>Tell us about you</h1>
-                <p className={styles.subtitle}>This helps us personalize your experience</p>
+             {/* Form Container */}
+             <div className="w-full max-w-[300px] flex flex-col gap-6">
+                 {/* Name */}
+                 <div className="flex flex-col gap-2">
+                     <label className="text-[15px] text-black font-display">Name</label>
+                     <input 
+                        type="text" 
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        className="w-full h-[40px] bg-white border border-black px-3 text-black font-display focus:outline-none focus:border-black focus:ring-1 focus:ring-black"
+                     />
+                 </div>
 
-                <div className={styles.form}>
-                    {/* Photo Upload */}
-                    <div className={styles.photoSection}>
-                        <div
-                            className={styles.photoCircle}
-                            onClick={handlePhotoClick}
-                        >
-                            {photoUrl ? (
-                                <Image
-                                    src={photoUrl}
-                                    alt="Profile"
-                                    fill
-                                    className={styles.photoImage}
-                                />
-                            ) : (
-                                <div className={styles.photoPlaceholder}>
-                                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                                        <path d="M12 16a4 4 0 100-8 4 4 0 000 8z" />
-                                        <path d="M3 16.8V7.2c0-1.12 0-1.68.218-2.108a2 2 0 01.874-.874C4.52 4 5.08 4 6.2 4h1.055c.123 0 .184 0 .244-.003a1.5 1.5 0 001.084-.639c.035-.05.068-.105.133-.214.13-.218.195-.327.27-.418a1.5 1.5 0 011.084-.639C10.13 3 10.21 3 10.367 3h3.266c.158 0 .237 0 .297.087a1.5 1.5 0 011.084.639c.075.091.14.2.27.418.065.11.098.164.133.214a1.5 1.5 0 001.084.639c.06.003.121.003.244.003H17.8c1.12 0 1.68 0 2.108.218a2 2 0 01.874.874C21 6.52 21 7.08 21 8.2v8.6c0 1.12 0 1.68-.218 2.108a2 2 0 01-.874.874C19.48 20 18.92 20 17.8 20H6.2c-1.12 0-1.68 0-2.108-.218a2 2 0 01-.874-.874C3 18.48 3 17.92 3 16.8z" />
-                                    </svg>
-                                    <span>Add photo</span>
-                                </div>
-                            )}
-                        </div>
-                        <input
-                            ref={fileInputRef}
-                            type="file"
-                            accept="image/*"
-                            onChange={handlePhotoChange}
-                            className={styles.hiddenInput}
-                        />
-                        <span className={styles.photoHint}>Optional • Uses Google photo by default</span>
-                    </div>
+                 {/* Age */}
+                 <div className="flex flex-col gap-2">
+                     <label className="text-[15px] text-black font-display">Age</label>
+                     <input 
+                        type="number" 
+                        value={age}
+                        onChange={(e) => setAge(e.target.value)}
+                        className="w-full h-[40px] bg-white border border-black px-3 text-black font-display focus:outline-none focus:border-black focus:ring-1 focus:ring-black"
+                     />
+                 </div>
 
-                    {/* Name Input */}
-                    <div className={styles.inputGroup}>
-                        <label className={styles.label}>What should we call you?</label>
-                        <input
-                            type="text"
-                            value={name}
-                            onChange={(e) => setName(e.target.value)}
-                            placeholder="Your name"
-                            className={styles.input}
-                            maxLength={100}
-                        />
-                    </div>
+                 {/* Location */}
+                 <div className="flex flex-col gap-2">
+                     <label className="text-[15px] text-black font-display">Location</label>
+                     <input 
+                        type="text" 
+                        value={location}
+                        onChange={(e) => setLocation(e.target.value)}
+                        className="w-full h-[40px] bg-white border border-black px-3 text-black font-display focus:outline-none focus:border-black focus:ring-1 focus:ring-black"
+                     />
+                 </div>
 
-                    {/* Age Input */}
-                    <div className={styles.inputGroup}>
-                        <label className={styles.label}>How old are you?</label>
-                        <input
-                            type="number"
-                            value={age}
-                            onChange={(e) => setAge(e.target.value)}
-                            placeholder="21"
-                            className={styles.input}
-                            min={13}
-                            max={120}
-                        />
-                    </div>
+                 {/* Photo */}
+                 <div className="flex flex-col gap-2">
+                     <label className="text-[15px] text-black font-display">Profile Photo (optional)</label>
+                     <div 
+                        onClick={handlePhotoClick}
+                        className="w-full h-[40px] bg-white border border-black flex items-center justify-between px-3 cursor-pointer hover:bg-gray-50 transition-colors"
+                     >
+                        <span className="text-gray-500 text-sm truncate">{photoFile ? photoFile.name : (photoUrl ? 'Current photo used' : 'Select photo')}</span>
+                        {photoUrl && (
+                            <div className="relative w-6 h-6 rounded-full overflow-hidden border border-gray-200">
+                                <Image src={photoUrl} alt="" fill className="object-cover" />
+                            </div>
+                        )}
+                     </div>
+                     <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        onChange={handlePhotoChange}
+                        className="hidden"
+                    />
+                 </div>
 
-                    {/* Location Input */}
-                    <div className={styles.inputGroup}>
-                        <label className={styles.label}>Where are you based?</label>
-                        <input
-                            type="text"
-                            value={location}
-                            onChange={(e) => setLocation(e.target.value)}
-                            placeholder="New York, NY"
-                            className={styles.input}
-                        />
-                    </div>
+                 {/* One-liner */}
+                 <div className="flex flex-col gap-2 -ml-[20px] md:-ml-[46px]">
+                     <label className="text-[15px] text-black font-display pl-[20px] md:pl-[46px]">One-liner (optional): What do you want people to know you for?</label>
+                     <textarea 
+                        value={oneLiner}
+                        onChange={(e) => setOneLiner(e.target.value)}
+                        rows={3}
+                        className="w-full md:w-[393px] h-[80px] bg-white border border-black p-3 text-black font-display focus:outline-none focus:border-black focus:ring-1 focus:ring-black resize-none"
+                     />
+                 </div>
 
-                    {/* One-liner Input */}
-                    <div className={styles.inputGroup}>
-                        <label className={styles.label}>One thing you want people to know <span className={styles.optional}>(optional)</span></label>
-                        <textarea
-                            value={oneLiner}
-                            onChange={(e) => setOneLiner(e.target.value)}
-                            placeholder="Building cool stuff..."
-                            className={styles.textarea}
-                            maxLength={280}
-                            rows={2}
-                        />
-                        <span className={styles.charCount}>{oneLiner.length}/280</span>
-                    </div>
+                 {error && <p className="text-red-500 text-sm font-display">{error}</p>}
+             </div>
 
-                    {error && <p className={styles.error}>{error}</p>}
-
-                    {/* Continue Button */}
-                    <button
-                        className={styles.continueButton}
-                        onClick={handleContinue}
-                        disabled={isSaving}
-                    >
-                        {isSaving ? 'Saving...' : 'Continue →'}
-                    </button>
-                </div>
-            </main>
+             {/* Continue Button */}
+             <button 
+                onClick={handleContinue}
+                disabled={isSaving}
+                className="mt-12 text-[30px] font-bold text-black font-display hover:opacity-70 transition-opacity disabled:opacity-50 cursor-pointer"
+             >
+                {isSaving ? 'Saving...' : 'Continue →'}
+             </button>
         </div>
     );
 }

@@ -2,25 +2,24 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { useAuth } from '@/contexts/AuthContext';
 import { createClient } from '@/lib/supabase';
-import styles from './page.module.css';
 
 interface Platform {
     id: string;
     name: string;
-    icon: string;
-    color: string;
+    iconSrc: string;
     available: boolean;
 }
 
 const PLATFORMS: Platform[] = [
-    { id: 'youtube', name: 'YouTube', icon: '▶️', color: '#FF0000', available: true },
-    { id: 'tiktok', name: 'TikTok', icon: '🎵', color: '#000000', available: false },
-    { id: 'linkedin', name: 'LinkedIn', icon: '💼', color: '#0A66C2', available: false },
-    { id: 'x', name: 'X', icon: '𝕏', color: '#000000', available: false },
-    { id: 'spotify', name: 'Spotify', icon: '🎧', color: '#1DB954', available: false },
-    { id: 'instagram', name: 'Instagram', icon: '📷', color: '#E4405F', available: false },
+    { id: 'youtube', name: 'YouTube', iconSrc: '/assets/onboarding/c03b16a838943601b568f85a732d40b331a3645f.png', available: true },
+    { id: 'tiktok', name: 'TikTok', iconSrc: '/assets/onboarding/23739bb8c257e76598939f2f873c2af197df83eb.png', available: false },
+    { id: 'linkedin', name: 'LinkedIn', iconSrc: '/assets/onboarding/dd5fb104ecb7bbaa2af9b5448a041c2e082b5baa.png', available: false },
+    { id: 'x', name: 'X', iconSrc: '/assets/onboarding/372a2c70b00fac33e0d306ef60d5feec8563d9fa.png', available: false },
+    { id: 'spotify', name: 'Spotify', iconSrc: '/assets/onboarding/6cbcd0541086377a8e76509a362e721b3b5cdf11.png', available: false },
+    { id: 'instagram', name: 'Instagram', iconSrc: '/assets/onboarding/72af0786a62c6330726ca423b8c067aa6f5c4e55.png', available: false },
 ];
 
 export default function SignalsPage() {
@@ -29,7 +28,6 @@ export default function SignalsPage() {
 
     const [connectedPlatforms, setConnectedPlatforms] = useState<string[]>([]);
     const [showTooltip, setShowTooltip] = useState<string | null>(null);
-    const [showWhyModal, setShowWhyModal] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
 
     // Redirect if not authenticated
@@ -89,129 +87,78 @@ export default function SignalsPage() {
         router.push('/profile-setup/building');
     };
 
-    const handleSkip = () => {
-        router.push('/profile-setup/building');
-    };
-
     if (loading) {
         return (
-            <div className={styles.container}>
-                <div className={styles.loader}></div>
+             <div className="flex items-center justify-center min-h-screen bg-white">
+                <div className="w-8 h-8 border-4 border-black border-t-transparent rounded-full animate-spin"></div>
             </div>
         );
     }
 
     return (
-        <div className={styles.container}>
-            {/* Progress Bar */}
-            <div className={styles.progressContainer}>
-                <span className={styles.progressLabel}>Build your Digital DNA</span>
-                <div className={styles.progressBar}>
-                    <div className={styles.progressFill} style={{ width: '66%' }}></div>
-                </div>
-                <span className={styles.progressPercent}>66%</span>
-            </div>
+        <div className="min-h-screen bg-white flex flex-col items-center py-12 px-4 relative overflow-hidden">
+             {/* Progress Bar Container */}
+             <div className="w-full max-w-[600px] flex flex-col gap-2 mb-12">
+                 <div className="flex justify-between items-end mb-2">
+                     <span className="text-[15px] font-normal text-black font-display">Build your Digital DNA</span>
+                     <span className="text-[15px] font-normal text-black font-display">50%</span>
+                 </div>
+                 <div className="w-full h-[10px] bg-white border border-black relative">
+                     <div className="absolute top-0 left-0 h-full w-1/2 bg-gradient-to-b from-[#252525] to-[#454545]"></div>
+                 </div>
+             </div>
 
-            <main className={styles.main}>
-                <h1 className={styles.title}>Connect your world</h1>
-                <p className={styles.subtitle}>These help us understand who you really are</p>
+             <h1 className="text-[30px] font-bold text-black font-display mb-8">Add signals (optional)</h1>
 
-                {/* Platform Grid */}
-                <div className={styles.platformGrid}>
-                    {PLATFORMS.map((platform) => (
-                        <div
-                            key={platform.id}
-                            className={`${styles.platformCard} ${connectedPlatforms.includes(platform.id) ? styles.connected : ''} ${!platform.available ? styles.unavailable : ''}`}
-                            onClick={() => handlePlatformClick(platform)}
-                        >
-                            <div
-                                className={styles.platformIcon}
-                                style={{
-                                    background: connectedPlatforms.includes(platform.id)
-                                        ? platform.color
-                                        : '#f5f5f7'
-                                }}
-                            >
-                                <span>{platform.icon}</span>
+             <div className="grid grid-cols-2 md:grid-cols-3 gap-6 w-full max-w-[600px] justify-items-center">
+                 {PLATFORMS.map(platform => (
+                     <div 
+                        key={platform.id}
+                        onClick={() => handlePlatformClick(platform)}
+                        className={`
+                            relative w-full max-w-[150px] aspect-[150/100] border border-black flex items-center justify-center cursor-pointer transition-all
+                            ${connectedPlatforms.includes(platform.id) ? 'bg-gray-100 ring-2 ring-black' : 'bg-white hover:bg-gray-50'}
+                            ${!platform.available ? 'opacity-50 grayscale' : ''}
+                        `}
+                     >
+                        <div className="relative w-full h-full p-4">
+                            <Image 
+                                src={platform.iconSrc} 
+                                alt={platform.name} 
+                                fill 
+                                className="object-contain" 
+                                sizes="(max-width: 768px) 50vw, 150px"
+                            />
+                        </div>
+                        
+                        {/* Tooltips */}
+                        {showTooltip === platform.id && (
+                            <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap bg-black text-white text-xs py-1 px-2 rounded font-display z-20">
+                                Coming Soon
                             </div>
-                            <span className={styles.platformName}>{platform.name}</span>
+                        )}
+                        {showTooltip === 'youtube-connected' && platform.id === 'youtube' && (
+                            <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap bg-black text-white text-xs py-1 px-2 rounded font-display z-20">
+                                Already connected!
+                            </div>
+                        )}
+                        {showTooltip === 'youtube-ready' && platform.id === 'youtube' && (
+                            <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap bg-green-600 text-white text-xs py-1 px-2 rounded font-display z-20">
+                                Connected via Google!
+                            </div>
+                        )}
+                     </div>
+                 ))}
+             </div>
 
-                            {connectedPlatforms.includes(platform.id) && (
-                                <div className={styles.checkmark}>✓</div>
-                            )}
-
-                            {/* Tooltip */}
-                            {showTooltip === platform.id && (
-                                <div className={styles.tooltip}>Coming Soon</div>
-                            )}
-                            {showTooltip === 'youtube-connected' && platform.id === 'youtube' && (
-                                <div className={styles.tooltip}>Already connected!</div>
-                            )}
-                            {showTooltip === 'youtube-ready' && platform.id === 'youtube' && (
-                                <div className={styles.tooltipSuccess}>Connected via Google!</div>
-                            )}
-                        </div>
-                    ))}
-                </div>
-
-                {/* Why add signals link */}
-                <button
-                    className={styles.whyLink}
-                    onClick={() => setShowWhyModal(true)}
-                >
-                    Why add signals?
-                </button>
-
-                {/* Continue Button */}
-                <button
-                    className={styles.continueButton}
-                    onClick={handleContinue}
-                    disabled={isProcessing}
-                >
-                    {isProcessing ? 'Processing...' : 'Continue →'}
-                </button>
-
-                {/* Skip Link */}
-                <button
-                    className={styles.skipLink}
-                    onClick={handleSkip}
-                >
-                    Skip for now
-                </button>
-            </main>
-
-            {/* Why Modal */}
-            {showWhyModal && (
-                <div className={styles.modalOverlay} onClick={() => setShowWhyModal(false)}>
-                    <div className={styles.modal} onClick={e => e.stopPropagation()}>
-                        <h2 className={styles.modalTitle}>Why add signals?</h2>
-                        <div className={styles.modalContent}>
-                            <p>
-                                <strong>Your signals tell us who you really are.</strong>
-                            </p>
-                            <p>
-                                Instead of filling out endless forms about your interests,
-                                we analyze the content you actually consume — your YouTube subscriptions,
-                                Spotify playlists, and more.
-                            </p>
-                            <p>
-                                This creates a more authentic profile that helps us connect you
-                                with people who share your genuine interests, not just what you
-                                think sounds good on paper.
-                            </p>
-                            <p className={styles.modalNote}>
-                                🔒 Your data is private. We never post or share your information.
-                            </p>
-                        </div>
-                        <button
-                            className={styles.modalClose}
-                            onClick={() => setShowWhyModal(false)}
-                        >
-                            Got it
-                        </button>
-                    </div>
-                </div>
-            )}
+             {/* Continue Button */}
+             <button 
+                onClick={handleContinue}
+                disabled={isProcessing}
+                className="mt-12 text-[30px] font-bold text-black font-display hover:opacity-70 transition-opacity disabled:opacity-50 cursor-pointer"
+             >
+                {isProcessing ? 'Processing...' : 'Continue →'}
+             </button>
         </div>
     );
 }

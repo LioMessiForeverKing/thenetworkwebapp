@@ -217,7 +217,6 @@ export default function DigitalDnaPage() {
                     graphData={graphData}
                     nodeLabel="name"
                     backgroundColor="#ffffff"
-                    backgroundAlpha={1}
                     showNavInfo={false}
 
                     // Links
