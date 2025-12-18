@@ -8,7 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 // Card 1: Social media is draining
 function Card1({ className = '' }: { className?: string }) {
   return (
-    <div className={`relative bg-[rgba(38,38,38,0.55)] h-[593px] w-[393px] overflow-hidden rounded-[40px] flex-shrink-0 ${className}`}>
+    <div className={`relative bg-[rgba(38,38,38,0.55)] h-[600px] w-[393px] overflow-hidden rounded-[40px] flex-shrink-0 ${className}`}>
       {/* Background Gradients */}
       <div className="absolute inset-0 pointer-events-none">
           <div className="absolute h-[899px] left-[calc(50%+9.5px)] top-[calc(50%+75px)] translate-x-[-50%] translate-y-[-50%] w-[906px]">
@@ -24,10 +24,10 @@ function Card1({ className = '' }: { className?: string }) {
                     <feGaussianBlur result="effect1_foregroundBlur_5_115" stdDeviation="64.296" />
                   </filter>
                   <radialGradient cx="0" cy="0" gradientTransform="translate(581.592 578.092) rotate(90) scale(449.5 453)" gradientUnits="userSpaceOnUse" id="paint0_radial_5_115" r="1">
-                    <stop stopColor="#DA4ED2" />
-                    <stop offset="0.45" stopColor="#FF476C" />
-                    <stop offset="0.67" stopColor="#FF8058" />
-                    <stop offset="1" stopColor="#FFD3A5" />
+                    <stop stopColor="#BEE3DB" />
+                    <stop offset="0.39" stopColor="#78A1BB" />
+                    <stop offset="0.71" stopColor="#1E6091" />
+                    <stop offset="1" stopColor="#1B4965" />
                   </radialGradient>
                 </defs>
               </svg>
@@ -106,7 +106,10 @@ function Card1({ className = '' }: { className?: string }) {
           </div>
           
           {/* Text */}
-          <div className="absolute content-stretch flex flex-col gap-[14px] items-start leading-[0] left-[20px] not-italic text-white top-[502px] w-[353px]">
+          <div 
+            className="absolute content-stretch flex flex-col gap-[14px] items-start leading-[0] left-[20px] not-italic text-white w-[353px]"
+            style={{ top: '512px' }}
+          >
             <div className="flex flex-col font-['Inter:Bold',sans-serif] font-bold justify-center relative shrink-0 text-[34px] tracking-[-1.7px] w-[373px]">
               <p className="leading-[38px] mb-0 font-display">Social media is draining</p>
             </div>
@@ -116,13 +119,16 @@ function Card1({ className = '' }: { className?: string }) {
           </div>
 
           {/* Icon */}
-          <div className="absolute left-[27px] size-[338px] top-[105px] w-[338px] h-[338px]">
+          <div 
+            className="absolute left-1/2 -translate-x-1/2 size-[300px] w-[300px] h-[300px]"
+            style={{ top: '182px' }}
+          >
             <div className="relative w-full h-full">
               <Image 
                 src="/assets/onboarding/a2f182e7f7b59b4fe488bf754951d5e8a7987a98.png" 
                 alt="" 
                 fill 
-                className="object-cover"
+                className="object-contain"
               />
             </div>
           </div>
@@ -134,7 +140,7 @@ function Card1({ className = '' }: { className?: string }) {
 // Card 2: Instagram grid
 function Card2({ className = '' }: { className?: string }) {
   return (
-    <div className={`relative bg-[rgba(38,38,38,0.55)] h-[601px] w-[373px] overflow-hidden rounded-[40px] flex-shrink-0 ${className}`}>
+    <div className={`relative bg-[rgba(38,38,38,0.55)] h-[600px] w-[373px] overflow-hidden rounded-[40px] flex-shrink-0 ${className}`}>
       {/* Background Gradient */}
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute left-[calc(50%-0.5px)] size-[906px] top-[calc(50%+93.5px)] translate-x-[-50%] translate-y-[-50%] w-[906px] h-[906px]">
@@ -150,10 +156,10 @@ function Card2({ className = '' }: { className?: string }) {
                   <feGaussianBlur result="effect1_foregroundBlur_5_117" stdDeviation="64.296" />
                 </filter>
                 <radialGradient cx="0" cy="0" gradientTransform="translate(581.592 581.592) rotate(90) scale(453)" gradientUnits="userSpaceOnUse" id="paint0_radial_5_117" r="1">
-                  <stop stopColor="#4263EB" />
-                  <stop offset="0.45" stopColor="#7F77C8" />
-                  <stop offset="0.67" stopColor="#B2A5E0" />
-                  <stop offset="1" stopColor="#E2D6FA" />
+                  <stop stopColor="#FFD600" />
+                  <stop offset="0.45" stopColor="#FF6B00" />
+                  <stop offset="0.67" stopColor="#D70000" />
+                  <stop offset="1" stopColor="#8700FF" />
                 </radialGradient>
               </defs>
             </svg>
@@ -188,17 +194,26 @@ function Card2({ className = '' }: { className?: string }) {
         </div>
         
         {/* Text */}
-        <div className="absolute content-stretch flex flex-col items-start left-[20px] top-[443px] w-[353px]">
+        <div 
+            className="absolute content-stretch flex flex-col items-start left-[20px] w-[353px]"
+            style={{ top: '440px' }}
+        >
           <div className="flex flex-col font-['Inter:Medium',sans-serif] font-medium justify-center leading-[0] not-italic relative shrink-0 text-[16px] text-white tracking-[-0.48px] w-full">
             <p className="leading-[24px] font-display">{`The real you is in your Spotify on repeat, your 3am YouTube rabbit holes, your Discord convos. That's where your actual personality lives.`}</p>
           </div>
         </div>
-        <div className="absolute flex flex-col font-['Inter:Bold',sans-serif] font-bold justify-center leading-[0] left-[22px] not-italic text-[34px] text-white top-[383px] tracking-[-1.7px] translate-y-[-50%] w-[353px]">
+        <div 
+            className="absolute flex flex-col font-['Inter:Bold',sans-serif] font-bold justify-center leading-[0] left-[22px] not-italic text-[34px] text-white tracking-[-1.7px] translate-y-[-50%] w-[353px]"
+            style={{ top: '380px' }}
+        >
           <p className="leading-[38px] mb-0 font-display">Instagram grid is not the real you</p>
         </div>
 
         {/* Icon */}
-        <div className="absolute left-[49px] size-[300px] top-[-29px] w-[300px] h-[300px]">
+        <div 
+            className="absolute left-1/2 -translate-x-1/2 size-[300px] w-[300px] h-[300px]"
+            style={{ top: '22px' }}
+        >
           <div className="relative w-full h-full">
             <Image 
                 src="/assets/onboarding/375d0ae05acd14e7200b69d5022248f54102f91f.png" 
@@ -232,10 +247,10 @@ function Card3({ className = '' }: { className?: string }) {
                     <feGaussianBlur result="effect1_foregroundBlur_5_113" stdDeviation="64.296" />
                 </filter>
                 <radialGradient cx="0" cy="0" gradientTransform="translate(581.592 581.592) rotate(90) scale(453)" gradientUnits="userSpaceOnUse" id="paint0_radial_5_113" r="1">
-                    <stop stopColor="#1B4965" />
-                    <stop offset="0.39" stopColor="#1E6091" />
-                    <stop offset="0.71" stopColor="#78A1BB" />
-                    <stop offset="1" stopColor="#BEE3DB" />
+                    <stop stopColor="#40E842" />
+                    <stop offset="0.45" stopColor="#39C9F5" />
+                    <stop offset="0.67" stopColor="#2F80ED" />
+                    <stop offset="1" stopColor="#9A32CD" />
                 </radialGradient>
                 </defs>
             </svg>
@@ -270,7 +285,10 @@ function Card3({ className = '' }: { className?: string }) {
       </div>
 
       {/* Icon */}
-      <div className="absolute left-[45px] size-[300px] top-[60px] w-[300px] h-[300px]">
+      <div 
+        className="absolute left-1/2 -translate-x-1/2 size-[300px] w-[300px] h-[300px]"
+        style={{ top: '73px' }}
+      >
         <div className="relative w-full h-full">
             <Image 
                 src="/assets/onboarding/0bf184c5cd6e5a5fd5f2c0aadf7ab81aee0e2cb2.png" 
@@ -281,11 +299,13 @@ function Card3({ className = '' }: { className?: string }) {
         </div>
       </div>
 
-      {/* Text */}
-      <div className="absolute content-stretch flex flex-col gap-[14px] items-start leading-[0] left-[19px] not-italic text-white top-[378px] w-[327px]">
+        {/* Text */}
+      <div 
+        className="absolute content-stretch flex flex-col gap-[14px] items-start leading-[0] left-[19px] not-italic text-white w-[327px]"
+        style={{ top: '396px' }}
+      >
         <div className="flex flex-col font-['Inter:Bold',sans-serif] font-bold justify-center leading-[38px] relative shrink-0 text-[34px] tracking-[-1.7px] w-full">
             <p className="mb-0 font-display">No more performing.</p>
-            <p className="font-display">The Network that understands you</p>
         </div>
         <div className="flex flex-col font-['Inter:Medium',sans-serif] font-medium justify-center relative shrink-0 text-[16px] tracking-[-0.48px] w-full">
             <p className="leading-[24px] font-display">{`TheNetwork distills your online life into who you actually are then connects you with people who get your interests. `}</p>
@@ -310,25 +330,30 @@ export default function OnboardingPage() {
         return null;
     }
 
-   return (
-     <div className="min-h-screen bg-white flex flex-col items-center py-12 px-4 gap-12 overflow-x-hidden">
-        <div className="flex flex-col md:flex-row gap-6 w-full max-w-[1280px] justify-center items-center md:items-start overflow-x-auto pb-4 px-4 snap-x snap-mandatory">
+    return (
+     <div className="h-screen bg-white flex flex-col items-center pt-12 pb-4 px-4 gap-4 overflow-hidden relative">
+        <div className="flex flex-col md:flex-row gap-6 w-full max-w-[1280px] justify-center items-center md:items-start h-full md:scale-[0.70] md:origin-top">
              <Card1 className="snap-center" />
              <Card2 className="snap-center" />
              <Card3 className="snap-center" />
         </div>
 
-        <div className="flex flex-col items-center gap-4 mt-8 pb-12">
+        <div className="flex flex-col items-center gap-4 pb-12 fixed bottom-0 left-0 right-0 pointer-events-none">
             <button 
                 onClick={signInWithGoogle}
-                className="text-[30px] font-bold text-black hover:opacity-70 transition-opacity font-display cursor-pointer"
+                className="pointer-events-auto relative group"
             >
-                Continue →
+                <div className="flex items-center overflow-clip px-[21px] py-[14px] relative rounded-[100px] shadow-[0px_0px_2px_0px_rgba(0,0,0,0.1),0px_1px_8px_0px_rgba(0,0,0,0.1)] bg-white transition-transform group-hover:scale-105">
+                    <div className="absolute inset-0 pointer-events-none shadow-[inset_3px_3px_0.5px_-3.5px_white,inset_2px_2px_0.5px_-2px_#262626,inset_-2px_-2px_0.5px_-2px_#262626,inset_0px_0px_0px_1px_#a6a6a6,inset_0px_0px_8px_0px_#f2f2f2] rounded-[100px]" />
+                    <span className="text-[20px] font-semibold text-black font-display tracking-tight mr-2">
+                        Continue
+                    </span>
+                    <span className="text-[20px] font-semibold text-black font-display">
+                        →
+                    </span>
+                </div>
             </button>
-            <p className="text-[15px] text-black font-display">
-                No posting. No DMs. No spam.
-            </p>
         </div>
-     </div>
-   );
+    </div>
+  );
 }

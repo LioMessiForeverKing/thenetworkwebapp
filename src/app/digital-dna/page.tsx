@@ -17,7 +17,7 @@ export default function DigitalDnaPage() {
 
     // Auth Redirect
     useEffect(() => {
-        if (!loading && !user) router.push('/login');
+        if (!loading && !user) router.push('/landing');
     }, [user, loading, router]);
 
     // Fetch Data

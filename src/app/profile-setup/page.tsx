@@ -118,105 +118,106 @@ export default function ProfileSetupPage() {
 
     if (loading) {
         return (
-             <div className="flex items-center justify-center min-h-screen bg-white">
+            <div className="flex items-center justify-center min-h-screen bg-white">
                 <div className="w-8 h-8 border-4 border-black border-t-transparent rounded-full animate-spin"></div>
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-white flex flex-col items-center py-12 px-4 relative overflow-hidden">
-             {/* Progress Bar Container */}
-             <div className="w-full max-w-[600px] flex flex-col gap-2 mb-12">
-                 <div className="flex justify-between items-end mb-2">
-                     <span className="text-[15px] font-normal text-black font-display">Build your Digital DNA</span>
-                     <span className="text-[15px] font-normal text-black font-display">25%</span>
-                 </div>
-                 <div className="w-full h-[10px] bg-white border border-black relative">
-                     <div className="absolute top-0 left-0 h-full w-1/4 bg-gradient-to-b from-[#252525] to-[#454545]"></div>
-                 </div>
-             </div>
+        <div className="min-h-screen bg-white flex flex-col items-center py-12 px-4 relative overflow-x-hidden">
+            {/* Progress Bar Container */}
+            <div className="w-full max-w-[600px] flex flex-col gap-2 mb-24">
+                <div className="flex justify-between items-end mb-2">
+                    <span className="text-[15px] font-normal text-black font-display">Build your Digital DNA</span>
+                    <span className="text-[15px] font-normal text-black font-display">25%</span>
+                </div>
+                <div className="w-full h-[10px] bg-white border border-black relative">
+                    <div className="absolute top-0 left-0 h-full w-1/4 bg-gradient-to-b from-[#252525] to-[#454545]"></div>
+                </div>
+            </div>
 
-             {/* Form Container */}
-             <div className="w-full max-w-[300px] flex flex-col gap-6">
-                 {/* Name */}
-                 <div className="flex flex-col gap-2">
-                     <label className="text-[15px] text-black font-display">Name</label>
-                     <input 
-                        type="text" 
+            {/* Form Fields - Centered Column */}
+            <div className="flex flex-col items-center gap-6 w-full">
+                
+                {/* Name */}
+                <div className="w-[300px] flex flex-col gap-2">
+                    <label className="text-[15px] text-black font-display">Name</label>
+                    <input
+                        type="text"
                         value={name}
                         onChange={(e) => setName(e.target.value)}
                         className="w-full h-[40px] bg-white border border-black px-3 text-black font-display focus:outline-none focus:border-black focus:ring-1 focus:ring-black"
-                     />
-                 </div>
+                    />
+                </div>
 
-                 {/* Age */}
-                 <div className="flex flex-col gap-2">
-                     <label className="text-[15px] text-black font-display">Age</label>
-                     <input 
-                        type="number" 
+                {/* Age */}
+                <div className="w-[300px] flex flex-col gap-2">
+                    <label className="text-[15px] text-black font-display">Age</label>
+                    <input
+                        type="number"
                         value={age}
                         onChange={(e) => setAge(e.target.value)}
                         className="w-full h-[40px] bg-white border border-black px-3 text-black font-display focus:outline-none focus:border-black focus:ring-1 focus:ring-black"
-                     />
-                 </div>
+                    />
+                </div>
 
-                 {/* Location */}
-                 <div className="flex flex-col gap-2">
-                     <label className="text-[15px] text-black font-display">Location</label>
-                     <input 
-                        type="text" 
+                {/* Location */}
+                <div className="w-[300px] flex flex-col gap-2">
+                    <label className="text-[15px] text-black font-display">Location</label>
+                    <input
+                        type="text"
                         value={location}
                         onChange={(e) => setLocation(e.target.value)}
                         className="w-full h-[40px] bg-white border border-black px-3 text-black font-display focus:outline-none focus:border-black focus:ring-1 focus:ring-black"
-                     />
-                 </div>
+                    />
+                </div>
 
-                 {/* Photo */}
-                 <div className="flex flex-col gap-2">
-                     <label className="text-[15px] text-black font-display">Profile Photo (optional)</label>
-                     <div 
+                {/* Photo */}
+                <div className="w-[300px] flex flex-col gap-2">
+                    <label className="text-[15px] text-black font-display">Profile Photo (optional)</label>
+                    <div 
                         onClick={handlePhotoClick}
                         className="w-full h-[40px] bg-white border border-black flex items-center justify-between px-3 cursor-pointer hover:bg-gray-50 transition-colors"
-                     >
-                        <span className="text-gray-500 text-sm truncate">{photoFile ? photoFile.name : (photoUrl ? 'Current photo used' : 'Select photo')}</span>
+                    >
+                        <span className="text-gray-500 text-sm truncate">{photoFile ? photoFile.name : (photoUrl ? 'Current photo used' : '')}</span>
                         {photoUrl && (
                             <div className="relative w-6 h-6 rounded-full overflow-hidden border border-gray-200">
                                 <Image src={photoUrl} alt="" fill className="object-cover" />
                             </div>
                         )}
-                     </div>
-                     <input
+                    </div>
+                    <input
                         ref={fileInputRef}
                         type="file"
                         accept="image/*"
                         onChange={handlePhotoChange}
                         className="hidden"
                     />
-                 </div>
+                </div>
 
-                 {/* One-liner */}
-                 <div className="flex flex-col gap-2 -ml-[20px] md:-ml-[46px]">
-                     <label className="text-[15px] text-black font-display pl-[20px] md:pl-[46px]">One-liner (optional): What do you want people to know you for?</label>
-                     <textarea 
+                {/* One-liner */}
+                <div className="w-[500px] max-w-full flex flex-col gap-2">
+                    <label className="text-[15px] text-black font-display">One-liner (optional): What do you want people to know you for?</label>
+                    <textarea
                         value={oneLiner}
                         onChange={(e) => setOneLiner(e.target.value)}
                         rows={3}
-                        className="w-full md:w-[393px] h-[80px] bg-white border border-black p-3 text-black font-display focus:outline-none focus:border-black focus:ring-1 focus:ring-black resize-none"
-                     />
-                 </div>
+                        className="w-full h-[80px] bg-white border border-black p-3 text-black font-display focus:outline-none focus:border-black focus:ring-1 focus:ring-black resize-none"
+                    />
+                </div>
 
-                 {error && <p className="text-red-500 text-sm font-display">{error}</p>}
-             </div>
+                {error && <p className="text-red-500 text-sm font-display">{error}</p>}
 
-             {/* Continue Button */}
-             <button 
-                onClick={handleContinue}
-                disabled={isSaving}
-                className="mt-12 text-[30px] font-bold text-black font-display hover:opacity-70 transition-opacity disabled:opacity-50 cursor-pointer"
-             >
-                {isSaving ? 'Saving...' : 'Continue →'}
-             </button>
+                {/* Continue Button */}
+                <button
+                    onClick={handleContinue}
+                    disabled={isSaving}
+                    className="mt-12 text-[30px] font-bold text-black font-display hover:opacity-70 transition-opacity disabled:opacity-50 cursor-pointer"
+                >
+                    {isSaving ? 'Saving...' : 'Continue →'}
+                </button>
+            </div>
         </div>
     );
 }

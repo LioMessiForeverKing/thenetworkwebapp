@@ -54,7 +54,7 @@ export default function AuthCallback() {
             } catch (error: any) {
                 console.error('Session error:', error);
                 setStatus('Authentication failed. Redirecting...');
-                setTimeout(() => router.push('/login'), 2000);
+                setTimeout(() => router.push('/landing'), 2000);
                 return;
             }
 
@@ -80,35 +80,16 @@ export default function AuthCallback() {
             const isPartial = hasInterests && (!hasArchetypes || !hasDoppelgangers);
             const isNew = !hasInterests; // No interests means totally new
 
-            const FORCE_ONBOARDING = false;
+            const FORCE_ONBOARDING = true;
 
             if (FORCE_ONBOARDING || isNew) {
                 // New user - needs full setup
                 console.log('New user detected...');
                 setStatus('Setting up your profile...');
-
-                // Auto-populate profile from Google metadata
-                const { user } = session;
-                const metadata = user.user_metadata;
-                const fullName = metadata?.full_name || metadata?.name || user.email?.split('@')[0] || 'User';
-                const avatarUrl = metadata?.avatar_url || metadata?.picture || null;
-
-                // Create/Update profile with Google data
-                const { error: upsertError } = await supabase
-                    .from('profiles')
-                    .upsert({
-                        id: userId,
-                        full_name: fullName,
-                        avatar_url: avatarUrl,
-                        star_color: '#8E5BFF', // Default
-                        updated_at: new Date().toISOString(),
-                    }, { onConflict: 'id' });
-
-                if (upsertError) {
-                    console.error('Error auto-creating profile:', upsertError);
-                }
-
-                router.push('/profile-setup/signals');
+                
+                // Redirect to Profile Setup (Step 1)
+                // router.push('/profile-setup');
+                router.push('/profile-setup/wrapped');
 
             } else if (isPartial) {
                 // Partial user - has interests but needs upgrade
@@ -141,19 +122,19 @@ export default function AuthCallback() {
           align-items: center;
           justify-content: center;
           min-height: 100vh;
-          background: #000;
+          background: #fff;
         }
         
         .callback-loader {
           text-align: center;
-          color: #fff;
+          color: #000;
         }
         
         .spinner {
           width: 48px;
           height: 48px;
-          border: 3px solid rgba(255, 255, 255, 0.1);
-          border-top-color: #fff;
+          border: 3px solid rgba(0, 0, 0, 0.1);
+          border-top-color: #000;
           border-radius: 50%;
           animation: spin 1s linear infinite;
           margin: 0 auto 16px;

@@ -4,48 +4,72 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { createClient } from '@/lib/supabase';
+import Image from 'next/image';
 
 // Helper components for visuals
-const StarIcon = () => (
-    <svg width="50" height="50" viewBox="0 0 51 51" fill="none">
-        <path d="M25.5 0L28 18L46 25.5L28 33L25.5 51L23 33L5 25.5L23 18L25.5 0Z" fill="currentColor" />
+const StarFourPoint = ({ className = "w-6 h-6" }: { className?: string }) => (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
+        <path d="M12 0L14.5 9.5L24 12L14.5 14.5L12 24L9.5 14.5L0 12L9.5 9.5L12 0Z" />
     </svg>
 );
 
-const CirclesViz = () => (
-    <div className="relative w-[300px] h-[300px]">
-        {/* Simplified circles visualization */}
-        <div className="absolute top-0 right-0 w-24 h-24 rounded-full border-2 border-red-500 opacity-20"></div>
-        <div className="absolute top-1/2 left-0 w-32 h-32 rounded-full border-2 border-red-500 opacity-20"></div>
-        <div className="absolute bottom-0 right-1/4 w-20 h-20 rounded-full border-2 border-red-500 opacity-20"></div>
+const DoppelgangerCircles = () => (
+    <div className="absolute right-0 top-0 h-full w-1/2 overflow-hidden pointer-events-none">
+        {/* Circle Group 1 - Top Right */}
+        <div className="absolute right-10 top-[10%] w-[120px] h-[120px] rounded-full border border-[#FF4D4D]" />
+        <div className="absolute right-[55px] top-[12%] w-[90px] h-[90px] rounded-full border border-[#FF4D4D]" />
+
+        {/* Circle Group 2 - Middle Right (High) */}
+        <div className="absolute right-[180px] top-[25%] w-[120px] h-[120px] rounded-full border border-[#FF4D4D]" />
+        <div className="absolute right-[195px] top-[27%] w-[90px] h-[90px] rounded-full border border-[#FF4D4D]" />
+
+        {/* Circle Group 3 - Middle Right (Low) */}
+        <div className="absolute right-10 top-[40%] w-[120px] h-[120px] rounded-full border border-[#FF4D4D]" />
+        <div className="absolute right-[55px] top-[42%] w-[90px] h-[90px] rounded-full border border-[#FF4D4D]" />
+
+        {/* Circle Group 4 - Bottom Right (High) */}
+        <div className="absolute right-[180px] top-[55%] w-[120px] h-[120px] rounded-full border border-[#FF4D4D]" />
+        <div className="absolute right-[195px] top-[57%] w-[90px] h-[90px] rounded-full border border-[#FF4D4D]" />
+
+        {/* Circle Group 5 - Bottom Right (Low) */}
+        <div className="absolute right-10 top-[70%] w-[120px] h-[120px] rounded-full border border-[#FF4D4D]" />
+        <div className="absolute right-[55px] top-[72%] w-[90px] h-[90px] rounded-full border border-[#FF4D4D]" />
     </div>
 );
 
 interface Archetype {
     name: string;
     percentage: number;
+    color?: string; // Add color support
 }
 
 interface Doppelganger {
     name: string;
 }
 
-const IdentityGrid = ({ archetypes = [] }: { archetypes?: Archetype[] }) => {
+const IdentityLine = ({ archetypes = [] }: { archetypes?: Archetype[] }) => {
     // Fallback if no data
     const displayArchetypes = archetypes.length > 0 ? archetypes : [
-        { name: 'Unknown', percentage: 0 },
-        { name: 'Unknown', percentage: 0 },
-        { name: 'Unknown', percentage: 0 },
-        { name: 'Unknown', percentage: 0 },
+        { name: 'Builder', percentage: 32 },
+        { name: 'Night Owl', percentage: 24 },
+        { name: 'Tech Optimist', percentage: 19 },
+        { name: 'Chaos Gremlin', percentage: 25 },
+    ];
+
+    // Colors for the 4 slots
+    const colors = [
+        'text-[#D4AF37]', // Gold
+        'text-[#9F9FFF]', // Periwinkle
+        'text-[#4ADE80]', // Green
+        'text-[#FF6B6B]', // Red
     ];
 
     return (
-        <div className="grid grid-cols-2 gap-4 w-full max-w-[600px] mt-8">
+        <div className="flex flex-wrap justify-center items-center gap-x-2 w-full max-w-[900px] mt-8 text-[28px] md:text-[34px] font-bold font-display leading-tight tracking-tight">
             {displayArchetypes.slice(0, 4).map((arch, i) => (
-                <div key={i} className="bg-white/10 rounded-2xl p-6 text-center border border-white/10 backdrop-blur-sm animate-fade-in-up" style={{ animationDelay: `${i * 100}ms` }}>
-                    <div className="text-4xl font-bold mb-2">{arch.percentage}%</div>
-                    <div className="text-xl">{arch.name}</div>
-                </div>
+                <span key={i} className={`${colors[i % colors.length]}`}>
+                    {arch.percentage}% {arch.name}{i < 3 ? '.' : ''}
+                </span>
             ))}
         </div>
     );
@@ -97,113 +121,224 @@ export default function WrappedPage() {
     }, [user]);
 
     const SLIDES: Slide[] = [
-        // Slide 1
+        // Slide 1 - You already have a digital life
         {
             id: 1,
             bg: 'dark',
             content: (
-                <div className="max-w-[800px] text-center">
-                    <h1 className="text-[34px] md:text-[48px] font-bold leading-tight mb-4 font-display">
-                        You already have a digital life.
-                    </h1>
-                    <p className="text-[24px] md:text-[34px] font-bold text-gray-400 font-display">
-                        But right now… it's scattered everywhere.
-                    </p>
+                <div className="relative w-full h-full flex flex-col items-center justify-center">
+                    {/* Text Content */}
+                    <div className="relative z-10 max-w-[800px] text-left px-8 -translate-y-20 md:-translate-x-20">
+                        <h1 className="text-[40px] md:text-[60px] font-bold text-white font-display leading-[1.1] mb-2 tracking-tight">
+                            You already have a digital life.
+                        </h1>
+                        <p className="text-[24px] md:text-[32px] font-medium text-gray-400 font-display">
+                            But right now... it's scattered everywhere.
+                        </p>
+                    </div>
+
+                    {/* Floating Orbs */}
+                    <div className="absolute right-[10%] bottom-0 w-[300px] h-[300px] md:w-[400px] md:h-[400px] translate-y-1/4 animate-float-slow opacity-90 pointer-events-none">
+                         <Image src="/assets/onboarding/bubble.png" alt="" fill className="object-contain" />
+                    </div>
+                    <div className="absolute right-[5%] top-[40%] w-[80px] h-[80px] md:w-[100px] md:h-[100px] animate-float-medium opacity-80 pointer-events-none">
+                        <Image src="/assets/onboarding/bubble.png" alt="" fill className="object-contain" />
+                    </div>
+                    <div className="absolute left-[50%] bottom-[20%] w-[100px] h-[100px] md:w-[120px] md:h-[120px] -translate-x-full animate-float-fast opacity-85 pointer-events-none">
+                        <Image src="/assets/onboarding/bubble.png" alt="" fill className="object-contain" />
+                    </div>
+
+                    {/* TN Logo */}
+                    <div className="absolute left-6 bottom-6 w-[150px] h-[120px] opacity-100 pointer-events-none">
+                        <Image src="/assets/onboarding/tn_logo.png" alt="TN" fill className="object-contain" />
+                    </div>
                 </div>
             ),
             type: 'manual'
         },
-        // Slide 2
+        // Slide 2 - What if all of that added up to something?
         {
             id: 2,
             bg: 'dark',
             content: (
-                <div className="max-w-[800px] text-center">
-                    <h1 className="text-[34px] md:text-[48px] font-bold leading-tight mb-4 font-display">
-                        What if all of that added up to something?
-                    </h1>
-                    <p className="text-[24px] md:text-[34px] font-bold text-gray-400 font-display">
-                        One profile that actually knows who you are.
-                    </p>
+                <div className="relative w-full h-full flex flex-col items-center justify-center">
+                    <div className="relative z-10 max-w-[800px] text-left px-8 -translate-y-20 md:-translate-x-20">
+                        <h1 className="text-[40px] md:text-[60px] font-bold text-white font-display leading-[1.1] mb-2 tracking-tight">
+                            What if all of that added up to something?
+                        </h1>
+                        <p className="text-[24px] md:text-[32px] font-medium text-gray-400 font-display">
+                            One profile that actually shows who you are.
+                        </p>
+                    </div>
+
+                     {/* Floating Orbs - Same as Slide 1 */}
+                    <div className="absolute right-[10%] bottom-0 w-[300px] h-[300px] md:w-[400px] md:h-[400px] translate-y-1/4 animate-float-slow opacity-90 pointer-events-none">
+                         <Image src="/assets/onboarding/bubble.png" alt="" fill className="object-contain" />
+                    </div>
+                    <div className="absolute right-[5%] top-[40%] w-[80px] h-[80px] md:w-[100px] md:h-[100px] animate-float-medium opacity-80 pointer-events-none">
+                        <Image src="/assets/onboarding/bubble.png" alt="" fill className="object-contain" />
+                    </div>
+                    <div className="absolute left-[50%] bottom-[20%] w-[100px] h-[100px] md:w-[120px] md:h-[120px] -translate-x-full animate-float-fast opacity-85 pointer-events-none">
+                        <Image src="/assets/onboarding/bubble.png" alt="" fill className="object-contain" />
+                    </div>
+
+                    {/* TN Logo */}
+                    <div className="absolute left-6 bottom-6 w-[150px] h-[120px] opacity-100 pointer-events-none">
+                        <Image src="/assets/onboarding/tn_logo.png" alt="TN" fill className="object-contain" />
+                    </div>
                 </div>
             ),
             type: 'manual'
         },
-        // Slide 3
+        // Slide 3 - Introducing
         {
             id: 3,
-            bg: 'light',
+            bg: 'dark',
             content: (
-                <div className="max-w-[800px] text-center">
-                    <h1 className="text-[34px] md:text-[48px] font-bold leading-tight bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-gray-600 font-display">
-                        Your “Spotify Wrapped” — but for your life.
-                    </h1>
+                <div className="relative w-full h-full flex flex-col items-center justify-center">
+                    <div className="relative z-10 max-w-[800px] text-center px-4 -translate-y-10">
+                        <h1 className="text-[34px] md:text-[50px] font-bold text-white font-display leading-[1.1] mb-2 tracking-tight">
+                            Introducing: Digital DNA Wrapped
+                        </h1>
+                        <h2 className="text-[24px] md:text-[34px] font-bold text-gray-400 font-display">
+                            “Spotify Wrapped” — but for life.
+                        </h2>
+                    </div>
+
+                    {/* Stars - Top Right */}
+                    <div className="absolute right-[10%] top-[10%] text-white animate-pulse-slow">
+                        <StarFourPoint className="w-[50px] h-[50px]" />
+                    </div>
+                    <div className="absolute right-[5%] top-[5%] text-gray-300 animate-pulse-medium delay-100">
+                        <StarFourPoint className="w-[60px] h-[60px]" />
+                    </div>
+                     <div className="absolute right-[12%] top-[18%] text-gray-500 animate-pulse-fast delay-200">
+                        <StarFourPoint className="w-[40px] h-[40px]" />
+                    </div>
+
+                    {/* TN Logo - White */}
+                    <div className="absolute left-10 bottom-10 w-[80px] h-[60px] opacity-100 pointer-events-none">
+                        <Image src="/assets/onboarding/tn_logo.png" alt="TN" fill className="object-contain" />
+                    </div>
                 </div>
             ),
             type: 'manual'
         },
-        // Slide 4 - Loading
+        // Slide 4 - Loading Part 1 (Reading Signals - Light)
         {
             id: 4,
-            bg: 'light',
+            bg: 'dark',
             content: (
-                <div className="max-w-[800px] text-center flex flex-col items-center">
-                    <div className="mb-8 text-black animate-spin">
-                        <StarIcon />
-                    </div>
-                    <h1 className="text-[34px] font-bold text-black font-display">
-                        Reading your signals…
+                <div className="relative w-full h-full flex flex-col items-center justify-center">
+                    <h1 className="text-[34px] font-bold text-white font-display mb-8">
+                        Reading your signals...
                     </h1>
+                    {/* Star - Top Left of Center */}
+                    <div className="absolute left-[40%] top-[35%] text-white animate-pulse-slow">
+                        <StarFourPoint className="w-8 h-8" />
+                    </div>
+                    {/* TN Logo - White */}
+                    <div className="absolute left-6 bottom-6 w-[150px] h-[120px] opacity-100 pointer-events-none">
+                        <Image src="/assets/onboarding/tn_logo.png" alt="TN" fill className="object-contain" />
+                    </div>
                 </div>
             ),
             type: 'auto-advance',
-            duration: 2000
+            duration: 1500
         },
-        // Slide 5 - Loading
+        // Slide 5 - Loading Part 2 (Clustering - Dark)
         {
             id: 5,
             bg: 'dark',
             content: (
-                <div className="max-w-[800px] text-center flex flex-col items-center">
-                    <div className="mb-8 text-white animate-spin">
-                        <StarIcon />
-                    </div>
-                    <h1 className="text-[34px] font-bold text-white font-display">
-                        Clustering your obsessions…
+                <div className="relative w-full h-full flex flex-col items-center justify-center">
+                    <h1 className="text-[34px] font-bold text-white font-display mb-8">
+                        Clustering your obsessions...
                     </h1>
+                    {/* Star - Right */}
+                    <div className="absolute right-[25%] top-[45%] text-gray-500 animate-pulse-medium">
+                        <StarFourPoint className="w-12 h-12" />
+                    </div>
+                    {/* TN Logo - White */}
+                    <div className="absolute left-6 bottom-6 w-[150px] h-[120px] opacity-100 pointer-events-none">
+                        <Image src="/assets/onboarding/tn_logo.png" alt="TN" fill className="object-contain" />
+                    </div>
+                </div>
+            ),
+            type: 'auto-advance',
+            duration: 1500
+        },
+        // Slide 6 - Building your identity map... (Transition 3)
+        {
+            id: 6,
+            bg: 'dark',
+            content: (
+                <div className="relative w-full h-full flex flex-col items-center justify-center">
+                    <h1 className="text-[34px] font-bold text-white font-display mb-8">
+                        Building your identity map...
+                    </h1>
+                    {/* Star - Bottom Left of Center */}
+                    <div className="absolute left-[35%] bottom-[40%] text-white animate-pulse-fast">
+                        <StarFourPoint className="w-10 h-10" />
+                    </div>
+                    {/* TN Logo - White */}
+                    <div className="absolute left-6 bottom-6 w-[150px] h-[120px] opacity-100 pointer-events-none">
+                        <Image src="/assets/onboarding/tn_logo.png" alt="TN" fill className="object-contain" />
+                    </div>
                 </div>
             ),
             type: 'auto-advance',
             duration: 2000
         },
-        // Slide 6 - Identity Map
-        {
-            id: 6,
-            bg: 'light',
-            content: (
-                <div className="max-w-[1000px] text-center flex flex-col items-center">
-                    <h1 className="text-[34px] md:text-[48px] font-bold text-black mb-12 font-display">
-                        You don't fit in one box. So we gave you four.
-                    </h1>
-                    <IdentityGrid archetypes={archetypes} />
-                </div>
-            ),
-            type: 'manual'
-        },
-        // Slide 7 - Age
+        // Slide 7 - You don't fit in one box (Revamped Identity Map)
         {
             id: 7,
             bg: 'dark',
             content: (
-                <div className="max-w-[800px] text-center">
-                    <h1 className="text-[34px] font-bold text-white mb-4 font-display">
-                        We don't care how old you are.
-                    </h1>
-                    <p className="text-[24px] text-gray-400 font-display">
-                        Age is just one tiny datapoint in your Digital DNA.
-                        <br />
-                        What actually matters: what you build, what you binge, and what you're obsessed with.
-                    </p>
+                <div className="relative w-full h-full flex flex-col items-start justify-center px-8 md:px-20">
+                    <div 
+                        className="max-w-[1000px] text-left transition-transform duration-75"
+                        style={{ transform: `translate(202px, -158px)` }}
+                    >
+                        <h1 
+                            className="font-bold text-white mb-8 font-display leading-tight tracking-tight"
+                            style={{ fontSize: `45px` }}
+                        >
+                            You don't fit in one box. So we gave you four.
+                        </h1>
+                        {/* Custom Left-Aligned Identity Line Wrapper */}
+                        <div 
+                            className="flex flex-wrap gap-x-3 w-full font-bold font-display leading-tight tracking-tight"
+                            style={{ fontSize: `25px` }}
+                        >
+                            {(() => {
+                                // Fallback if no data
+                                const displayArchetypes = archetypes.length > 0 ? archetypes : [
+                                    { name: 'Builder', percentage: 32 },
+                                    { name: 'Night Owl', percentage: 24 },
+                                    { name: 'Tech Optimist', percentage: 19 },
+                                    { name: 'Chaos Gremlin', percentage: 25 },
+                                ];
+                                
+                                const colors = [
+                                    'text-[#D4AF37]', // Gold
+                                    'text-[#9F9FFF]', // Periwinkle
+                                    'text-[#4ADE80]', // Green
+                                    'text-[#FF6B6B]', // Red
+                                ];
+
+                                return displayArchetypes.slice(0, 4).map((arch, i) => (
+                                    <span key={i} className={`${colors[i % colors.length]}`}>
+                                        {arch.percentage}% {arch.name}{i < 3 ? '.' : ''}
+                                    </span>
+                                ));
+                            })()}
+                        </div>
+                    </div>
+                    {/* TN Logo - White */}
+                    <div className="absolute left-6 bottom-6 w-[150px] h-[120px] opacity-100 pointer-events-none">
+                        <Image src="/assets/onboarding/tn_logo.png" alt="TN" fill className="object-contain" />
+                    </div>
                 </div>
             ),
             type: 'manual'
@@ -213,29 +348,43 @@ export default function WrappedPage() {
             id: 8,
             bg: 'dark',
             content: (
-                <div className="max-w-[1000px] text-center flex flex-col items-center">
-                    <h1 className="text-[34px] font-bold text-white mb-4 font-display">
-                        Your Digital Doppelgängers
-                    </h1>
-                    <p className="text-[24px] text-gray-400 mb-8 font-display">
-                        Your Digital DNA is 87% similar to:
-                    </p>
-                    <div className="text-[24px] font-bold text-white space-y-2 font-display min-h-[120px]">
-                        {doppelgangers.length > 0 ? (
-                            doppelgangers.map((d, i) => (
-                                <p key={i} className="animate-fade-in-up" style={{ animationDelay: `${i * 100}ms` }}>
-                                    {d.name}
-                                </p>
-                            ))
-                        ) : (
-                            // Fallback if loading or empty
-                            <>
-                                <p>Finding similar profiles...</p>
-                            </>
-                        )}
+                <div className="w-full h-full relative flex items-center">
+                    {/* Text Content - Left Side */}
+                    <div className="w-full md:w-3/4 pl-8 md:pl-80 z-10">
+                        <h1 className="text-[34px] md:text-[50px] font-bold text-white mb-6 font-display leading-tight tracking-tight whitespace-nowrap">
+                            Your Digital Doppelgängers
+                        </h1>
+                        <p className="text-[20px] md:text-[28px] font-bold text-white mb-8 font-display whitespace-nowrap">
+                            Your Digital DNA is 87% similar to:
+                        </p>
+                        <div className="space-y-2">
+                            {doppelgangers.length > 0 ? (
+                                doppelgangers.map((d, i) => (
+                                    <p 
+                                        key={i} 
+                                        className="text-[28px] md:text-[36px] font-bold text-[#b3b3b3] font-display animate-fade-in-up whitespace-nowrap" 
+                                        style={{ animationDelay: `${i * 100}ms` }}
+                                    >
+                                        {d.name}
+                                    </p>
+                                ))
+                            ) : (
+                                // Static placeholders if no data (matching Figma)
+                                <>
+                                    <p className="text-[28px] md:text-[36px] font-bold text-[#b3b3b3] font-display whitespace-nowrap">Paul Graham</p>
+                                    <p className="text-[28px] md:text-[36px] font-bold text-[#b3b3b3] font-display whitespace-nowrap">Emma Chamberlain</p>
+                                    <p className="text-[28px] md:text-[36px] font-bold text-[#b3b3b3] font-display whitespace-nowrap">Miles Morales</p>
+                                </>
+                            )}
+                        </div>
                     </div>
-                    <div className="mt-12">
-                        <CirclesViz />
+
+                    {/* Right Side Visuals */}
+                    <DoppelgangerCircles />
+
+                    {/* TN Logo - White */}
+                    <div className="absolute left-6 bottom-6 w-[150px] h-[120px] opacity-100 pointer-events-none">
+                        <Image src="/assets/onboarding/tn_logo.png" alt="TN" fill className="object-contain" />
                     </div>
                 </div>
             ),
@@ -244,21 +393,29 @@ export default function WrappedPage() {
         // Slide 9 - Final
         {
             id: 9,
-            bg: 'light',
+            bg: 'dark',
             content: (
-                <div className="max-w-[800px] text-center flex flex-col items-center">
-                    <h1 className="text-[48px] font-bold text-black mb-8 font-display">
-                        Welcome to The Network
-                    </h1>
-                    <button
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            router.push('/');
-                        }}
-                        className="bg-black text-white text-[24px] font-bold py-4 px-12 rounded-full hover:scale-105 transition-transform font-display cursor-pointer"
-                    >
-                        Enter Your Network
-                    </button>
+                <div className="w-full h-full relative p-8 md:p-20">
+                     <div className="max-w-[800px] text-left pt-20">
+                        <h1 className="text-[40px] md:text-[60px] font-bold text-white mb-4 font-display leading-tight tracking-tight">
+                            Ready to meet more people like you?
+                        </h1>
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                localStorage.setItem('theme_inverted', 'true');
+                                router.push('/');
+                            }}
+                            className="text-[24px] md:text-[32px] font-bold text-white hover:opacity-70 transition-opacity font-display cursor-pointer flex items-center gap-2"
+                        >
+                            Continue →
+                        </button>
+                    </div>
+
+                    {/* TN Logo - White */}
+                    <div className="absolute left-6 bottom-6 w-[150px] h-[120px] opacity-100 pointer-events-none">
+                        <Image src="/assets/onboarding/tn_logo.png" alt="TN" fill className="object-contain" />
+                    </div>
                 </div>
             ),
             type: 'manual'
@@ -280,6 +437,7 @@ export default function WrappedPage() {
         if (currentSlideIndex < SLIDES.length - 1) {
             setCurrentSlideIndex(prev => prev + 1);
         } else {
+            localStorage.setItem('theme_inverted', 'true');
             router.push('/');
         }
     };
@@ -290,30 +448,41 @@ export default function WrappedPage() {
 
     return (
         <div
-            className={`min-h-screen w-full flex flex-col items-center justify-center relative overflow-hidden transition-colors duration-500 ${currentSlide.bg === 'dark' ? 'bg-[#252525] text-white' : 'bg-[#f4f3ee] text-black'
+            className={`h-screen w-full relative overflow-hidden transition-colors duration-500 ${currentSlide.bg === 'dark' ? 'bg-[#111111] text-white' : 'bg-[#f4f3ee] text-black'
                 }`}
             onClick={currentSlide.type === 'manual' ? handleNext : undefined}
         >
             {/* Content */}
-            <div className="z-10 px-4 w-full flex justify-center animate-fade-in">
+            <div key={currentSlideIndex} className="absolute inset-0 z-10 w-full h-full flex justify-center items-center animate-fade-in">
                 {currentSlide.content}
             </div>
 
-            {/* Tap Indicator */}
+            {/* Preload Critical Assets */}
+            <div className="fixed w-0 h-0 overflow-hidden pointer-events-none opacity-0">
+                <Image src="/assets/onboarding/tn_logo.png" alt="" width={150} height={120} priority />
+                <Image src="/assets/onboarding/tn_logo_black.png" alt="" width={150} height={120} priority />
+                <Image src="/assets/onboarding/bubble.png" alt="" width={400} height={400} priority />
+            </div>
+
+            {/* Tap Indicator - Moved lower and centered */}
             {currentSlide.type === 'manual' && currentSlideIndex < SLIDES.length - 1 && (
-                <div className="absolute bottom-8 text-sm opacity-50 animate-bounce font-display">
+                <div className="absolute bottom-8 left-1/2 -translate-x-1/2 text-sm opacity-50 animate-bounce font-display pointer-events-none">
                     Tap to continue
                 </div>
             )}
 
-            {/* Navigation Dots */}
-            <div className="absolute bottom-8 right-8 z-20 flex gap-2">
+            {/* Navigation Dots - Top Center */}
+            <div className="absolute top-8 left-1/2 -translate-x-1/2 z-20 flex gap-2">
                 {SLIDES.map((_, idx) => (
-                    <div
+                    <button
                         key={idx}
-                        className={`w-2 h-2 rounded-full transition-colors ${idx === currentSlideIndex
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setCurrentSlideIndex(idx);
+                        }}
+                        className={`w-2 h-2 rounded-full transition-colors cursor-pointer ${idx === currentSlideIndex
                                 ? (currentSlide.bg === 'dark' ? 'bg-white' : 'bg-black')
-                                : 'bg-gray-400'
+                                : 'bg-gray-600'
                             }`}
                     />
                 ))}

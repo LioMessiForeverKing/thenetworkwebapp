@@ -22,7 +22,8 @@ export default function Menu() {
   useEffect(() => {
     setMounted(true);
     const saved = localStorage.getItem('theme_inverted');
-    if (saved === 'true') {
+    // Default to true (dark mode) if not set, or if set to true
+    if (saved === null || saved === 'true') {
       setIsInverted(true);
     }
   }, []);

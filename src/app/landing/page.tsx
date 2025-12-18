@@ -31,13 +31,13 @@ export default function LandingPage() {
              <main className="flex-1 flex flex-col items-center justify-center w-full max-w-[1280px] px-4 gap-8">
                 {/* Logo Image - Scaled up to remove whitespace */}
                 <div className="relative w-full max-w-[862px] aspect-[862/172] scale-[5] origin-center">
-                     <Image 
+                    <Image
                         src="/assets/onboarding/608c2b81e2a5bd67e038a321a7b3790319e41243.png"
                         alt="The Network"
                         fill
                         className="object-contain"
                         priority
-                     />
+                    />
                 </div>
 
                 {/* Headline */}
@@ -53,7 +53,7 @@ export default function LandingPage() {
                     <span className="text-white text-[25px] font-bold font-display">
                         Claim my Digital DNA
                     </span>
-                </button>
+                    </button>
              </main>
 
              {/* Footer Section */}
@@ -66,7 +66,7 @@ export default function LandingPage() {
                     <a href="#" className="hover:text-black">Terms of Service</a>
                     <a href="#" className="hover:text-black">Terms of Use</a>
                 </div>
-             </footer>
+            </footer>
         </div>
     );
 }
