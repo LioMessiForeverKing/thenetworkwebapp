@@ -17,6 +17,7 @@ export default function DigitalDnaPage() {
     const [hierarchicalInterests, setHierarchicalInterests] = useState<any[]>([]);
     const [userFullName, setUserFullName] = useState('Me');
     const [isLoadingGraph, setIsLoadingGraph] = useState(true);
+    const [isGraphReady, setIsGraphReady] = useState(false);
 
     // Modal state
     const [selectedInterest, setSelectedInterest] = useState<string | null>(null);
@@ -28,6 +29,42 @@ export default function DigitalDnaPage() {
     useEffect(() => {
         if (!loading && !user) router.push('/landing');
     }, [user, loading, router]);
+
+    // Memoize handlers to prevent graph re-renders
+    const handleInterestClick = React.useCallback(async (interest: string) => {
+        setSelectedInterest(interest);
+        setIsExplanationLoading(true);
+        setExplanationError(null);
+        setExplanation(null);
+
+        try {
+            const supabase = createClient();
+
+            // Find relevant tags for this interest
+            const categoryData = hierarchicalInterests.find((h: any) => h.category.toLowerCase() === interest.toLowerCase());
+            const tags = categoryData?.tags || [];
+
+            const { data, error } = await supabase.functions.invoke('generate-interest-explanation', {
+                body: { interest, tags }
+            });
+
+            if (error) throw error;
+            if (data?.success) {
+                setExplanation(data.explanation);
+            } else {
+                throw new Error(data?.error || 'Failed to fetch explanation');
+            }
+        } catch (err: any) {
+            console.error('Error fetching interest explanation:', err);
+            setExplanationError('Failed to load insight. Please try again.');
+        } finally {
+            setIsExplanationLoading(false);
+        }
+    }, [hierarchicalInterests]);
+
+    const handleGraphLoaded = React.useCallback(() => {
+        setIsGraphReady(true);
+    }, []);
 
     // Fetch Data
     useEffect(() => {
@@ -76,74 +113,58 @@ export default function DigitalDnaPage() {
             setIsLoadingGraph(false);
         };
         fetchData();
-    }, [user]);
+    }, [user?.id]);
 
-    const handleInterestClick = async (interest: string) => {
-        setSelectedInterest(interest);
-        setIsExplanationLoading(true);
-        setExplanationError(null);
-        setExplanation(null);
-
-        try {
-            const supabase = createClient();
-
-            // Find relevant tags for this interest
-            const categoryData = hierarchicalInterests.find((h: any) => h.category.toLowerCase() === interest.toLowerCase());
-            const tags = categoryData?.tags || [];
-
-            const { data, error } = await supabase.functions.invoke('generate-interest-explanation', {
-                body: { interest, tags }
-            });
-
-            if (error) throw error;
-            if (data?.success) {
-                setExplanation(data.explanation);
-            } else {
-                throw new Error(data?.error || 'Failed to fetch explanation');
-            }
-        } catch (err: any) {
-            console.error('Error fetching interest explanation:', err);
-            setExplanationError('Failed to load insight. Please try again.');
-        } finally {
-            setIsExplanationLoading(false);
-        }
-    };
-
-    if (loading || isLoadingGraph) {
-        return (
-            <div className={styles.wrapper} style={{ background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Menu />
-                <div style={{ textAlign: 'center' }}>
-                    <div className="spinner" style={{
-                        width: '48px',
-                        height: '48px',
-                        border: '3px solid rgba(255, 255, 255, 0.1)',
-                        borderTopColor: '#fff',
-                        borderRadius: '50%',
-                        animation: 'spin 1s linear infinite',
-                        margin: '0 auto 16px'
-                    }}></div>
-                    <p style={{ color: '#fff', fontSize: '16px' }}>Loading your interest graph...</p>
-                    <style jsx>{`
-                        @keyframes spin {
-                            to { transform: rotate(360deg); }
-                        }
-                    `}</style>
-                </div>
-            </div>
-        );
-    }
+    // Show loading spinner until both data is loaded AND graph is ready
+    const showLoading = loading || isLoadingGraph || !isGraphReady;
 
     return (
-        <div className={styles.wrapper} style={{ background: '#000' }}>
+        <div className={styles.wrapper}>
             <Menu />
 
-            <div style={{ width: '100vw', height: '100vh' }}>
-                <InterestGraph
-                    interests={interests}
-                    userFullName={userFullName}
-                    onInterestClick={handleInterestClick}
-                />
+            {/* Loading Overlay - Fixed position, covers entire screen */}
+            {showLoading && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    backgroundColor: '#ffffff', // Base white, becomes black when inverted
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 9999
+                }}>
+                    <div style={{ textAlign: 'center' }}>
+                        <div style={{
+                            width: '48px',
+                            height: '48px',
+                            border: '3px solid rgba(0, 0, 0, 0.1)', // Subtle border
+                            borderTopColor: '#000000', // Base black, becomes white when inverted
+                            borderRadius: '50%',
+                            animation: 'spin 1s linear infinite',
+                            margin: '0 auto'
+                        }}></div>
+                        <style jsx>{`
+                            @keyframes spin {
+                                to { transform: rotate(360deg); }
+                            }
+                        `}</style>
+                    </div>
+                </div>
+            )}
+
+            {/* Graph - Only mount once data is loaded to prevent re-renders */}
+            <div style={{ width: '100vw', height: '100vh', visibility: showLoading ? 'hidden' : 'visible' }}>
+                {!isLoadingGraph && interests.length > 0 && (
+                    <InterestGraph
+                        interests={interests}
+                        userFullName={userFullName}
+                        onInterestClick={handleInterestClick}
+                        onGraphLoaded={handleGraphLoaded}
+                    />
+                )}
             </div>
 
             {selectedInterest && (

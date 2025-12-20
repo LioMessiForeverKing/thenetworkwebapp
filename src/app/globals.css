@@ -145,6 +145,7 @@
 
   html {
     font-size: var(--font-size);
+    background: #000000;
   }
 
   h1 {
@@ -272,10 +273,10 @@
 /* Force Sigma.js labels to white on Digital DNA page */
 .sigma-container,
 .react-sigma-container {
-  color: #ffffff !important;
+  color: #000000 !important;
 }
 
 /* Sigma.js canvas text styling */
 .sigma-labels {
-  color: #ffffff !important;
+  color: #000000 !important;
 }

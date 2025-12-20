@@ -4,8 +4,7 @@
     height: 100vh;
     overflow: hidden;
     background: #ffffff;
-    /* Light base */
-    color: #000;
+    color: #000000;
 }
 
 .loadingContainer {

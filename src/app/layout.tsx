@@ -13,8 +13,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body>
+    <html lang="en" suppressHydrationWarning style={{ backgroundColor: '#000000' }}>
+      <body style={{ backgroundColor: '#000000' }}>
         <AuthProvider>
           {children}
         </AuthProvider>

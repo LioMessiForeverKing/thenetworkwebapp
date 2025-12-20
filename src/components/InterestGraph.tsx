@@ -24,6 +24,7 @@ const GraphController: React.FC<{
     const loadGraph = useLoadGraph();
     const sigma = useSigma();
     const registerEvents = useRegisterEvents();
+    const hasInitialized = React.useRef(false);
 
     // Handle Label Toggle without re-mounting
     useEffect(() => {
@@ -69,6 +70,9 @@ const GraphController: React.FC<{
     }, [registerEvents, sigma, onInterestClick]);
 
     useEffect(() => {
+        if (hasInitialized.current) return;
+        hasInitialized.current = true;
+
         const graph = new Graph();
 
         const palette = [
@@ -195,8 +199,12 @@ const GraphController: React.FC<{
         loadGraph(graph);
         assignForceAtlas2();
 
-        setIsReady(true);
-        if (onGraphLoaded) onGraphLoaded();
+        // Wait for ForceAtlas2 to fully complete and render
+        // Using longer delay to ensure layout is completely stable
+        setTimeout(() => {
+            setIsReady(true);
+            if (onGraphLoaded) onGraphLoaded();
+        }, 1000);
 
     }, [interests, userFullName, loadGraph, assignForceAtlas2, onGraphLoaded, setIsReady]);
 
@@ -216,7 +224,7 @@ export default function InterestGraph({
         labelFont: 'Inter, system-ui, sans-serif',
         labelWeight: '600',
         labelSize: 14,
-        labelColor: { color: '#ffffff' },
+        labelColor: { color: '#000000' },
         renderEdgeLabels: false,
         defaultNodeColor: '#06b6d4',
         defaultEdgeColor: 'rgba(0,0,0,0)',
@@ -229,7 +237,7 @@ export default function InterestGraph({
     }), []); // Dependencies array is EMPTY to prevent remounts
 
     return (
-        <div style={{ position: 'relative', width: '100%', height: '100%', background: '#000' }}>
+        <div style={{ position: 'relative', width: '100%', height: '100%', background: '#ffffff' }}>
 
             {/* Label Toggle */}
             <button
@@ -263,12 +271,10 @@ export default function InterestGraph({
                 {showLabels ? 'Θ' : 'λ'}
             </button>
 
-            {/* Graph Container with Fade-In */}
+            {/* Graph Container - No fade, instant display */}
             <div style={{
                 width: '100%',
-                height: '100%',
-                opacity: isReady ? 1 : 0,
-                transition: 'opacity 0.7s ease-in'
+                height: '100%'
             }}>
                 <SigmaContainer
                     style={{ height: '100%', width: '100%' }}
