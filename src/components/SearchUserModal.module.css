@@ -4,7 +4,8 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
+    /* Inverted Logic: Light transparent -> Dark transparent */
+    background: rgba(255, 255, 255, 0.1);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -13,28 +14,32 @@
 }
 
 .modal {
-    background: rgba(250, 250, 250, 1);
-    border-radius: 40px;
+    /* Inverted Logic: White -> Black */
+    background: #ffffff;
+    border-radius: 20px;
     width: 90%;
     max-width: 500px;
     max-height: 80vh;
     display: flex;
     flex-direction: column;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    /* Remove large shadow that creates the glow */
+    box-shadow: none; 
+    border: 1px solid rgba(0, 0, 0, 0.1); /* Subtle border for definition */
 }
 
 .header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 32px;
+    padding: 24px;
     border-bottom: 1px solid rgba(0, 0, 0, 0.1);
 }
 
 .title {
-    font-size: 28px;
+    font-size: 20px;
     font-weight: 700;
     margin: 0;
+    /* Inverted Logic: Black -> White */
     color: #000;
     letter-spacing: -0.5px;
 }
@@ -42,12 +47,13 @@
 .closeButton {
     background: none;
     border: none;
-    font-size: 32px;
+    font-size: 24px;
+    /* Inverted Logic: Black -> White */
     color: #000;
     cursor: pointer;
     padding: 0;
-    width: 32px;
-    height: 32px;
+    width: 24px;
+    height: 24px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -56,11 +62,11 @@
 }
 
 .closeButton:hover {
-    background: rgba(0, 0, 0, 0.05);
+    background: rgba(0, 0, 0, 0.1);
 }
 
 .content {
-    padding: 32px;
+    padding: 24px;
     overflow-y: auto;
     flex: 1;
     scrollbar-width: none;
@@ -77,11 +83,13 @@
 
 .searchInput {
     width: 100%;
-    padding: 16px 20px;
+    padding: 12px 16px;
     border: 1px solid rgba(0, 0, 0, 0.2);
-    border-radius: 24px;
-    font-size: 16px;
+    border-radius: 12px;
+    font-size: 14px;
+    /* Inverted Logic: White -> Black */
     background: #fff;
+    /* Inverted Logic: Black -> White */
     color: #000;
     outline: none;
     transition: border-color 0.2s;
@@ -100,7 +108,7 @@
     text-align: center;
     padding: 40px 20px;
     color: rgba(0, 0, 0, 0.6);
-    font-size: 16px;
+    font-size: 14px;
 }
 
 .resultsList {
@@ -110,27 +118,28 @@
 }
 
 .resultCard {
-    background: #EAEAEA;
-    border-radius: 24px;
-    padding: 20px;
+    /* Inverted Logic: Light Grey -> Dark Grey */
+    background: #f5f5f5;
+    border-radius: 16px;
+    padding: 16px;
     display: flex;
     justify-content: space-between;
     align-items: center;
     gap: 16px;
-    border: 1px solid rgba(0, 0, 0, 0.05);
+    border: 1px solid rgba(0, 0, 0, 0.1);
 }
 
 .userInfo {
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 12px;
     flex: 1;
     min-width: 0;
 }
 
 .avatar {
-    width: 56px;
-    height: 56px;
+    width: 48px;
+    height: 48px;
     border-radius: 50%;
     object-fit: cover;
     background: #ccc;
@@ -145,33 +154,32 @@
 }
 
 .userName {
-    font-size: 18px;
+    font-size: 16px;
     font-weight: 700;
     color: #000;
-    margin-bottom: 4px;
+    margin-bottom: 2px;
     letter-spacing: -0.3px;
 }
 
 .username {
-    font-size: 14px;
+    font-size: 12px;
     color: rgba(0, 0, 0, 0.5);
-    margin-bottom: 4px;
+    margin-bottom: 2px;
 }
 
 .userBio {
-    font-size: 14px;
+    font-size: 12px;
     color: rgba(0, 0, 0, 0.6);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    margin-top: 2px;
 }
 
 .sendButton {
-    padding: 10px 20px;
+    padding: 8px 16px;
     border-radius: 20px;
     border: none;
-    font-size: 14px;
+    font-size: 12px;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s;
@@ -180,6 +188,7 @@
 }
 
 .defaultButton {
+    /* Inverted Logic: Black button -> White button */
     background: #000;
     color: #fff;
 }
@@ -204,4 +213,3 @@
     opacity: 0.5;
     cursor: not-allowed;
 }
-

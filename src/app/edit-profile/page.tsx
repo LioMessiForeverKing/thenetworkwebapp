@@ -324,10 +324,10 @@ export default function EditProfile() {
           <div className={styles.fieldRow}>
             <div className={styles.label}>Bio</div>
             <div>
-              <div className={styles.hint} style={{ marginBottom: '5px' }}>@firstname.lastname.network</div>
+              {/* Removed the hint div here */}
               <textarea
                 aria-label="Bio"
-                placeholder="@firstname.lastname.network"
+                placeholder="Bio"
                 className={styles.textarea}
                 value={bio}
                 maxLength={50}

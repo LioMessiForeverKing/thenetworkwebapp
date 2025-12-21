@@ -247,32 +247,13 @@ export default function Home() {
           .select('suggested_user_id')
           .eq('user_id', user.id);
         
-        const { data: interactions, error: interactionsError, status, statusText } = await query;
-
-        console.log('Query result:', {
-          hasData: !!interactions,
-          dataLength: interactions?.length || 0,
-          hasError: !!interactionsError,
-          status,
-          statusText,
-          error: interactionsError
-        });
+        const { data: interactions, error: interactionsError } = await query;
 
         if (interactionsError) {
-          // Log the full error object
-          console.error('Error loading suggestion interactions:', {
-            error: interactionsError,
-            errorString: JSON.stringify(interactionsError),
-            message: interactionsError?.message,
-            details: interactionsError?.details,
-            hint: interactionsError?.hint,
-            code: interactionsError?.code,
-            user_id: user.id,
-            auth_uid: authUser?.id,
-            status,
-            statusText
-          });
-          // Continue with empty set if query fails
+          // Only log real errors, ignore empty objects or expected "not found" issues
+          if (Object.keys(interactionsError).length > 0 || interactionsError.message) {
+             console.warn('Suggestion interactions fetch issue (non-critical):', interactionsError.message || interactionsError);
+          }
           interactedIds = new Set<string>();
         } else {
           interactedIds = new Set<string>((interactions || []).map(i => i.suggested_user_id));

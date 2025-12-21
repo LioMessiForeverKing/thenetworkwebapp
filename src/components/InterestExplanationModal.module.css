@@ -4,7 +4,8 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.4);
+    /* Inverted Logic: Light transparent -> Dark transparent */
+    background: rgba(255, 255, 255, 0.1);
     backdrop-filter: blur(8px);
     display: flex;
     align-items: center;
@@ -14,16 +15,20 @@
 }
 
 .modal {
-    background: rgba(255, 255, 255, 0.85);
-    backdrop-filter: blur(20px) saturate(180%);
-    border: 1px solid rgba(255, 255, 255, 0.3);
+    /* Inverted Logic: White -> Black */
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(40px) saturate(180%);
+    /* Inverted Logic: Light border -> Dark/White border */
+    border: 1px solid rgba(0, 0, 0, 0.1);
     border-radius: 24px;
     padding: 32px;
     width: 90%;
     max-width: 500px;
     position: relative;
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    /* Remove large shadow that creates the glow */
+    box-shadow: none;
     animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    /* Inverted Logic: Black text -> White text */
     color: #000;
 }
 
@@ -53,10 +58,8 @@
     font-weight: 700;
     letter-spacing: -0.02em;
     margin: 0;
-    background: linear-gradient(135deg, #000 0%, #444 100%);
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
+    /* Removed gradients which don't invert well, use solid color */
+    color: #000;
 }
 
 .content {
@@ -69,7 +72,8 @@
 .explanation {
     font-size: 18px;
     line-height: 1.6;
-    color: #333;
+    /* Inverted Logic: Dark grey -> Light grey */
+    color: rgba(0, 0, 0, 0.8);
     margin: 0;
 }
 
