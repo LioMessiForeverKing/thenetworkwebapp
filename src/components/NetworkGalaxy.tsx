@@ -13,7 +13,7 @@ interface NetworkGalaxyProps {
 export default React.memo(function NetworkGalaxy({
     people,
     currentUserId,
-    onPersonClick: _ignored
+    onPersonClick
 }: NetworkGalaxyProps) {
     const [isInverted, setIsInverted] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
@@ -249,12 +249,38 @@ export default React.memo(function NetworkGalaxy({
                         .style('fill', isInverted ? '#ffffff' : '#000000')
                         .text((d: any) => d.name || '');
 
+                    // Add click handler - prevent clicking on own profile
+                    if (onPersonClick) {
+                        g.style('cursor', (d: any) => d.id === currentUserId ? 'default' : 'pointer')
+                         .on('click', (event: any, d: any) => {
+                             if (d.id !== currentUserId) {
+                                 const person = people.find(p => p.id === d.id);
+                                 if (person) {
+                                     onPersonClick(person);
+                                 }
+                             }
+                         });
+                    }
+
                     return g;
                 });
 
             link = (link as any)
                 .data(nextLinks, (d: any) => `${d.source}-${d.target}`)
                 .join('line');
+
+            // Add click handlers to all nodes (existing and new)
+            if (onPersonClick) {
+                node.style('cursor', (d: any) => d.id === currentUserId ? 'default' : 'pointer')
+                   .on('click', (event: any, d: any) => {
+                       if (d.id !== currentUserId) {
+                           const person = people.find(p => p.id === d.id);
+                           if (person) {
+                               onPersonClick(person);
+                           }
+                       }
+                   });
+            }
 
             // Apply to sim
             simulation.nodes(nextNodes);

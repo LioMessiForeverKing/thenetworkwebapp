@@ -17,7 +17,7 @@ export interface Profile {
     avatar_url?: string;
     star_color: string;
     interests?: string[];
-    location?: string;
+    school?: string;
 }
 
 // Convert compatibility percentage to stars

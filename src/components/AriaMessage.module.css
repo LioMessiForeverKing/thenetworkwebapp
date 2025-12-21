@@ -1,0 +1,61 @@
+.container {
+  width: 100%;
+  min-height: 100%;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 0;
+}
+
+.content {
+  max-width: 100%;
+  text-align: center;
+  color: #000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 0;
+  width: 100%;
+}
+
+.emoji {
+  font-size: 48px;
+  margin-bottom: 8px;
+  animation: gentlePulse 3s ease-in-out infinite;
+}
+
+@keyframes gentlePulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.9;
+  }
+}
+
+.message {
+  font-size: 15px;
+  line-height: 1.7;
+  color: rgba(0, 0, 0, 0.8);
+  margin: 0;
+  text-align: left;
+  max-width: 100%;
+}
+
+.highlight {
+  font-weight: 600;
+  color: #8E5BFF;
+  font-style: italic;
+}
+
+.signature {
+  margin-top: 16px;
+  font-size: 14px;
+  color: rgba(0, 0, 0, 0.6);
+  font-style: italic;
+  font-weight: 500;
+}
+

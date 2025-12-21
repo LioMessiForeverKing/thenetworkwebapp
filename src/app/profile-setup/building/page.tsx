@@ -72,6 +72,46 @@ export default function BuildingPage() {
                         retries++;
                     }
 
+                    // Trigger DNA v2 computation for new users
+                    try {
+                        const { data: { session } } = await supabase.auth.getSession();
+                        if (session) {
+                            // Check if user has YouTube data before triggering DNA v2
+                            const { data: ytSubs } = await supabase
+                                .from('youtube_subscriptions')
+                                .select('id')
+                                .eq('user_id', user.id)
+                                .limit(1);
+                            
+                            const { data: ytLikes } = await supabase
+                                .from('youtube_liked_videos')
+                                .select('id')
+                                .eq('user_id', user.id)
+                                .limit(1);
+
+                            // Only trigger if user has YouTube data
+                            if ((ytSubs && ytSubs.length > 0) || (ytLikes && ytLikes.length > 0)) {
+                                const { error: dnaError } = await supabase.functions.invoke('compute-dna-v2', {
+                                    body: {
+                                        trigger_source: 'NEW_USER_SIGNUP'
+                                    }
+                                });
+
+                                if (dnaError) {
+                                    console.error('Error triggering DNA v2 computation:', dnaError);
+                                    // Don't block the flow if DNA computation fails
+                                } else {
+                                    console.log('DNA v2 computation triggered successfully');
+                                }
+                            } else {
+                                console.log('No YouTube data found, skipping DNA v2 computation');
+                            }
+                        }
+                    } catch (dnaErr) {
+                        console.error('Error triggering DNA v2:', dnaErr);
+                        // Don't block the flow if DNA computation fails
+                    }
+
                     setIsComplete(true);
                 } catch (err) {
                     console.error("Error processing:", err);

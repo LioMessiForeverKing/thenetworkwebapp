@@ -16,7 +16,7 @@ export default function EditProfile() {
 
   // Form State
   const [fullName, setFullName] = useState('');
-  const [location, setLocation] = useState('');
+  const [school, setSchool] = useState('');
   const [bio, setBio] = useState('');
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
@@ -40,7 +40,7 @@ export default function EditProfile() {
       // 1. Fetch Profile Data
       const { data: profile } = await supabase
         .from('profiles')
-        .select('full_name, location, avatar_url')
+        .select('full_name, school, avatar_url')
         .eq('id', user.id)
         .single();
 
@@ -53,7 +53,7 @@ export default function EditProfile() {
 
       if (profile) {
         setFullName(profile.full_name || '');
-        setLocation(profile.location || '');
+        setSchool(profile.school || '');
 
         // Avatar Logic
         if (profile.avatar_url) {
@@ -154,7 +154,7 @@ export default function EditProfile() {
       // Update Profile
       const profileUpdates = {
         full_name: fullName,
-        location: location,
+        school: school,
         updated_at: new Date().toISOString(),
       };
 
@@ -207,7 +207,16 @@ export default function EditProfile() {
       <Menu />
       <div className={styles.container}>
         <div className={styles.window}>
-        <h1 className={styles.title}>Edit Profile</h1>
+        <div className={styles.header}>
+          <h1 className={styles.title}>Edit Profile</h1>
+          <button 
+            className={styles.closeButton} 
+            onClick={() => router.push('/')}
+            aria-label="Close"
+          >
+            ×
+          </button>
+        </div>
 
         <div className={styles.avatarBlock} onClick={handleAvatarClick} style={{ cursor: 'pointer' }}>
             <div className={`${styles.avatar} invert-media`} style={avatarUrl ? { backgroundImage: `url(${avatarUrl})` } : {}}></div>
@@ -237,14 +246,14 @@ export default function EditProfile() {
           </div>
 
           <div className={styles.fieldRow}>
-            <div className={styles.label}>Location</div>
+            <div className={styles.label}>School</div>
             <input
               className={styles.input}
               type="text"
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-              placeholder="Where are you based?"
-              aria-label="Location"
+              value={school}
+              onChange={(e) => setSchool(e.target.value)}
+              placeholder="What school do you attend?"
+              aria-label="School"
             />
           </div>
 

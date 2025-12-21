@@ -14,7 +14,7 @@ export default function ProfileSetupPage() {
     // Form state
     const [name, setName] = useState('');
     const [age, setAge] = useState('');
-    const [location, setLocation] = useState('');
+    const [school, setSchool] = useState('');
     const [oneLiner, setOneLiner] = useState('');
     const [photoUrl, setPhotoUrl] = useState<string | null>(null);
     const [photoFile, setPhotoFile] = useState<File | null>(null);
@@ -96,7 +96,7 @@ export default function ProfileSetupPage() {
                     id: user.id,
                     full_name: name.trim(),
                     age: parseInt(age),
-                    location: location.trim() || null,
+                    school: school.trim() || null,
                     one_liner: oneLiner.trim() || null,
                     avatar_url: avatarUrl,
                     star_color: '#8E5BFF', // Default
@@ -162,13 +162,13 @@ export default function ProfileSetupPage() {
                     />
                 </div>
 
-                {/* Location */}
+                {/* School */}
                 <div className="w-[300px] flex flex-col gap-2">
-                    <label className="text-[15px] text-black font-display">Location</label>
+                    <label className="text-[15px] text-black font-display">School</label>
                     <input
                         type="text"
-                        value={location}
-                        onChange={(e) => setLocation(e.target.value)}
+                        value={school}
+                        onChange={(e) => setSchool(e.target.value)}
                         className="w-full h-[40px] bg-white border border-black px-3 text-black font-display focus:outline-none focus:border-black focus:ring-1 focus:ring-black"
                     />
                 </div>
