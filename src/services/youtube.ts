@@ -387,17 +387,36 @@ export const YouTubeService = {
           fullError: JSON.stringify(error, null, 2)
         });
         
+        // Try to get more details from the error response
+        let errorDetails = error.message || 'Unknown error';
+        if (error.context) {
+          try {
+            const contextData = typeof error.context === 'string' ? JSON.parse(error.context) : error.context;
+            if (contextData.error) {
+              errorDetails = contextData.error;
+            }
+          } catch (e) {
+            // Ignore parsing errors
+          }
+        }
+        
         // If the Supabase client method fails, try direct fetch as fallback
         if (error.message?.includes('Failed to send') || error.message?.includes('CORS')) {
           console.log('Attempting direct fetch to edge function...');
           return await this.deriveInterestsDirectFetch(userId, session.access_token);
         }
         
-        throw new Error(`Failed to derive interests: ${error.message || JSON.stringify(error)}`);
+        throw new Error(`Failed to derive interests: ${errorDetails}`);
       }
       
       // Log the full response for debugging
       console.log('Full edge function data:', JSON.stringify(data, null, 2));
+      
+      // Check if the response contains an error (even with 200 status)
+      if (data && typeof data === 'object' && 'error' in data) {
+        console.error('Edge function returned error in response:', data);
+        throw new Error(`Edge function error: ${data.error || JSON.stringify(data)}`);
+      }
 
       if (!data) {
         throw new Error('No data returned from derive_interests function');

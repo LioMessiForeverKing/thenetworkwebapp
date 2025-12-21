@@ -127,6 +127,10 @@ export default function SuggestionDetailModal({ isOpen, onClose, person, onReque
         if (onRequestSent) {
           onRequestSent();
         }
+        // Close the modal after a brief delay to show "Request Sent" state
+        setTimeout(() => {
+          onClose();
+        }, 500);
       }
     } catch (error) {
       console.error('Error sending friend request:', error);

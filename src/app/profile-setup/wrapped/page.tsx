@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { createClient } from '@/lib/supabase';
+import { YouTubeService } from '@/services/youtube';
 import Image from 'next/image';
 
 // Helper components for visuals
@@ -89,6 +90,19 @@ export default function WrappedPage() {
     const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
     const [archetypes, setArchetypes] = useState<Archetype[]>([]);
     const [doppelgangers, setDoppelgangers] = useState<Doppelganger[]>([]);
+    const [processingStatus, setProcessingStatus] = useState<{
+        interests: boolean;
+        hierarchicalInterests: boolean;
+        dnaV2: boolean;
+        isNewUser: boolean;
+    }>({
+        interests: false,
+        hierarchicalInterests: false,
+        dnaV2: false,
+        isNewUser: false
+    });
+    const hasStartedProcessing = useRef(false);
+    const processingComplete = useRef(false);
 
     useEffect(() => {
         if (!loading && !user) {
@@ -96,29 +110,242 @@ export default function WrappedPage() {
         }
     }, [user, loading, router]);
 
-    // Fetch Profile Data (Archetypes + Doppelgangers)
+    // Check if user needs processing and fetch profile data
     useEffect(() => {
         if (!user) return;
-        const fetchProfileData = async () => {
+        const checkAndProcess = async () => {
             const supabase = createClient();
-            const { data } = await supabase
+            
+            // Check existing profile data
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('interests, hierarchical_interests, personality_archetypes, doppelgangers')
+                .eq('id', user.id)
+                .single();
+
+            const interests = (profile?.interests as string[]) || [];
+            const hierarchicalInterests = (profile?.hierarchical_interests as any[]) || [];
+            // @ts-ignore
+            const hasArchetypes = profile?.personality_archetypes && profile.personality_archetypes.length > 0;
+            // @ts-ignore
+            const hasDoppelgangers = profile?.doppelgangers && profile.doppelgangers.length > 0;
+
+            // Check DNA v2 status
+            const { data: dnaV2 } = await supabase
+                .from('digital_dna_v2')
+                .select('id')
+                .eq('user_id', user.id)
+                .maybeSingle();
+
+            const hasInterests = interests.length > 0;
+            const hasHierarchical = hierarchicalInterests.length > 0;
+            const hasDnaV2 = !!dnaV2;
+
+            // Determine if this is a new user (needs processing)
+            const isNewUser = !hasInterests || !hasHierarchical || !hasDnaV2;
+
+            setProcessingStatus({
+                interests: hasInterests,
+                hierarchicalInterests: hasHierarchical,
+                dnaV2: hasDnaV2,
+                isNewUser
+            });
+
+            // Set archetypes and doppelgangers for display
+            if (hasArchetypes) {
+                // @ts-ignore
+                setArchetypes(profile.personality_archetypes);
+            }
+            if (hasDoppelgangers) {
+                // @ts-ignore
+                setDoppelgangers(profile.doppelgangers);
+            }
+        };
+        checkAndProcess();
+    }, [user]);
+
+    // Process user data when reaching loading slides (for new users)
+    useEffect(() => {
+        if (!user || !processingStatus.isNewUser || processingComplete.current) return;
+        
+        // Start processing when we reach the first loading slide (slide 4)
+        if (currentSlideIndex === 4 && !hasStartedProcessing.current) {
+            hasStartedProcessing.current = true;
+            processUserData();
+        }
+    }, [currentSlideIndex, user, processingStatus.isNewUser]);
+
+    const processUserData = async () => {
+        if (!user || processingComplete.current) return;
+        
+        const supabase = createClient();
+        
+        try {
+            // Step 1: Sync YouTube data (if not already synced)
+            console.log('Syncing YouTube data...');
+            let hasYouTubeData = false;
+            try {
+                // Check if YouTube data already exists
+                const { data: existingSubs } = await supabase
+                    .from('youtube_subscriptions')
+                    .select('id')
+                    .eq('user_id', user.id)
+                    .limit(1);
+                
+                const { data: existingLikes } = await supabase
+                    .from('youtube_liked_videos')
+                    .select('id')
+                    .eq('user_id', user.id)
+                    .limit(1);
+
+                hasYouTubeData = (existingSubs && existingSubs.length > 0) || (existingLikes && existingLikes.length > 0);
+
+                // Only sync if we don't have data yet
+                if (!hasYouTubeData) {
+                    console.log('No YouTube data found, syncing...');
+                    await YouTubeService.syncYouTubeData(user.id);
+                    hasYouTubeData = true; // Assume sync succeeded
+                } else {
+                    console.log('YouTube data already exists, skipping sync');
+                }
+            } catch (syncError: any) {
+                console.error('Error syncing YouTube data:', syncError);
+                // Check again after error - might have partial data
+                const { data: checkSubs } = await supabase
+                    .from('youtube_subscriptions')
+                    .select('id')
+                    .eq('user_id', user.id)
+                    .limit(1);
+                const { data: checkLikes } = await supabase
+                    .from('youtube_liked_videos')
+                    .select('id')
+                    .eq('user_id', user.id)
+                    .limit(1);
+                hasYouTubeData = (checkSubs && checkSubs.length > 0) || (checkLikes && checkLikes.length > 0);
+            }
+            
+            // Step 2: Derive interests and hierarchical interests (only if we have YouTube data)
+            if (hasYouTubeData) {
+                console.log('Deriving interests...');
+                try {
+                    await YouTubeService.deriveInterests(user.id);
+                } catch (deriveError: any) {
+                    console.error('Error deriving interests:', deriveError);
+                    // Mark as ready to continue flow even if derivation fails
+                    setProcessingStatus(prev => ({ ...prev, interests: true, hierarchicalInterests: true }));
+                }
+            } else {
+                console.log('No YouTube data available, skipping interests derivation');
+                // Mark as ready since we can't derive without YouTube data
+                setProcessingStatus(prev => ({ ...prev, interests: true, hierarchicalInterests: true }));
+            }
+            
+            // Poll for interests and hierarchical interests (only if derivation was attempted)
+            let interestsReady = false;
+            let hierarchicalReady = false;
+            let pollCount = 0;
+            const maxPolls = 30; // 30 seconds max
+            
+            while (pollCount < maxPolls && (!interestsReady || !hierarchicalReady)) {
+                const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('interests, hierarchical_interests')
+                    .eq('id', user.id)
+                    .single();
+                
+                const interests = (profile?.interests as string[]) || [];
+                const hierarchical = (profile?.hierarchical_interests as any[]) || [];
+                
+                if (interests.length > 0) {
+                    interestsReady = true;
+                    setProcessingStatus(prev => ({ ...prev, interests: true }));
+                }
+                
+                if (hierarchical.length > 0) {
+                    hierarchicalReady = true;
+                    setProcessingStatus(prev => ({ ...prev, hierarchicalInterests: true }));
+                }
+                
+                // If we've been polling for a while and still nothing, mark as ready to continue
+                if (pollCount >= 10 && !interestsReady && !hierarchicalReady) {
+                    console.log('Polling timeout - marking interests as ready to continue flow');
+                    setProcessingStatus(prev => ({ ...prev, interests: true, hierarchicalInterests: true }));
+                    break;
+                }
+                
+                if (interestsReady && hierarchicalReady) break;
+                
+                await new Promise(r => setTimeout(r, 1000));
+                pollCount++;
+            }
+
+            // Step 3: Trigger DNA v2 computation
+            console.log('Triggering DNA v2 computation...');
+            const { data: ytSubs } = await supabase
+                .from('youtube_subscriptions')
+                .select('id')
+                .eq('user_id', user.id)
+                .limit(1);
+            
+            const { data: ytLikes } = await supabase
+                .from('youtube_liked_videos')
+                .select('id')
+                .eq('user_id', user.id)
+                .limit(1);
+
+            if ((ytSubs && ytSubs.length > 0) || (ytLikes && ytLikes.length > 0)) {
+                await supabase.functions.invoke('compute-dna-v2', {
+                    body: {
+                        user_id: user.id,
+                        trigger_source: 'NEW_USER_SIGNUP'
+                    }
+                });
+
+                // Poll for DNA v2 completion
+                let dnaReady = false;
+                pollCount = 0;
+                while (pollCount < maxPolls && !dnaReady) {
+                    const { data: dnaV2 } = await supabase
+                        .from('digital_dna_v2')
+                        .select('id')
+                        .eq('user_id', user.id)
+                        .maybeSingle();
+                    
+                    if (dnaV2) {
+                        dnaReady = true;
+                        setProcessingStatus(prev => ({ ...prev, dnaV2: true }));
+                        break;
+                    }
+                    
+                    await new Promise(r => setTimeout(r, 1000));
+                    pollCount++;
+                }
+            }
+
+            // Refresh archetypes and doppelgangers after processing
+            const { data: updatedProfile } = await supabase
                 .from('profiles')
                 .select('personality_archetypes, doppelgangers')
                 .eq('id', user.id)
                 .single();
 
-            if (data?.personality_archetypes) {
+            if (updatedProfile?.personality_archetypes) {
                 // @ts-ignore
-                setArchetypes(data.personality_archetypes);
+                setArchetypes(updatedProfile.personality_archetypes);
+            }
+            if (updatedProfile?.doppelgangers) {
+                // @ts-ignore
+                setDoppelgangers(updatedProfile.doppelgangers);
             }
 
-            if (data?.doppelgangers) {
-                // @ts-ignore
-                setDoppelgangers(data.doppelgangers);
-            }
-        };
-        fetchProfileData();
-    }, [user]);
+            processingComplete.current = true;
+            console.log('Processing complete!');
+        } catch (error) {
+            console.error('Error processing user data:', error);
+            // Continue anyway - don't block the flow
+            processingComplete.current = true;
+        }
+    };
 
     const SLIDES: Slide[] = [
         // Slide 1 - You already have a digital life
@@ -244,7 +471,7 @@ export default function WrappedPage() {
                 </div>
             ),
             type: 'auto-advance',
-            duration: 1500
+            duration: 1500 // Base duration, will be adjusted dynamically
         },
         // Slide 5 - Loading Part 2 (Clustering - Dark)
         {
@@ -266,7 +493,7 @@ export default function WrappedPage() {
                 </div>
             ),
             type: 'auto-advance',
-            duration: 1500
+            duration: 1500 // Base duration, will be adjusted dynamically
         },
         // Slide 6 - Building your identity map... (Transition 3)
         {
@@ -288,7 +515,7 @@ export default function WrappedPage() {
                 </div>
             ),
             type: 'auto-advance',
-            duration: 2000
+            duration: 2000 // Base duration, will be adjusted dynamically
         },
         // Slide 7 - You don't fit in one box (Revamped Identity Map)
         {
@@ -422,16 +649,46 @@ export default function WrappedPage() {
         }
     ];
 
-    // Auto-advance logic
+    // Auto-advance logic with dynamic timing based on processing status
     useEffect(() => {
         const slide = SLIDES[currentSlideIndex];
         if (slide?.type === 'auto-advance') {
+            // Calculate dynamic duration based on processing status
+            let duration = slide.duration || 3000;
+            
+            // For loading slides (4, 5, 6), wait for processing if new user
+            if (processingStatus.isNewUser && slide.id >= 4 && slide.id <= 6) {
+                // Check if we should wait for processing to complete
+                if (slide.id === 4) {
+                    // Slide 4: Wait for interests, but max 5 seconds
+                    if (!processingStatus.interests) {
+                        duration = 5000;
+                    } else {
+                        duration = 1500; // Fast advance if ready
+                    }
+                } else if (slide.id === 5) {
+                    // Slide 5: Wait for hierarchical interests, but max 5 seconds
+                    if (!processingStatus.hierarchicalInterests) {
+                        duration = 5000;
+                    } else {
+                        duration = 1500; // Fast advance if ready
+                    }
+                } else if (slide.id === 6) {
+                    // Slide 6: Wait for DNA v2, but max 8 seconds
+                    if (!processingStatus.dnaV2) {
+                        duration = 8000;
+                    } else {
+                        duration = 2000; // Fast advance if ready
+                    }
+                }
+            }
+            
             const timer = setTimeout(() => {
                 handleNext();
-            }, slide.duration || 3000);
+            }, duration);
             return () => clearTimeout(timer);
         }
-    }, [currentSlideIndex]);
+    }, [currentSlideIndex, processingStatus]);
 
     const handleNext = () => {
         if (currentSlideIndex < SLIDES.length - 1) {

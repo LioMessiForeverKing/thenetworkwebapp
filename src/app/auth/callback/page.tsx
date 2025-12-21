@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase';
+import { YouTubeService } from '@/services/youtube';
 
 export default function AuthCallback() {
     const router = useRouter();
@@ -58,23 +59,96 @@ export default function AuthCallback() {
                 return;
             }
 
-            // Check if this is a new user or partial user
-            const { data: profile } = await supabase
+            // Create or get profile - ensure profile exists with Google data
+            let { data: profileData } = await supabase
                 .from('profiles')
-                .select('id, interests, personality_archetypes, doppelgangers')
+                .select('id, interests, personality_archetypes, doppelgangers, full_name, avatar_url')
                 .eq('id', userId)
                 .maybeSingle();
+
+            // If profile doesn't exist, create it with Google user metadata
+            if (!profileData) {
+                const userMetadata = session.user.user_metadata || {};
+                const googleName = userMetadata.name || userMetadata.full_name || session.user.email?.split('@')[0] || 'User';
+                const googlePicture = userMetadata.picture || userMetadata.avatar_url || null;
+
+                console.log('Creating profile for new user:', { userId, googleName, hasPicture: !!googlePicture });
+
+                const { data: newProfile, error: createError } = await supabase
+                    .from('profiles')
+                    .insert({
+                        id: userId,
+                        full_name: googleName,
+                        avatar_url: googlePicture,
+                        star_color: '#8E5BFF', // Default star color
+                        interests: [],
+                        hierarchical_interests: []
+                    })
+                    .select('id, interests, personality_archetypes, doppelgangers, full_name, avatar_url')
+                    .single();
+
+                if (createError) {
+                    console.error('Error creating profile:', createError);
+                    // Try to continue anyway - profile might have been created by a trigger
+                    const { data: existingProfile } = await supabase
+                        .from('profiles')
+                        .select('id, interests, personality_archetypes, doppelgangers, full_name, avatar_url')
+                        .eq('id', userId)
+                        .maybeSingle();
+                    profileData = existingProfile;
+                } else {
+                    profileData = newProfile;
+                }
+            } else {
+                // Profile exists - update Google name and picture if they're missing or different
+                const userMetadata = session.user.user_metadata || {};
+                const googleName = userMetadata.name || userMetadata.full_name;
+                const googlePicture = userMetadata.picture || userMetadata.avatar_url;
+
+                const needsUpdate = 
+                    (googleName && profileData.full_name !== googleName) ||
+                    (googlePicture && profileData.avatar_url !== googlePicture);
+
+                if (needsUpdate) {
+                    console.log('Updating profile with Google data:', { googleName, hasPicture: !!googlePicture });
+                    const updateData: any = {};
+                    if (googleName && profileData.full_name !== googleName) {
+                        updateData.full_name = googleName;
+                    }
+                    if (googlePicture && profileData.avatar_url !== googlePicture) {
+                        updateData.avatar_url = googlePicture;
+                    }
+
+                    const { data: updatedProfile } = await supabase
+                        .from('profiles')
+                        .update(updateData)
+                        .eq('id', userId)
+                        .select('id, interests, personality_archetypes, doppelgangers, full_name, avatar_url')
+                        .single();
+
+                    if (updatedProfile) {
+                        profileData = updatedProfile;
+                    }
+                }
+            }
+
+            // Sync YouTube data in the background (don't block the flow)
+            // This fetches subscriptions and liked videos into the database
+            YouTubeService.syncYouTubeData(userId).catch((error) => {
+                console.error('Error syncing YouTube data (non-blocking):', error);
+                // Don't throw - this is background sync, user can continue
+            });
 
             // Determine if user needs to complete profile setup
 
             // Check for interests
-            const hasInterests = profile?.interests && profile.interests.length > 0;
+            const hasInterests = profileData?.interests && profileData.interests.length > 0;
 
             // Check for new features (archetypes, doppelgangers)
             // @ts-ignore
-            const hasArchetypes = profile?.personality_archetypes && profile.personality_archetypes.length > 0;
+            const hasArchetypes = profileData?.personality_archetypes && profileData.personality_archetypes.length > 0;
             // @ts-ignore
-            const hasDoppelgangers = profile?.doppelgangers && profile.doppelgangers.length > 0;
+            const hasDoppelgangers = profileData?.doppelgangers && profileData.doppelgangers.length > 0;
 
             const isFullyComplete = hasInterests && hasArchetypes && hasDoppelgangers;
             const isPartial = hasInterests && (!hasArchetypes || !hasDoppelgangers);

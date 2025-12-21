@@ -226,12 +226,68 @@ export default function Home() {
       }
 
       // Check for interacted suggestions
-      const { data: interactions } = await supabase
-        .from('suggestion_interactions')
-        .select('suggested_user_id')
-        .eq('user_id', user.id);
+      // First verify the user is authenticated
+      const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
+      if (authError) {
+        console.error('Auth error when loading interactions:', authError);
+      }
+      
+      let interactedIds = new Set<string>();
+      try {
+        // Verify auth.uid() matches user.id
+        console.log('Checking suggestion interactions:', {
+          user_id_from_auth: user.id,
+          auth_uid: authUser?.id,
+          match: user.id === authUser?.id
+        });
+        
+        // Try querying with explicit error handling
+        const query = supabase
+          .from('suggestion_interactions')
+          .select('suggested_user_id')
+          .eq('user_id', user.id);
+        
+        const { data: interactions, error: interactionsError, status, statusText } = await query;
 
-      const interactedIds = new Set<string>((interactions || []).map(i => i.suggested_user_id));
+        console.log('Query result:', {
+          hasData: !!interactions,
+          dataLength: interactions?.length || 0,
+          hasError: !!interactionsError,
+          status,
+          statusText,
+          error: interactionsError
+        });
+
+        if (interactionsError) {
+          // Log the full error object
+          console.error('Error loading suggestion interactions:', {
+            error: interactionsError,
+            errorString: JSON.stringify(interactionsError),
+            message: interactionsError?.message,
+            details: interactionsError?.details,
+            hint: interactionsError?.hint,
+            code: interactionsError?.code,
+            user_id: user.id,
+            auth_uid: authUser?.id,
+            status,
+            statusText
+          });
+          // Continue with empty set if query fails
+          interactedIds = new Set<string>();
+        } else {
+          interactedIds = new Set<string>((interactions || []).map(i => i.suggested_user_id));
+          if (interactions && interactions.length > 0) {
+            console.log('Found interacted suggestions:', Array.from(interactedIds));
+          } else {
+            console.log('No interacted suggestions found for user:', user.id);
+          }
+        }
+      } catch (err) {
+        console.error('Exception loading suggestion interactions:', err);
+        // Continue with empty set if exception occurs
+        interactedIds = new Set<string>();
+      }
+      
       setInteractedSuggestionIds(interactedIds);
 
       // Only show suggestions if user has 4 or fewer connections AND hasn't interacted with all suggestions
@@ -452,7 +508,7 @@ export default function Home() {
             match_count: 20,
             ignore_user_id: user.id
           })
-        : userDnaV2 && userDnaV2.composite_vector
+        : (userDnaV2?.composite_vector)
           ? await supabase.rpc('match_profiles_v2', {
               query_embedding: userDnaV2.composite_vector,
               match_threshold: 0.3, // Minimum similarity threshold (0.3 = 30% similarity)
@@ -571,10 +627,11 @@ export default function Home() {
 
       const formattedSuggestions = (await Promise.all(formattedSuggestionsPromises))
         .filter((s: any) => s !== null)
-        .filter((s: any) => !interactedIds.has(s.id)); // Filter out already interacted suggestions
+        .filter((s: any) => !interactedIds.has(s.id)) // Filter out already interacted suggestions
+        .slice(0, 3); // Ensure exactly 3 suggestions max
 
       // If all suggestions have been interacted with, show message
-      if (formattedSuggestions.length === 0 || formattedSuggestions.every((s: any) => interactedIds.has(s.id))) {
+      if (formattedSuggestions.length === 0) {
         setShouldShowMessage(true);
         setSuggestions([]);
       } else {
@@ -716,60 +773,167 @@ export default function Home() {
         onRequestSent={async () => {
           // Track interaction when user sends a request
           if (selectedSuggestion) {
-            const supabase = createClient();
-            const { data: { user: currentUser } } = await supabase.auth.getUser();
-            if (currentUser) {
-              await supabase
-                .from('suggestion_interactions')
-                .upsert({
-                  user_id: currentUser.id,
-                  suggested_user_id: selectedSuggestion.id,
-                  interaction_type: 'connected'
-                }, { onConflict: 'user_id,suggested_user_id' });
-              
-              // Update local state
-              setInteractedSuggestionIds(prev => new Set([...prev, selectedSuggestion.id]));
-              
-              // Check if all suggestions are now interacted with
-              const updatedSuggestions = suggestions.filter(s => s.id !== selectedSuggestion.id);
-              if (updatedSuggestions.length === 0 || updatedSuggestions.every(s => 
-                [...interactedSuggestionIds, selectedSuggestion.id].includes(s.id)
-              )) {
-                setShouldShowMessage(true);
-              }
+            const suggestionId = selectedSuggestion.id;
+            
+            // Immediately remove the suggestion from the list (before async operations)
+            const updatedSuggestions = suggestions.filter(s => s.id !== suggestionId);
+            setSuggestions(updatedSuggestions);
+            
+            // Update interacted IDs
+            setInteractedSuggestionIds(prev => new Set([...prev, suggestionId]));
+            
+            // If all suggestions are gone, show the message
+            if (updatedSuggestions.length === 0) {
+              setShouldShowMessage(true);
             }
+            
+            // Close the modal immediately
+            setSelectedSuggestion(null);
+            
+            // Track in database (non-blocking, fire-and-forget)
+            (async () => {
+              try {
+                const supabase = createClient();
+                const { data: { user: currentUser }, error: authError } = await supabase.auth.getUser();
+                if (authError) {
+                  console.error('Error getting user for interaction tracking:', authError);
+                  return;
+                }
+                if (!currentUser) {
+                  console.error('No current user found for interaction tracking');
+                  return;
+                }
+                
+                console.log('Attempting to insert suggestion interaction:', {
+                  user_id: currentUser.id,
+                  suggested_user_id: suggestionId,
+                  interaction_type: 'connected'
+                });
+                
+                const { data: insertData, error: insertError } = await supabase
+                  .from('suggestion_interactions')
+                  .upsert({
+                    user_id: currentUser.id,
+                    suggested_user_id: suggestionId,
+                    interaction_type: 'connected'
+                  }, { onConflict: 'user_id,suggested_user_id' })
+                  .select();
+                
+                if (insertError) {
+                  console.error('Error inserting suggestion interaction:', {
+                    error: insertError,
+                    errorString: JSON.stringify(insertError),
+                    message: insertError.message,
+                    details: insertError.details,
+                    hint: insertError.hint,
+                    code: insertError.code
+                  });
+                } else {
+                  console.log('Successfully tracked suggestion interaction:', insertData);
+                  
+                  // Verify the insert worked by querying it back
+                  const { data: verifyData, error: verifyError } = await supabase
+                    .from('suggestion_interactions')
+                    .select('*')
+                    .eq('user_id', currentUser.id)
+                    .eq('suggested_user_id', suggestionId)
+                    .single();
+                  
+                  if (verifyError) {
+                    console.error('Warning: Could not verify inserted interaction:', verifyError);
+                  } else {
+                    console.log('Verified: Interaction exists in database:', verifyData);
+                  }
+                }
+              } catch (err) {
+                console.error('Error tracking interaction:', err);
+              }
+            })();
+            
+            // Refresh network data to show new connections
+            loadNetworkData();
           }
-          // Refresh network data to show new connections
-          loadNetworkData();
-          loadAriaSuggestions();
         }}
         onDismiss={async () => {
           // Track interaction when user dismisses
           if (selectedSuggestion) {
-            const supabase = createClient();
-            const { data: { user: currentUser } } = await supabase.auth.getUser();
-            if (currentUser) {
-              await supabase
-                .from('suggestion_interactions')
-                .upsert({
-                  user_id: currentUser.id,
-                  suggested_user_id: selectedSuggestion.id,
-                  interaction_type: 'skipped'
-                }, { onConflict: 'user_id,suggested_user_id' });
-              
-              // Update local state
-              setInteractedSuggestionIds(prev => new Set([...prev, selectedSuggestion.id]));
-              
-              // Check if all suggestions are now interacted with
-              const updatedSuggestions = suggestions.filter(s => s.id !== selectedSuggestion.id);
-              if (updatedSuggestions.length === 0 || updatedSuggestions.every(s => 
-                [...interactedSuggestionIds, selectedSuggestion.id].includes(s.id)
-              )) {
-                setShouldShowMessage(true);
-              }
+            const suggestionId = selectedSuggestion.id;
+            
+            // Immediately remove the suggestion from the list (before async operations)
+            const updatedSuggestions = suggestions.filter(s => s.id !== suggestionId);
+            setSuggestions(updatedSuggestions);
+            
+            // Update interacted IDs
+            setInteractedSuggestionIds(prev => new Set([...prev, suggestionId]));
+            
+            // If all suggestions are gone, show the message
+            if (updatedSuggestions.length === 0) {
+              setShouldShowMessage(true);
             }
+            
+            // Close the modal immediately
+            setSelectedSuggestion(null);
+            
+            // Track in database (non-blocking, fire-and-forget)
+            (async () => {
+              try {
+                const supabase = createClient();
+                const { data: { user: currentUser }, error: authError } = await supabase.auth.getUser();
+                if (authError) {
+                  console.error('Error getting user for interaction tracking:', authError);
+                  return;
+                }
+                if (!currentUser) {
+                  console.error('No current user found for interaction tracking');
+                  return;
+                }
+                
+                console.log('Attempting to insert suggestion interaction:', {
+                  user_id: currentUser.id,
+                  suggested_user_id: suggestionId,
+                  interaction_type: 'skipped'
+                });
+                
+                const { data: insertData, error: insertError } = await supabase
+                  .from('suggestion_interactions')
+                  .upsert({
+                    user_id: currentUser.id,
+                    suggested_user_id: suggestionId,
+                    interaction_type: 'skipped'
+                  }, { onConflict: 'user_id,suggested_user_id' })
+                  .select();
+                
+                if (insertError) {
+                  console.error('Error inserting suggestion interaction:', {
+                    error: insertError,
+                    errorString: JSON.stringify(insertError),
+                    message: insertError.message,
+                    details: insertError.details,
+                    hint: insertError.hint,
+                    code: insertError.code
+                  });
+                } else {
+                  console.log('Successfully tracked suggestion interaction:', insertData);
+                  
+                  // Verify the insert worked by querying it back
+                  const { data: verifyData, error: verifyError } = await supabase
+                    .from('suggestion_interactions')
+                    .select('*')
+                    .eq('user_id', currentUser.id)
+                    .eq('suggested_user_id', suggestionId)
+                    .single();
+                  
+                  if (verifyError) {
+                    console.error('Warning: Could not verify inserted interaction:', verifyError);
+                  } else {
+                    console.log('Verified: Interaction exists in database:', verifyData);
+                  }
+                }
+              } catch (err) {
+                console.error('Error tracking interaction:', err);
+              }
+            })();
           }
-          loadAriaSuggestions();
         }}
       />
     </div>
