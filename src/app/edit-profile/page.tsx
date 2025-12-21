@@ -13,6 +13,7 @@ export default function EditProfile() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   // Form State
   const [fullName, setFullName] = useState('');
@@ -198,6 +199,69 @@ export default function EditProfile() {
     }
   };
 
+  const handleDeleteAccount = async () => {
+    // Confirm deletion
+    const confirmed = window.confirm(
+      'Are you sure you want to delete your account? This action cannot be undone and will permanently delete all your data, connections, and messages.'
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    // Double confirmation
+    const doubleConfirmed = window.confirm(
+      'This is your last chance. Are you absolutely sure you want to delete your account?'
+    );
+
+    if (!doubleConfirmed) {
+      return;
+    }
+
+    setDeleting(true);
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      alert('You must be logged in to delete your account.');
+      setDeleting(false);
+      return;
+    }
+
+    try {
+      // Get the session token for the edge function
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('No active session');
+      }
+
+      // Call the delete-account edge function
+      const { data, error } = await supabase.functions.invoke('delete-account', {
+        body: {},
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      if (data?.error) {
+        throw new Error(data.error);
+      }
+
+      // Success - sign out and redirect
+      alert('Your account has been deleted successfully.');
+      await supabase.auth.signOut();
+      router.push('/landing');
+    } catch (error: any) {
+      console.error('Error deleting account:', error);
+      alert(`Error deleting account: ${error.message || 'An unexpected error occurred'}`);
+      setDeleting(false);
+    }
+  };
+
   if (loading) {
     return <div className={styles.container} style={{ justifyContent: 'center', alignItems: 'center' }}>Loading...</div>;
   }
@@ -318,6 +382,17 @@ export default function EditProfile() {
         >
           {saving ? 'Saving...' : 'Save Changes'}
         </button>
+          </div>
+          
+          <div className={styles.deleteSection}>
+            <button
+              className={styles.deleteBtn}
+              type="button"
+              onClick={handleDeleteAccount}
+              disabled={deleting}
+            >
+              {deleting ? 'Deleting...' : 'Delete Account'}
+            </button>
           </div>
         </div>
       </div>

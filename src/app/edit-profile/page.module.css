@@ -262,3 +262,37 @@
   font-size: 12px;
   font-style: italic;
 }
+
+.deleteSection {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid #eee;
+  display: flex;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.deleteBtn {
+  background: #ff3b30;
+  color: #fff;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 20px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.deleteBtn:hover {
+  background: #d32f2f;
+}
+
+.deleteBtn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.deleteBtn:active:not(:disabled) {
+  opacity: 0.9;
+}
