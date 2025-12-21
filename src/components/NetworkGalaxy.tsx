@@ -1,14 +1,8 @@
 'use client';
 
-import React, { useEffect, useState, useMemo, useRef, useCallback } from 'react';
-import dynamic from 'next/dynamic';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import * as d3 from 'd3';
 import { NetworkPerson } from '@/types/network';
-
-// Dynamically import ForceGraph2D to avoid SSR issues
-const ForceGraph2D = dynamic(() => import('react-force-graph-2d'), { 
-    ssr: false,
-    loading: () => <div style={{ height: '100%', width: '100%' }} /> 
-});
 
 interface NetworkGalaxyProps {
     people: NetworkPerson[];
@@ -22,9 +16,18 @@ export default React.memo(function NetworkGalaxy({
     onPersonClick: _ignored
 }: NetworkGalaxyProps) {
     const [isInverted, setIsInverted] = useState(false);
-    const fgRef = useRef<any>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
+
+    // D3 state (mirrors the Observable example structure)
+    const svgRef = useRef<SVGSVGElement | null>(null);
+    const simulationRef = useRef<d3.Simulation<any, undefined> | null>(null);
+    const linkSelRef = useRef<d3.Selection<SVGLineElement, any, SVGGElement, unknown> | null>(null);
+    const nodeSelRef = useRef<d3.Selection<SVGGElement, any, SVGGElement, unknown> | null>(null);
+    // Bigger = more zoomed out (show more of the graph)
+    const VIEWBOX_SCALE = 1.8;
+    // Positive value shifts the camera right (so the graph appears a bit more left on screen)
+    const VIEWBOX_OFFSET_X_PX = 180;
 
     useEffect(() => {
         const checkInverted = () => {
@@ -62,18 +65,25 @@ export default React.memo(function NetworkGalaxy({
     }, []);
 
     const graphData = useMemo(() => {
-        const nodes = people.map((p, i) => {
-            const isUser = p.id === currentUserId;
-            // Initial Positioning: User at center (0, 0), others in a wide circle around
-            
-            let x = isUser ? 0 : 0;
-            let y = isUser ? 0 : 0;
+        // Build nodes/links for the D3 update() call.
+        // We keep initial positions wide, but the D3 update() will recycle nodes across updates.
+        const sorted = [...people].sort((a, b) => a.id.localeCompare(b.id));
+        const user = sorted.find(p => p.id === currentUserId);
+        const others = sorted.filter(p => p.id !== currentUserId);
+        const ordered = user ? [user, ...others] : others;
 
+        const nodes = ordered.map((p, i) => {
+            const isUser = p.id === currentUserId;
+            const r = isUser ? 42 : 34;
+
+            // Wide initial ring; D3 simulation mutates x/y after.
+            let x = 0;
+            let y = 0;
             if (!isUser) {
-                // Distribute others in a wide circle around (0, 0)
-                const count = people.length - 1 || 1;
-                const angle = (i / count) * Math.PI * 2;
-                const radius = 450; // Default spacing
+                const idx = Math.max(0, i - 1);
+                const count = Math.max(1, ordered.length - 1);
+                const angle = (idx / count) * Math.PI * 2;
+                const radius = 940; // ~33% closer than 1400
                 x = Math.cos(angle) * radius;
                 y = Math.sin(angle) * radius;
             }
@@ -81,10 +91,9 @@ export default React.memo(function NetworkGalaxy({
             return {
                 id: p.id,
                 name: p.name,
-                val: isUser ? 35 : 25, // Default node sizes
+                r,
                 color: p.starColor || '#8E5BFF',
                 imgUrl: p.imageUrl,
-                img: null as HTMLImageElement | null,
                 x,
                 y
             };
@@ -95,122 +104,230 @@ export default React.memo(function NetworkGalaxy({
         const nodeIds = new Set(nodes.map(n => n.id));
 
         people.forEach(p => {
-             if (p.connections) {
-                 p.connections.forEach(targetId => {
-                     if (nodeIds.has(targetId)) {
-                         const linkKey = [p.id, targetId].sort().join('-');
-                         if (!linkSet.has(linkKey)) {
-                             linkSet.add(linkKey);
-                             links.push({ source: p.id, target: targetId });
-                         }
-                     }
-                 });
-             }
+            if (p.connections) {
+                p.connections.forEach(targetId => {
+                    if (nodeIds.has(targetId)) {
+                        const linkKey = [p.id, targetId].sort().join('-');
+                        if (!linkSet.has(linkKey)) {
+                            linkSet.add(linkKey);
+                            links.push({ source: p.id, target: targetId });
+                        }
+                    }
+                });
+            }
         });
 
         return { nodes, links };
     }, [people, currentUserId]);
 
-    // Apply Obsidian-like Physics and set initial zoom
+    // Initialize D3 chart once (mirrors the Observable chart = { ... } block)
     useEffect(() => {
-        if (fgRef.current) {
-            const fg = fgRef.current;
-            
-            // 1. Charge Force (Repulsion) - Very strong to keep nodes far apart
-            fg.d3Force('charge').strength(-3000).distanceMax(5000);
+        // Wait until we have real dimensions; otherwise we might init at 1x1 and miss the first update.
+        if (!containerRef.current || svgRef.current) return;
+        if (dimensions.width <= 0 || dimensions.height <= 0) return;
 
-            // 2. Link Force - Default spring distance
-            fg.d3Force('link').distance(375);
+        const width = Math.max(1, dimensions.width || 1);
+        const height = Math.max(1, dimensions.height || 1);
+        const vbW = width * VIEWBOX_SCALE;
+        const vbH = height * VIEWBOX_SCALE;
+        const vbOffsetX = VIEWBOX_OFFSET_X_PX * VIEWBOX_SCALE;
 
-            // 3. Center Force - Very weak to allow open layout
-            fg.d3Force('center').strength(0.01);
-            
-            // Set initial zoom level (0.7 = more zoomed out)
-            fg.zoom(0.7, 0);
-            
-            // Reheat to apply new forces
-            fg.d3ReheatSimulation();
+        // Reduce spacing by ~33% (closer nodes + shorter links)
+        const simulation = d3.forceSimulation<any>()
+            .force('charge', d3.forceManyBody().strength(-1740).distanceMax(6000))
+            .force('link', d3.forceLink<any, any>().id((d: any) => d.id).distance(600).strength(0.03))
+            .force('x', d3.forceX(0).strength(0.02))
+            .force('y', d3.forceY(0).strength(0.02))
+            .force('collide', d3.forceCollide<any>().radius((d: any) => (d?.r ?? 30) + 16).iterations(2));
+
+        const svg = d3.create('svg')
+            .attr('viewBox', [-vbW / 2 + vbOffsetX, -vbH / 2, vbW, vbH])
+            .attr('width', width)
+            .attr('height', height)
+            .attr('style', 'max-width: 100%; height: 100%;');
+
+        // defs for circular image clip (works for all images, no per-node defs)
+        const defs = svg.append('defs');
+        defs.append('clipPath')
+            .attr('id', 'nodeClipCircle')
+            .attr('clipPathUnits', 'objectBoundingBox')
+            .append('circle')
+            .attr('cx', 0.5)
+            .attr('cy', 0.5)
+            .attr('r', 0.5);
+
+        let link = svg.append('g')
+            .attr('stroke', '#e5e7eb')
+            .attr('stroke-opacity', 0.85)
+            .selectAll<SVGLineElement, any>('line');
+
+        // IMPORTANT: don't apply stroke to the entire node group — it outlines text/images and makes labels look bold/neon.
+        // We'll stroke only the circles instead.
+        let node = svg.append('g')
+            .selectAll<SVGGElement, any>('g');
+
+        const ticked = () => {
+            node.attr('transform', (d: any) => `translate(${d.x},${d.y})`);
+
+            link
+                .attr('x1', (d: any) => d.source.x)
+                .attr('y1', (d: any) => d.source.y)
+                .attr('x2', (d: any) => d.target.x)
+                .attr('y2', (d: any) => d.target.y);
+        };
+
+        simulation.on('tick', ticked);
+
+        const drag = (sim: d3.Simulation<any, undefined>) => {
+            function dragstarted(event: any, d: any) {
+                if (!event.active) sim.alphaTarget(0.3).restart();
+                d.fx = d.x;
+                d.fy = d.y;
+            }
+
+            function dragged(event: any, d: any) {
+                d.fx = event.x;
+                d.fy = event.y;
+            }
+
+            function dragended(event: any, d: any) {
+                if (!event.active) sim.alphaTarget(0);
+                d.fx = null;
+                d.fy = null;
+            }
+
+            return d3.drag<SVGGElement, any>()
+                .on('start', dragstarted)
+                .on('drag', dragged)
+                .on('end', dragended);
+        };
+
+        // Attach to DOM
+        containerRef.current.innerHTML = '';
+        containerRef.current.appendChild(svg.node() as SVGSVGElement);
+
+        svgRef.current = svg.node() as SVGSVGElement;
+        simulationRef.current = simulation;
+        linkSelRef.current = link as any;
+        nodeSelRef.current = node as any;
+
+        // Store update() behavior (mirrors the Observable update({nodes, links}) { ... })
+        (svgRef.current as any).__update = ({ nodes, links }: { nodes: any[]; links: any[] }) => {
+            // Recycle old nodes to preserve position & velocity
+            const old = new Map((node as any).data().map((d: any) => [d.id, d]));
+            const nextNodes = nodes.map((d: any) => ({ ...(old.get(d.id) || {}), ...d }));
+            const nextLinks = links.map((d: any) => ({ ...d }));
+
+            node = (node as any)
+                .data(nextNodes, (d: any) => d.id)
+                .join((enter: any) => {
+                    const g = enter.append('g').call(drag(simulation));
+
+                    g.append('circle')
+                        .attr('r', (d: any) => d.r)
+                        .attr('fill', (d: any) => d.color)
+                        .attr('stroke', '#fff')
+                        .attr('stroke-width', 1.5);
+
+                    g.append('image')
+                        .attr('x', (d: any) => -d.r)
+                        .attr('y', (d: any) => -d.r)
+                        .attr('width', (d: any) => d.r * 2)
+                        .attr('height', (d: any) => d.r * 2)
+                        .attr('href', (d: any) => d.imgUrl || '')
+                        .attr('preserveAspectRatio', 'xMidYMid slice')
+                        .attr('clip-path', 'url(#nodeClipCircle)')
+                        .style('display', (d: any) => (d.imgUrl ? 'block' : 'none'));
+
+                    g.append('text')
+                        .attr('text-anchor', 'middle')
+                        .attr('y', (d: any) => d.r + 18)
+                        // Make labels thinner / non-bold for readability
+                        .style('font-family', 'Inter, system-ui, sans-serif')
+                        .style('font-size', '11px')
+                        .style('font-weight', '400')
+                        .style('fill', isInverted ? '#ffffff' : '#000000')
+                        .text((d: any) => d.name || '');
+
+                    return g;
+                });
+
+            link = (link as any)
+                .data(nextLinks, (d: any) => `${d.source}-${d.target}`)
+                .join('line');
+
+            // Apply to sim
+            simulation.nodes(nextNodes);
+            (simulation.force('link') as any).links(nextLinks);
+
+            // Render now (like the example): restart, tick once, draw immediately
+            simulation.alpha(1).restart().tick();
+            ticked();
+
+            // Update refs
+            linkSelRef.current = link as any;
+            nodeSelRef.current = node as any;
+        };
+
+        // IMPORTANT: render immediately on init (otherwise update() might have fired before SVG existed)
+        (svgRef.current as any).__update(graphData);
+
+        return () => {
+            simulation.stop();
+            simulationRef.current = null;
+            svgRef.current = null;
+            linkSelRef.current = null;
+            nodeSelRef.current = null;
+        };
+    }, [dimensions.width, dimensions.height, graphData, isInverted]);
+
+    // Keep SVG sized and viewBox centered on resize
+    useEffect(() => {
+        if (!svgRef.current) return;
+        const svg = d3.select(svgRef.current);
+        const width = Math.max(1, dimensions.width || 1);
+        const height = Math.max(1, dimensions.height || 1);
+        const vbW = width * VIEWBOX_SCALE;
+        const vbH = height * VIEWBOX_SCALE;
+        const vbOffsetX = VIEWBOX_OFFSET_X_PX * VIEWBOX_SCALE;
+        svg.attr('width', width)
+            .attr('height', height)
+            .attr('viewBox', [-vbW / 2 + vbOffsetX, -vbH / 2, vbW, vbH]);
+    }, [dimensions]);
+
+    // Update graph when data changes
+    useEffect(() => {
+        if (!svgRef.current) return;
+        const updater = (svgRef.current as any).__update;
+        if (typeof updater === 'function') {
+            updater(graphData);
         }
     }, [graphData]);
 
-    const drawNode = useCallback((node: any, ctx: CanvasRenderingContext2D, globalScale: number) => {
-        const r = node.val;
-        const { x, y } = node;
-
-        // Draw background circle
-        ctx.beginPath();
-        ctx.arc(x, y, r, 0, 2 * Math.PI, false);
-        ctx.fillStyle = node.color;
-        ctx.fill();
-
-        // Draw image if available
-        if (node.imgUrl) {
-            if (!node.img) {
-                const img = new Image();
-                img.src = node.imgUrl;
-                img.onload = () => {
-                    node.img = img;
-                };
-                node.img = img;
-            } else if (node.img.complete && node.img.naturalWidth > 0) {
-                ctx.save();
-                ctx.beginPath();
-                ctx.arc(x, y, r, 0, 2 * Math.PI, false);
-                ctx.clip();
-                try {
-                    ctx.drawImage(node.img, x - r, y - r, r * 2, r * 2);
-                } catch (e) {}
-                ctx.restore();
-            }
-        }
-        
-        // Draw Label
-        if (node.name) {
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'top';
-            ctx.fillStyle = isInverted ? '#ffffff' : '#000000';
-            ctx.font = '600 12px Inter, system-ui, sans-serif';
-            ctx.fillText(node.name, x, y + r + 6);
-        }
+    // Keep label color synced with inversion changes (no need to rebuild the graph)
+    useEffect(() => {
+        if (!svgRef.current) return;
+        const svg = d3.select(svgRef.current);
+        svg.selectAll('text').style('fill', isInverted ? '#ffffff' : '#000000');
     }, [isInverted]);
 
     return (
-        <div ref={containerRef} style={{ position: 'relative', width: '100%', height: '100%' }}>
+        <div style={{ position: 'relative', width: '100%', height: '100%' }}>
             {/* Background */}
             <div style={{ position: 'absolute', inset: 0, background: '#ffffff', zIndex: 0 }} />
 
-            {/* Graph Layer */}
-            <div style={{
-                position: 'absolute',
-                inset: 0,
-                zIndex: 1,
-                background: 'transparent',
-                filter: isInverted ? 'invert(1) hue-rotate(180deg)' : 'none',
-                transition: 'filter 0.3s'
-            }}>
-                {dimensions.width > 0 && (
-                    <ForceGraph2D
-                        ref={fgRef}
-                        width={dimensions.width}
-                        height={dimensions.height}
-                        graphData={graphData}
-                        nodeLabel={() => ''}
-                        nodeCanvasObject={drawNode}
-                        enableNodeDrag={true} // Dragging enabled
-                        onNodeClick={() => {}} // Click disabled
-                        linkColor={() => '#e5e7eb'}
-                        backgroundColor="transparent"
-                        
-                        // Physics Settings for "Obsidian Feel"
-                        // Lower decay -> Fluid movement, higher velocity decay -> Less bouncy
-                        d3AlphaDecay={0.01} 
-                        d3VelocityDecay={0.4} 
-                        cooldownTicks={Infinity}
-                        
-                        // No warmup ticks - we initialize positions manually
-                        warmupTicks={0} 
-                    />
-                )}
+            {/* Graph Layer (SVG) */}
+            <div
+                style={{
+                    position: 'absolute',
+                    inset: 0,
+                    zIndex: 1,
+                    background: 'transparent',
+                    filter: isInverted ? 'invert(1) hue-rotate(180deg)' : 'none',
+                    transition: 'filter 0.3s'
+                }}
+            >
+                <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
             </div>
         </div>
     );
