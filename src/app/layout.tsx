@@ -5,6 +5,10 @@ import { AuthProvider } from "@/contexts/AuthContext";
 export const metadata: Metadata = {
   title: "TheNetwork",
   description: "TheNetwork WebApp",
+  icons: {
+    icon: [{ url: "/1.svg", type: "image/svg+xml" }],
+    shortcut: ["/1.svg"],
+  },
 };
 
 export default function RootLayout({
