@@ -101,6 +101,20 @@ export default function WrappedPage() {
         dnaV2: false,
         isNewUser: false
     });
+    // YouTube-specific progress tracking
+    const [youtubeStatus, setYoutubeStatus] = useState<{
+        connected: boolean;
+        subscriptionsCount: number;
+        subscriptionsTotal: number | null;
+        likedVideosCount: number;
+        likedVideosTotal: number | null;
+    }>({
+        connected: false,
+        subscriptionsCount: 0,
+        subscriptionsTotal: null,
+        likedVideosCount: 0,
+        likedVideosTotal: null,
+    });
     const hasStartedProcessing = useRef(false);
     const processingComplete = useRef(false);
 
@@ -109,6 +123,63 @@ export default function WrappedPage() {
             router.push('/landing');
         }
     }, [user, loading, router]);
+
+    // Helper functions for YouTube progress tracking
+    const fetchSubscriptionsWithProgress = async (accessToken: string): Promise<any[]> => {
+        const all: any[] = [];
+        let pageToken: string | undefined;
+        let pageCount = 0;
+
+        do {
+            const result = await YouTubeService.fetchSubscriptions(accessToken, 50, pageToken);
+            all.push(...result.items);
+            pageToken = result.nextPageToken;
+            pageCount++;
+            
+            // Update progress every page
+            setYoutubeStatus(prev => ({ 
+                ...prev, 
+                subscriptionsCount: all.length,
+                subscriptionsTotal: result.nextPageToken ? null : all.length // null means still loading
+            }));
+            
+            // Small delay to show progress
+            if (result.nextPageToken) {
+                await new Promise(r => setTimeout(r, 300));
+            }
+        } while (pageToken);
+
+        return all;
+    };
+
+    const fetchLikedVideosWithProgress = async (accessToken: string): Promise<any[]> => {
+        const all: any[] = [];
+        let pageToken: string | undefined;
+        const maxItems = 800; // Cap at 800 as per your service
+
+        do {
+            if (all.length >= maxItems) break;
+            
+            const effectivePageSize = Math.min(50, maxItems - all.length);
+            const result = await YouTubeService.fetchLikedVideos(accessToken, effectivePageSize, pageToken);
+            all.push(...result.items);
+            pageToken = result.nextPageToken;
+            
+            // Update progress every page
+            setYoutubeStatus(prev => ({ 
+                ...prev, 
+                likedVideosCount: all.length,
+                likedVideosTotal: result.nextPageToken ? null : all.length
+            }));
+            
+            // Small delay to show progress
+            if (result.nextPageToken && all.length < maxItems) {
+                await new Promise(r => setTimeout(r, 300));
+            }
+        } while (pageToken && all.length < maxItems);
+
+        return all;
+    };
 
     // Check if user needs processing and fetch profile data
     useEffect(() => {
@@ -171,42 +242,81 @@ export default function WrappedPage() {
         // Start processing when we reach the first loading slide (slide 4)
         if (currentSlideIndex === 4 && !hasStartedProcessing.current) {
             hasStartedProcessing.current = true;
-            processUserData();
+            processUserDataWithYouTubeProgress();
         }
     }, [currentSlideIndex, user, processingStatus.isNewUser]);
 
-    const processUserData = async () => {
+    // New function with YouTube progress tracking
+    const processUserDataWithYouTubeProgress = async () => {
         if (!user || processingComplete.current) return;
         
         const supabase = createClient();
         
         try {
-            // Step 1: Sync YouTube data (if not already synced)
-            console.log('Syncing YouTube data...');
+            // Step 1: Check YouTube connection (Slide 4)
+            console.log('Checking YouTube connection...');
+            const accessToken = await YouTubeService.getAccessToken();
+            if (accessToken) {
+                setYoutubeStatus(prev => ({ ...prev, connected: true }));
+                // Small delay to show "Connected ✅"
+                await new Promise(r => setTimeout(r, 1000));
+            } else {
+                console.warn('No YouTube access token available');
+                // Continue anyway - might have data from previous sync
+            }
+
+            // Step 2: Fetch subscriptions with progress (Slide 5)
             let hasYouTubeData = false;
             try {
                 // Check if YouTube data already exists
                 const { data: existingSubs } = await supabase
                     .from('youtube_subscriptions')
                     .select('id')
-                    .eq('user_id', user.id)
-                    .limit(1);
+                    .eq('user_id', user.id);
                 
                 const { data: existingLikes } = await supabase
                     .from('youtube_liked_videos')
                     .select('id')
-                    .eq('user_id', user.id)
-                    .limit(1);
+                    .eq('user_id', user.id);
 
-                hasYouTubeData = Boolean((existingSubs && existingSubs.length > 0) || (existingLikes && existingLikes.length > 0));
+                const existingSubsCount = existingSubs?.length || 0;
+                const existingLikesCount = existingLikes?.length || 0;
+                hasYouTubeData = existingSubsCount > 0 || existingLikesCount > 0;
 
                 // Only sync if we don't have data yet
-                if (!hasYouTubeData) {
-                    console.log('No YouTube data found, syncing...');
-                    await YouTubeService.syncYouTubeData(user.id);
-                    hasYouTubeData = true; // Assume sync succeeded
-                } else {
-                    console.log('YouTube data already exists, skipping sync');
+                if (!hasYouTubeData && accessToken) {
+                    console.log('No YouTube data found, syncing with progress...');
+                    
+                    // Fetch subscriptions with progress updates
+                    const subscriptions = await fetchSubscriptionsWithProgress(accessToken);
+                    setYoutubeStatus(prev => ({ 
+                        ...prev, 
+                        subscriptionsCount: subscriptions.length,
+                        subscriptionsTotal: subscriptions.length
+                    }));
+                    
+                    // Fetch liked videos with progress updates
+                    const likedVideos = await fetchLikedVideosWithProgress(accessToken);
+                    setYoutubeStatus(prev => ({ 
+                        ...prev, 
+                        likedVideosCount: likedVideos.length,
+                        likedVideosTotal: likedVideos.length
+                    }));
+
+                    // Sync to database
+                    await YouTubeService.syncSubscriptionsToSupabase(user.id, subscriptions);
+                    await YouTubeService.syncLikedVideosToSupabase(user.id, likedVideos);
+                    
+                    hasYouTubeData = true;
+                } else if (hasYouTubeData) {
+                    console.log('YouTube data already exists, using existing counts');
+                    setYoutubeStatus(prev => ({ 
+                        ...prev, 
+                        subscriptionsCount: existingSubsCount,
+                        subscriptionsTotal: existingSubsCount,
+                        likedVideosCount: existingLikesCount,
+                        likedVideosTotal: existingLikesCount
+                    }));
                 }
             } catch (syncError: any) {
                 console.error('Error syncing YouTube data:', syncError);
@@ -214,14 +324,21 @@ export default function WrappedPage() {
                 const { data: checkSubs } = await supabase
                     .from('youtube_subscriptions')
                     .select('id')
-                    .eq('user_id', user.id)
-                    .limit(1);
+                    .eq('user_id', user.id);
                 const { data: checkLikes } = await supabase
                     .from('youtube_liked_videos')
                     .select('id')
-                    .eq('user_id', user.id)
-                    .limit(1);
-                hasYouTubeData = Boolean((checkSubs && checkSubs.length > 0) || (checkLikes && checkLikes.length > 0));
+                    .eq('user_id', user.id);
+                const subsCount = checkSubs?.length || 0;
+                const likesCount = checkLikes?.length || 0;
+                hasYouTubeData = subsCount > 0 || likesCount > 0;
+                setYoutubeStatus(prev => ({ 
+                    ...prev, 
+                    subscriptionsCount: subsCount,
+                    subscriptionsTotal: subsCount,
+                    likedVideosCount: likesCount,
+                    likedVideosTotal: likesCount
+                }));
             }
             
             // Step 2: Derive interests and hierarchical interests (only if we have YouTube data)
@@ -347,6 +464,9 @@ export default function WrappedPage() {
         }
     };
 
+    // Keep old function for backward compatibility (if needed elsewhere)
+    const processUserData = processUserDataWithYouTubeProgress;
+
     const SLIDES: Slide[] = [
         // Slide 1 - You already have a digital life
         {
@@ -451,15 +571,20 @@ export default function WrappedPage() {
             ),
             type: 'manual'
         },
-        // Slide 4 - Loading Part 1 (Reading Signals - Light)
+        // Slide 4 - Connecting to YouTube
         {
             id: 4,
             bg: 'dark',
             content: (
                 <div className="relative w-full h-full flex flex-col items-center justify-center">
                     <h1 className="text-[34px] font-bold text-white font-display mb-8">
-                        Reading your signals...
+                        Connecting to YouTube...
                     </h1>
+                    {youtubeStatus.connected && (
+                        <p className="text-[22px] text-green-400 font-display mb-4">
+                            Connected ✅
+                        </p>
+                    )}
                     {/* Star - Top Left of Center */}
                     <div className="absolute left-[40%] top-[35%] text-white animate-pulse-slow">
                         <StarFourPoint className="w-8 h-8" />
@@ -471,17 +596,24 @@ export default function WrappedPage() {
                 </div>
             ),
             type: 'auto-advance',
-            duration: 1500 // Base duration, will be adjusted dynamically
+            duration: 2000 // Wait for connection check
         },
-        // Slide 5 - Loading Part 2 (Clustering - Dark)
+        // Slide 5 - Fetching subscriptions
         {
             id: 5,
             bg: 'dark',
             content: (
                 <div className="relative w-full h-full flex flex-col items-center justify-center">
                     <h1 className="text-[34px] font-bold text-white font-display mb-8">
-                        Clustering your obsessions...
+                        Fetching your subscriptions...
                     </h1>
+                    {youtubeStatus.subscriptionsCount > 0 && (
+                        <p className="text-[22px] text-gray-400 font-display">
+                            {youtubeStatus.subscriptionsTotal !== null 
+                                ? `Fetched ${youtubeStatus.subscriptionsCount} subscriptions`
+                                : `Fetched ${youtubeStatus.subscriptionsCount}...`}
+                        </p>
+                    )}
                     {/* Star - Right */}
                     <div className="absolute right-[25%] top-[45%] text-gray-500 animate-pulse-medium">
                         <StarFourPoint className="w-12 h-12" />
@@ -493,17 +625,24 @@ export default function WrappedPage() {
                 </div>
             ),
             type: 'auto-advance',
-            duration: 1500 // Base duration, will be adjusted dynamically
+            duration: 3000 // Wait for subscriptions to complete
         },
-        // Slide 6 - Building your identity map... (Transition 3)
+        // Slide 6 - Fetching liked videos
         {
             id: 6,
             bg: 'dark',
             content: (
                 <div className="relative w-full h-full flex flex-col items-center justify-center">
                     <h1 className="text-[34px] font-bold text-white font-display mb-8">
-                        Building your identity map...
+                        Fetching your liked videos...
                     </h1>
+                    {youtubeStatus.likedVideosCount > 0 && (
+                        <p className="text-[22px] text-gray-400 font-display">
+                            {youtubeStatus.likedVideosTotal !== null 
+                                ? `Fetched ${youtubeStatus.likedVideosCount} videos`
+                                : `Fetched ${youtubeStatus.likedVideosCount}...`}
+                        </p>
+                    )}
                     {/* Star - Bottom Left of Center */}
                     <div className="absolute left-[35%] bottom-[40%] text-white animate-pulse-fast">
                         <StarFourPoint className="w-10 h-10" />
@@ -515,7 +654,7 @@ export default function WrappedPage() {
                 </div>
             ),
             type: 'auto-advance',
-            duration: 2000 // Base duration, will be adjusted dynamically
+            duration: 3000 // Wait for liked videos to complete
         },
         // Slide 7 - You don't fit in one box (Revamped Identity Map)
         {
@@ -631,7 +770,13 @@ export default function WrappedPage() {
                             onClick={(e) => {
                                 e.stopPropagation();
                                 localStorage.setItem('theme_inverted', 'true');
-                                router.push('/');
+                                // Check feature flag and redirect to review page if enabled
+                                const reviewEnabled = process.env.NEXT_PUBLIC_YT_REVIEW_ENABLED === 'true';
+                                if (reviewEnabled) {
+                                    router.push('/youtube-data-review');
+                                } else {
+                                    router.push('/');
+                                }
                             }}
                             className="text-[24px] md:text-[32px] font-bold text-white hover:opacity-70 transition-opacity font-display cursor-pointer flex items-center gap-2"
                         >
@@ -656,31 +801,37 @@ export default function WrappedPage() {
             // Calculate dynamic duration based on processing status
             let duration = slide.duration || 3000;
             
-            // For loading slides (4, 5, 6), wait for processing if new user
+            // For YouTube slides (4, 5, 6), wait for YouTube API calls to complete
             if (processingStatus.isNewUser && slide.id >= 4 && slide.id <= 6) {
-                // Check if we should wait for processing to complete
                 if (slide.id === 4) {
-                    // Slide 4: Wait for interests, but max 5 seconds
-                    if (!processingStatus.interests) {
-                        duration = 5000;
+                    // Slide 4: Wait for YouTube connection
+                    if (!youtubeStatus.connected) {
+                        duration = 3000; // Wait up to 3 seconds for connection
                     } else {
-                        duration = 1500; // Fast advance if ready
+                        duration = 1500; // Fast advance if connected
                     }
                 } else if (slide.id === 5) {
-                    // Slide 5: Wait for hierarchical interests, but max 5 seconds
-                    if (!processingStatus.hierarchicalInterests) {
-                        duration = 5000;
+                    // Slide 5: Wait for subscriptions to be fetched
+                    if (youtubeStatus.subscriptionsTotal === null && youtubeStatus.subscriptionsCount === 0) {
+                        duration = 5000; // Still fetching, wait longer
+                    } else if (youtubeStatus.subscriptionsTotal === null) {
+                        duration = 3000; // In progress, wait a bit more
                     } else {
-                        duration = 1500; // Fast advance if ready
+                        duration = 1500; // Done, fast advance
                     }
                 } else if (slide.id === 6) {
-                    // Slide 6: Wait for DNA v2, but max 8 seconds
-                    if (!processingStatus.dnaV2) {
-                        duration = 8000;
+                    // Slide 6: Wait for liked videos to be fetched
+                    if (youtubeStatus.likedVideosTotal === null && youtubeStatus.likedVideosCount === 0) {
+                        duration = 5000; // Still fetching, wait longer
+                    } else if (youtubeStatus.likedVideosTotal === null) {
+                        duration = 3000; // In progress, wait a bit more
                     } else {
-                        duration = 2000; // Fast advance if ready
+                        duration = 2000; // Done, fast advance
                     }
                 }
+            } else if (slide.id >= 4 && slide.id <= 6) {
+                // For existing users, still show the slides but with shorter duration
+                duration = slide.duration || 2000;
             }
             
             const timer = setTimeout(() => {
@@ -688,14 +839,20 @@ export default function WrappedPage() {
             }, duration);
             return () => clearTimeout(timer);
         }
-    }, [currentSlideIndex, processingStatus]);
+    }, [currentSlideIndex, processingStatus, youtubeStatus]);
 
     const handleNext = () => {
         if (currentSlideIndex < SLIDES.length - 1) {
             setCurrentSlideIndex(prev => prev + 1);
         } else {
             localStorage.setItem('theme_inverted', 'true');
-            router.push('/');
+            // Check feature flag and redirect to review page if enabled
+            const reviewEnabled = process.env.NEXT_PUBLIC_YT_REVIEW_ENABLED === 'true';
+            if (reviewEnabled) {
+                router.push('/youtube-data-review');
+            } else {
+                router.push('/');
+            }
         }
     };
 

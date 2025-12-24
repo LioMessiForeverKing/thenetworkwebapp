@@ -102,6 +102,15 @@ export default function Menu() {
                 >
                   EDIT PROFILE
                 </Link>
+                {process.env.NEXT_PUBLIC_YT_REVIEW_ENABLED === 'true' && (
+                  <Link
+                    href="/youtube-data-review"
+                    onClick={() => setIsOpen(false)}
+                    className={styles.subMenuItem}
+                  >
+                    YOUTUBE DATA REVIEW
+                  </Link>
+                )}
                 <button
                   onClick={handleLogout}
                   className={styles.subMenuItem}
