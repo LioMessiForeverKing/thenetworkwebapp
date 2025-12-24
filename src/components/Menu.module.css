@@ -115,7 +115,7 @@
   right: 24px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   font-family: "SF Pro Display", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
   font-size: 18px;
   font-weight: 700;

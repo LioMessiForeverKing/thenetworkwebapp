@@ -123,7 +123,6 @@ export default function Menu() {
         </div>
 
         <div className={styles.menuFooter}>
-          <div>Invert</div>
           <div
             className={`${styles.toggle} ${isInverted ? styles.active : ''}`}
             onClick={handleToggle}
