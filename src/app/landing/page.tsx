@@ -10,10 +10,10 @@ export default function LandingPage() {
     const { user, loading } = useAuth();
     const router = useRouter();
     const [showInfo, setShowInfo] = useState(false);
-    
+
     // Check for review query parameter (for easy testing) - using window.location
     const [isReviewMode, setIsReviewMode] = useState(false);
-    
+
     useEffect(() => {
         if (typeof window !== 'undefined') {
             const params = new URLSearchParams(window.location.search);
@@ -51,8 +51,8 @@ export default function LandingPage() {
 
     return (
         <div className="relative w-full min-h-screen bg-white flex flex-col items-center overflow-hidden">
-             {/* Main Content Centered */}
-             <main className="flex-1 flex flex-col items-center justify-center w-full max-w-[1280px] px-4 gap-8">
+            {/* Main Content Centered */}
+            <main className="flex-1 flex flex-col items-center justify-center w-full max-w-[1280px] px-4 gap-8">
                 {/* Logo Image - Scaled up to remove whitespace */}
                 <div className="relative w-full max-w-[862px] aspect-[862/172] scale-[5] origin-center">
                     <Image
@@ -76,14 +76,14 @@ export default function LandingPage() {
                     className="flex items-center gap-2 text-[#7a7a7a] hover:text-[#333333] transition-colors font-display text-[14px] cursor-pointer bg-transparent border-none p-2 z-10 relative"
                     aria-label="Learn more about TheNetwork"
                 >
-                    <svg 
-                        width="20" 
-                        height="20" 
-                        viewBox="0 0 24 24" 
-                        fill="none" 
-                        stroke="currentColor" 
-                        strokeWidth="2" 
-                        strokeLinecap="round" 
+                    <svg
+                        width="20"
+                        height="20"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
                         strokeLinejoin="round"
                         className="flex-shrink-0"
                     >
@@ -98,12 +98,12 @@ export default function LandingPage() {
                 {showInfo && (
                     <>
                         {/* Backdrop */}
-                        <div 
+                        <div
                             className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
                             onClick={() => setShowInfo(false)}
                         >
                             {/* Modal Content */}
-                            <div 
+                            <div
                                 className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-xl relative"
                                 onClick={(e) => e.stopPropagation()}
                             >
@@ -114,14 +114,14 @@ export default function LandingPage() {
                                     className="absolute top-4 right-4 text-[#7a7a7a] hover:text-[#333333] transition-colors z-10"
                                     aria-label="Close"
                                 >
-                                    <svg 
-                                        width="24" 
-                                        height="24" 
-                                        viewBox="0 0 24 24" 
-                                        fill="none" 
-                                        stroke="currentColor" 
-                                        strokeWidth="2" 
-                                        strokeLinecap="round" 
+                                    <svg
+                                        width="24"
+                                        height="24"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        strokeWidth="2"
+                                        strokeLinecap="round"
                                         strokeLinejoin="round"
                                     >
                                         <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -134,7 +134,7 @@ export default function LandingPage() {
                                     <h2 className="text-2xl font-bold text-[#333333] font-display text-center">
                                         About TheNetwork
                                     </h2>
-                                    
+
                                     <div className="space-y-4 text-center">
                                         <p className="text-[16px] md:text-[18px] text-[#333333] leading-relaxed font-display">
                                             Find friends and communities built around shared interests.
@@ -149,21 +149,21 @@ export default function LandingPage() {
                                             You can manage your YouTube connection and delete imported YouTube data in Settings.
                                         </p>
                                     </div>
-                                    
+
                                     {/* Links */}
                                     <div className="flex flex-col items-center gap-3 text-center mt-6 pt-6 border-t border-[#e0e0e0]">
                                         {(() => {
                                             const reviewEnabled = process.env.NEXT_PUBLIC_YT_REVIEW_ENABLED === 'true';
                                             const isAuthenticated = !!user;
-                                            
+
                                             // Determine link destination
                                             let youtubeDataLink = '/privacy-policy#youtube';
                                             if (reviewEnabled && isAuthenticated) {
                                                 youtubeDataLink = '/youtube-data-review';
                                             }
-                                            
+
                                             return (
-                                                <Link 
+                                                <Link
                                                     href={youtubeDataLink}
                                                     onClick={() => setShowInfo(false)}
                                                     className="text-[14px] text-[#333333] hover:text-[#000000] underline underline-offset-2 font-display transition-colors"
@@ -172,7 +172,7 @@ export default function LandingPage() {
                                                 </Link>
                                             );
                                         })()}
-                                        <Link 
+                                        <Link
                                             href="mailto:privacy@thenetwork.life"
                                             onClick={() => setShowInfo(false)}
                                             className="text-[14px] text-[#333333] hover:text-[#000000] underline underline-offset-2 font-display transition-colors"
@@ -188,7 +188,7 @@ export default function LandingPage() {
 
                 {/* CTA Button */}
                 <div className="flex flex-col items-center gap-2">
-                    <button 
+                    <button
                         onClick={() => router.push('/consent')}
                         type="button"
                         className="group relative w-[363px] h-[72px] rounded-[70px] bg-gradient-to-r from-[#333333] via-[#000000] to-[#666666] flex items-center justify-center shadow-lg hover:scale-105 transition-transform cursor-pointer border-none"
@@ -198,10 +198,10 @@ export default function LandingPage() {
                         </span>
                     </button>
                 </div>
-             </main>
+            </main>
 
-             {/* Footer Section */}
-             <footer className="w-full py-8 flex flex-col items-center gap-4 text-center">
+            {/* Footer Section */}
+            <footer className="w-full py-8 flex flex-col items-center gap-4 text-center">
                 <p className="text-black text-[15px] font-display">
                     Private by default • You control what you connect • Delete anytime
                 </p>
@@ -209,6 +209,7 @@ export default function LandingPage() {
                     <a href="/privacy-policy" className="hover:text-black">Privacy</a>
                     <a href="/terms-of-service" className="hover:text-black">Terms of Service</a>
                     <a href="/terms-of-use" className="hover:text-black">Terms of Use</a>
+                    <a href="https://www.youtube.com/t/terms" target="_blank" rel="noopener noreferrer" className="hover:text-black">YouTube Terms</a>
                     <a href="mailto:privacy@thenetwork.life" className="hover:text-black">Contact</a>
                 </div>
             </footer>
