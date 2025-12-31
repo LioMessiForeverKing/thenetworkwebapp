@@ -130,14 +130,14 @@ function AnimatedWord({ isDark = false }: { isDark?: boolean }) {
     gradient: string | null;
     scale: string;
   }> = [
-    { text: 'people', fontStyle: 'font-bold uppercase', gradient: null, scale: 'scale-x-60' },
-    { text: 'friends ', fontStyle: 'font-semibold italic', gradient: null, scale: 'scale-x-95' },
-    { text: 'creators', fontStyle: 'font-bold underline', gradient: null, scale: 'scale-x-95' },
-    { text: 'dreamers', fontStyle: 'font-medium italic', gradient: null, scale: 'scale-x-95' },
-    { text: 'thinkers', fontStyle: 'font-medium', gradient: null, scale: 'scale-x-100' },
-    { text: 'leaders', fontStyle: 'font-bold underline', gradient: null, scale: 'scale-x-95' },
-    { text: 'artists', fontStyle: 'font-medium italic', gradient: null, scale: 'scale-x-95' },
-  ];
+      { text: 'people', fontStyle: 'font-bold uppercase', gradient: null, scale: 'scale-x-60' },
+      { text: 'friends ', fontStyle: 'font-semibold italic', gradient: null, scale: 'scale-x-95' },
+      { text: 'creators', fontStyle: 'font-bold underline', gradient: null, scale: 'scale-x-95' },
+      { text: 'dreamers', fontStyle: 'font-medium italic', gradient: null, scale: 'scale-x-95' },
+      { text: 'thinkers', fontStyle: 'font-medium', gradient: null, scale: 'scale-x-100' },
+      { text: 'leaders', fontStyle: 'font-bold underline', gradient: null, scale: 'scale-x-95' },
+      { text: 'artists', fontStyle: 'font-medium italic', gradient: null, scale: 'scale-x-95' },
+    ];
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFadingOut, setIsFadingOut] = useState(false);
 
@@ -195,6 +195,39 @@ function AnimatedWord({ isDark = false }: { isDark?: boolean }) {
   );
 }
 
+// FAQ Accordion Item Component
+function FAQItem({ question, answer, isOpen, onClick }: {
+  question: string;
+  answer: string | React.ReactNode;
+  isOpen: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <div className="border-b border-gray-200 last:border-b-0">
+      <button
+        onClick={onClick}
+        className="w-full py-6 flex items-center justify-between text-left bg-transparent border-none cursor-pointer group"
+      >
+        <span className="text-lg md:text-xl font-semibold text-black pr-8 group-hover:text-gray-700 transition-colors">
+          {question}
+        </span>
+        <span
+          className={`text-2xl text-black transition-transform duration-300 flex-shrink-0 ${isOpen ? 'rotate-45' : 'rotate-0'}`}
+        >
+          +
+        </span>
+      </button>
+      <div
+        className={`overflow-hidden transition-all duration-300 ease-in-out ${isOpen ? 'max-h-96 opacity-100 pb-6' : 'max-h-0 opacity-0'}`}
+      >
+        <div className="text-base md:text-lg text-gray-700 leading-relaxed">
+          {answer}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // --- Main Landing Page Component ---
 
 export default function LandingPage() {
@@ -203,6 +236,50 @@ export default function LandingPage() {
   const transitionSectionRef = useRef<HTMLElement>(null);
   const gallerySectionRef = useRef<HTMLElement>(null);
   const [galleryVisible, setGalleryVisible] = useState(false);
+  const [openFAQ, setOpenFAQ] = useState<number | null>(null);
+
+  const FAQ_DATA = [
+    {
+      question: "What is TheNetwork?",
+      answer: "TheNetwork is a social networking application that helps users discover and connect with other people based on shared interests. With the user's explicit permission, the app reads YouTube subscriptions and liked videos using the YouTube Data API (read-only scope only). This data is used solely to understand user interests and to make people discovery and recommendations feel intentional rather than random."
+    },
+    {
+      question: "What happens after I sign up?",
+      answer: "After connecting your Google account, we'll analyze your YouTube activity to create your \"Digital DNA\", a unique profile of your interests, personality archetypes, and the creators who shape your worldview. You'll see a personalized summary of who you are based on your digital footprint, then you can start discovering and connecting with like-minded people."
+    },
+    {
+      question: "Who will I meet on TheNetwork?",
+      answer: "You'll meet real people who share your genuine interests, not random followers or bots. Whether you're into niche hobbies, specific creators, or broader topics, we connect you with others who truly resonate with what you care about. Think of it as finding your tribe based on what you actually watch, not just what you say you like."
+    },
+    {
+      question: "How does TheNetwork use my YouTube data?",
+      answer: "We analyze your YouTube subscriptions and liked videos to understand your genuine interests: the creators you follow, the topics you engage with. This helps us match you with people who share similar passions and curiosities. We only use read-only access, meaning we can never post, modify, or delete anything on your YouTube account."
+    },
+    {
+      question: "Is my data shared with anyone?",
+      answer: "No, your data is never sold or shared with third parties for advertising or marketing purposes. Your YouTube data is used exclusively within TheNetwork to improve your experience and help you find like-minded people. We take your privacy seriously."
+    },
+    {
+      question: "How do you match me with other people?",
+      answer: "We use your YouTube signals, specifically your subscriptions and liked videos, to build a profile of your interests. Our matching algorithm then identifies other users with overlapping interests, helping you discover people who genuinely share your passions rather than random connections."
+    },
+    {
+      question: "Can I revoke access to my data?",
+      answer: (
+        <>
+          Yes, absolutely. You can revoke TheNetwork's access to your YouTube data at any time through your{' '}
+          <a href="https://myaccount.google.com/permissions" target="_blank" rel="noopener noreferrer" className="underline hover:text-black">
+            Google Account permissions
+          </a>
+          . You can also delete your account within the app, which will remove all your data from our systems.
+        </>
+      )
+    },
+    {
+      question: "What happens if I delete my account?",
+      answer: "When you delete your account, all your personal data, including any cached YouTube data, is permanently removed from our systems. Your connections and any content you've shared will also be deleted. This action cannot be undone."
+    }
+  ];
 
   const COMMUNITY_IMAGES = [
     '/Community Images/1.png',
@@ -237,13 +314,13 @@ export default function LandingPage() {
       const scrollProgress = Math.max(0, Math.min(1, 1 - (rect.top / windowHeight)));
 
       const stages = [
-        '.transition-stage-1', '.transition-stage-2', '.transition-stage-3', 
-        '.transition-stage-4', '.transition-stage-5', '.transition-stage-6', 
+        '.transition-stage-1', '.transition-stage-2', '.transition-stage-3',
+        '.transition-stage-4', '.transition-stage-5', '.transition-stage-6',
         '.transition-stage-7', '.transition-stage-8'
       ];
 
       const stageWidth = 1 / stages.length;
-      
+
       stages.forEach((selector, index) => {
         const stage = section.querySelector(selector) as HTMLElement;
         if (!stage) return;
@@ -344,7 +421,7 @@ export default function LandingPage() {
       {/* Initial Landing Section - Full Screen */}
       <section className="relative h-100svh bg-black overflow-hidden">
         <ConstellationSphere />
-        
+
         {/* Top Left - THE NETWORK. */}
         <div className="absolute top-8 left-8 z-20">
           <h1 className="text-white font-brand text-4xl sm:text-5xl md:text-6xl font-bold" style={{ letterSpacing: '-0.02em' }}>
@@ -364,8 +441,8 @@ export default function LandingPage() {
         <div className="absolute inset-0 flex flex-col items-center justify-center z-10 pointer-events-none">
           <div className="pointer-events-auto flex flex-col items-center gap-8 text-center px-4">
             <AnimatedWord />
-            
-            <button 
+
+            <button
               onClick={() => router.push('/consent')}
               className="px-10 py-5 bg-white text-black rounded-full text-xl font-semibold hover:bg-gray-100 transition-all duration-300 shadow-xl transform hover:scale-105 active:scale-95 cursor-pointer border-none"
             >
@@ -385,16 +462,16 @@ export default function LandingPage() {
           <div className="absolute bottom-16 left-6 right-28 z-10">
             <div className="h-[1px] bg-black md:bg-white opacity-70 md:opacity-30"></div>
           </div>
-          
+
           <div className="absolute bottom-4 left-6 z-20 flex gap-8">
-            <Link 
-              href="/privacy-policy" 
+            <Link
+              href="/privacy-policy"
               className="text-xs font-ui text-black md:text-white hover:opacity-70 transition-opacity"
             >
               Privacy Policy
             </Link>
-            <Link 
-              href="/terms-of-service" 
+            <Link
+              href="/terms-of-service"
               className="text-xs font-ui text-black md:text-white hover:opacity-70 transition-opacity"
             >
               Terms of Service
@@ -402,30 +479,36 @@ export default function LandingPage() {
           </div>
 
           <div className="absolute bottom-4 right-8 z-20 flex gap-8">
-            <button 
-              onClick={() => router.push('/consent')} 
+            <button
+              onClick={() => router.push('/consent')}
               className="text-xs font-ui text-black md:text-white hover:opacity-70 transition-opacity cursor-pointer bg-transparent border-none p-0"
             >
               Join
             </button>
-            <button 
-              onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} 
+            <button
+              onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
               className="text-xs font-ui text-black md:text-white hover:opacity-70 transition-opacity cursor-pointer bg-transparent border-none p-0"
             >
               Home
             </button>
-            <button 
-              onClick={() => document.getElementById('signal-intelligence')?.scrollIntoView({ behavior: 'smooth' })} 
+            <button
+              onClick={() => document.getElementById('signal-intelligence')?.scrollIntoView({ behavior: 'smooth' })}
               className="text-xs font-ui text-black md:text-white hover:opacity-70 transition-opacity cursor-pointer bg-transparent border-none p-0"
             >
               What we do
+            </button>
+            <button
+              onClick={() => document.getElementById('faq')?.scrollIntoView({ behavior: 'smooth' })}
+              className="text-xs font-ui text-black md:text-white hover:opacity-70 transition-opacity cursor-pointer bg-transparent border-none p-0"
+            >
+              FAQ
             </button>
           </div>
         </div>
       </nav>
 
       {/* Transition Section */}
-      <section 
+      <section
         ref={transitionSectionRef}
         className="relative min-h-screen overflow-hidden"
         id="checkerboard-transition"
@@ -461,7 +544,7 @@ export default function LandingPage() {
               ))}
             </div>
           </div>
-          
+
           <div className="w-full overflow-hidden mt-8">
             <div className="gallery-text-container flex items-center gap-12" style={{ whiteSpace: 'nowrap' }}>
               <h2 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-bold text-black leading-none tracking-tight inline-block" style={{ fontSize: 'clamp(3.2rem, 9.6vw, 9.6rem)' }}>
@@ -504,11 +587,31 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* FAQ Section */}
+      <section id="faq" className="relative bg-white overflow-hidden py-24 px-6 md:px-12">
+        <div className="max-w-4xl mx-auto">
+          <h2 className="font-bold text-black mb-12 leading-none" style={{ fontSize: 'clamp(2rem, 8vw, 4rem)' }}>
+            QUESTIONS? <span className="border-b-[3px] border-black pb-2 inline-block sm:inline">ANSWERS.</span>
+          </h2>
+          <div className="bg-gray-50 rounded-2xl p-6 md:p-10">
+            {FAQ_DATA.map((faq, index) => (
+              <FAQItem
+                key={index}
+                question={faq.question}
+                answer={faq.answer}
+                isOpen={openFAQ === index}
+                onClick={() => setOpenFAQ(openFAQ === index ? null : index)}
+              />
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* Join Us Section */}
       <section className="relative min-h-screen bg-white overflow-hidden flex items-center justify-center px-6">
         <div className="text-center">
           <h2 className="text-6xl sm:text-7xl md:text-8xl lg:text-9xl font-bold text-black mb-12 leading-none">JOIN US</h2>
-          <button 
+          <button
             onClick={() => router.push('/consent')}
             className="px-10 py-5 bg-black text-white rounded-full text-xl font-semibold hover:bg-gray-800 transition-colors shadow-xl transform hover:scale-105 active:scale-95 cursor-pointer border-none"
           >
