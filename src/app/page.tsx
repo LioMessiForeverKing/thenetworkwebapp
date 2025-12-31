@@ -588,7 +588,7 @@ export default function LandingPage() {
       </section>
 
       {/* FAQ Section */}
-      <section id="faq" className="relative bg-white overflow-hidden py-24 px-6 md:px-12">
+      <section id="faq" className="relative bg-white overflow-hidden pt-32 pb-24 px-6 md:px-12 mt-8">
         <div className="max-w-4xl mx-auto">
           <h2 className="font-bold text-black mb-12 leading-none" style={{ fontSize: 'clamp(2rem, 8vw, 4rem)' }}>
             QUESTIONS? <span className="border-b-[3px] border-black pb-2 inline-block sm:inline">ANSWERS.</span>
