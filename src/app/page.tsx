@@ -483,9 +483,9 @@ export default function LandingPage() {
             {signalHeading}
           </h2>
           <div className="max-w-2xl space-y-6">
-            <p className="text-xl md:text-2xl text-black leading-relaxed font-medium">The tiny things that make you, you.</p>
-            <p className="text-xl md:text-2xl text-black leading-relaxed font-medium">Your digital life is full of clues about what you love.</p>
-            <p className="text-xl md:text-2xl text-black leading-relaxed font-medium">We connect them, so discovery finally feels natural instead of random.</p>
+            <p className="text-xl md:text-2xl text-black leading-relaxed font-medium">The small signals you leave behind every day.</p>
+            <p className="text-xl md:text-2xl text-black leading-relaxed font-medium">With your permission, we read your YouTube subscriptions and liked videos — nothing more.</p>
+            <p className="text-xl md:text-2xl text-black leading-relaxed font-medium">We use them to understand what you genuinely care about, so discovering people feels intentional, not random.</p>
           </div>
         </div>
       </section>

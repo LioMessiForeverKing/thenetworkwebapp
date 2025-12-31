@@ -179,9 +179,9 @@ joined the waitlist
 
 ### 4. Signal Intelligence Section
 - **Headline:** SHAPED BY YOUR SIGNALS.
-- **Body 1:** The tiny things that make you, you.
-- **Body 2:** Your digital life is full of clues about what you love.
-- **Body 3:** We connect them, so discovery finally feels natural instead of random.
+- **Body 1:** The small signals you leave behind every day.
+- **Body 2:** With your permission, we read your YouTube subscriptions and liked videos — nothing more.
+- **Body 3:** We use them to understand what you genuinely care about, so discovering people feels intentional, not random.
 
 ### 5. Final CTA Section
 - **Headline:** JOIN US
@@ -208,11 +208,11 @@ THIS COULD BE YOU!
 
 SHAPED BY YOUR SIGNALS.
 
-The tiny things that make you, you.
+The small signals you leave behind every day.
 
-Your digital life is full of clues about what you love.
+With your permission, we read your YouTube subscriptions and liked videos — nothing more.
 
-We connect them, so discovery finally feels natural instead of random.
+We use them to understand what you genuinely care about, so discovering people feels intentional, not random.
 
 ---
 
