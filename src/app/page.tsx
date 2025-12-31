@@ -406,6 +406,12 @@ export default function LandingPage() {
             >
               Home
             </button>
+            <button 
+              onClick={() => document.getElementById('signal-intelligence')?.scrollIntoView({ behavior: 'smooth' })} 
+              className="text-xs font-ui text-black md:text-white hover:opacity-70 transition-opacity cursor-pointer bg-transparent border-none p-0"
+            >
+              What we do
+            </button>
           </div>
         </div>
       </nav>
