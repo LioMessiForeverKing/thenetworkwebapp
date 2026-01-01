@@ -212,17 +212,8 @@ export default function WrappedPage() {
             const hasHierarchical = hierarchicalInterests.length > 0;
             const hasDnaV2 = !!dnaV2;
 
-            // Determine if this is a new user (needs processing)
-            const isNewUser = !hasInterests || !hasHierarchical || !hasDnaV2;
-
-            setProcessingStatus({
-                interests: hasInterests,
-                hierarchicalInterests: hasHierarchical,
-                dnaV2: hasDnaV2,
-                isNewUser
-            });
-
-            // Set archetypes and doppelgangers for display
+            // If archetypes already exist, use them and skip regeneration entirely
+            // This prevents the "refresh" issue where values flash before being regenerated
             if (hasArchetypes) {
                 // @ts-ignore
                 setArchetypes(profile.personality_archetypes);
@@ -231,6 +222,17 @@ export default function WrappedPage() {
                 // @ts-ignore
                 setDoppelgangers(profile.doppelgangers);
             }
+
+            // Only mark as new user if we don't have archetypes yet
+            // This prevents regeneration when DNA data already exists
+            const isNewUser = !hasArchetypes;
+
+            setProcessingStatus({
+                interests: hasInterests,
+                hierarchicalInterests: hasHierarchical,
+                dnaV2: hasDnaV2,
+                isNewUser
+            });
         };
         checkAndProcess();
     }, [user]);

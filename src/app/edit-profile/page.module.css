@@ -260,6 +260,24 @@
   font-weight: 600;
 }
 
+.disconnectBtn {
+  background: transparent;
+  border: 1px solid #999;
+  color: #666;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.disconnectBtn:hover {
+  border-color: #ff3b30;
+  color: #ff3b30;
+  background: rgba(255, 59, 48, 0.05);
+}
+
 .statusNotConnected {
   color: #999;
   font-size: 13px;

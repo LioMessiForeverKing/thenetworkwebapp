@@ -21,8 +21,8 @@ export default function EditProfile() {
   const [bio, setBio] = useState('');
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
-  // Connections State
-  const [youtubeConnected, setYoutubeConnected] = useState(false);
+  // Connections State - YouTube is always connected if user is logged in via Google
+  const [youtubeConnected] = useState(true);
 
   useEffect(() => {
     fetchProfile();
@@ -72,18 +72,6 @@ export default function EditProfile() {
 
       if (handleData) {
         setBio(handleData.handle || '');
-      }
-
-      // 2. Check YouTube Connection (user_platform_vectors)
-      const { data: vectors } = await supabase
-        .from('user_platform_vectors')
-        .select('platform')
-        .eq('user_id', user.id)
-        .eq('platform', 'youtube')
-        .limit(1);
-
-      if (vectors && vectors.length > 0) {
-        setYoutubeConnected(true);
       }
 
     } catch (error) {
@@ -341,17 +329,25 @@ export default function EditProfile() {
               <div className={styles.label}>Connections</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%' }}>
 
-                {/* YouTube */}
+                {/* YouTube - Always connected via Google OAuth */}
                 <div className={styles.connectionCard}>
                   <div className={styles.connectionCardHeader}>
                     <div className={styles.ytIcon}>YT</div>
                     <span>YouTube</span>
                   </div>
-                  {youtubeConnected ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                     <span className={styles.statusConnected}>Connected</span>
-                  ) : (
-                    <span className={styles.statusNotConnected}>Not Connected</span>
-                  )}
+                    <button 
+                      className={styles.disconnectBtn}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        // TODO: Implement actual disconnect logic
+                        alert('YouTube disconnect coming soon. For now, you can revoke access from your Google Account settings.');
+                      }}
+                    >
+                      Disconnect
+                    </button>
+                  </div>
                 </div>
 
                 {/* Incoming */}
