@@ -439,16 +439,31 @@ export default function LandingPage() {
 
         {/* Center Content */}
         <div className="absolute inset-0 flex flex-col items-center justify-center z-10 pointer-events-none">
-          <div className="pointer-events-auto flex flex-col items-center gap-8 text-center px-4">
+          <div className="pointer-events-auto flex flex-col items-center gap-6 text-center px-4">
             <AnimatedWord />
+
+            <p className="text-white/90 text-lg md:text-xl font-medium max-w-lg mx-auto leading-relaxed animate-fade-in-up opacity-0" style={{ animationDelay: '0.3s' }}>
+              We turn your YouTube liked videos and subscriptions into new people you could meet.
+            </p>
 
             <button
               onClick={() => router.push('/consent')}
-              className="px-10 py-5 bg-white text-black rounded-full text-xl font-semibold hover:bg-gray-100 transition-all duration-300 shadow-xl transform hover:scale-105 active:scale-95 cursor-pointer border-none"
+              className="mt-4 px-10 py-5 bg-white text-black rounded-full text-xl font-semibold hover:bg-gray-100 transition-all duration-300 shadow-xl transform hover:scale-105 active:scale-95 cursor-pointer border-none"
             >
               Claim my Digital DNA
             </button>
           </div>
+
+          <button
+            onClick={() => document.getElementById('checkerboard-transition')?.scrollIntoView({ behavior: 'smooth' })}
+            className="absolute bottom-32 pointer-events-auto flex flex-col items-center gap-2 animate-pulse cursor-pointer transition-opacity hover:opacity-70 bg-transparent border-none p-0"
+            style={{ animationDuration: '3s' }}
+          >
+            <span className="text-white/60 text-xs font-bold tracking-[0.2em] uppercase">Scroll to explore</span>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M7 13l5 5 5-5M7 6l5 5 5-5" />
+            </svg>
+          </button>
         </div>
       </section>
 
