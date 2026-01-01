@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Menu from '@/components/Menu';
 import styles from './page.module.css';
 import { createClient } from '@/lib/supabase';
+import { YouTubeService } from '@/services/youtube';
 
 export default function EditProfile() {
   const router = useRouter();
@@ -14,6 +15,8 @@ export default function EditProfile() {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [disconnecting, setDisconnecting] = useState(false);
+  const [showDisconnectModal, setShowDisconnectModal] = useState(false);
 
   // Form State
   const [fullName, setFullName] = useState('');
@@ -21,8 +24,8 @@ export default function EditProfile() {
   const [bio, setBio] = useState('');
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
-  // Connections State - YouTube is always connected if user is logged in via Google
-  const [youtubeConnected] = useState(true);
+  // Connections State - Check if YouTube is actually connected
+  const [youtubeConnected, setYoutubeConnected] = useState(false);
 
   useEffect(() => {
     fetchProfile();
@@ -74,10 +77,45 @@ export default function EditProfile() {
         setBio(handleData.handle || '');
       }
 
+      // Check YouTube connection status
+      await checkYouTubeConnection(user.id);
+
     } catch (error) {
       console.error('Error loading profile:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const checkYouTubeConnection = async (userId: string) => {
+    const supabase = createClient();
+    
+    try {
+      // Check if user has YouTube data or access token
+      const [subsResult, likesResult, accessToken] = await Promise.all([
+        supabase
+          .from('youtube_subscriptions')
+          .select('id')
+          .eq('user_id', userId)
+          .limit(1),
+        supabase
+          .from('youtube_liked_videos')
+          .select('id')
+          .eq('user_id', userId)
+          .limit(1),
+        YouTubeService.getAccessToken(),
+      ]);
+
+      const hasData = (subsResult.data && subsResult.data.length > 0) || 
+                      (likesResult.data && likesResult.data.length > 0);
+      const hasToken = !!accessToken;
+
+      // YouTube is connected if there's data or a valid token
+      setYoutubeConnected(hasData || hasToken);
+    } catch (error) {
+      console.error('Error checking YouTube connection:', error);
+      // Default to false if check fails
+      setYoutubeConnected(false);
     }
   };
 
@@ -184,6 +222,38 @@ export default function EditProfile() {
       alert(`Error saving changes: ${error.message}`);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleDisconnectYouTube = () => {
+    // Show warning modal
+    setShowDisconnectModal(true);
+  };
+
+  const confirmDisconnectYouTube = async () => {
+    setShowDisconnectModal(false);
+    setDisconnecting(true);
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      alert('You must be logged in to disconnect YouTube.');
+      setDisconnecting(false);
+      return;
+    }
+
+    try {
+      await YouTubeService.disconnectYouTube();
+      
+      // Update connection status
+      setYoutubeConnected(false);
+      
+      alert('YouTube has been disconnected successfully. All YouTube data has been deleted.');
+    } catch (error: any) {
+      console.error('Error disconnecting YouTube:', error);
+      alert(`Error disconnecting YouTube: ${error.message || 'An unexpected error occurred'}`);
+    } finally {
+      setDisconnecting(false);
     }
   };
 
@@ -336,17 +406,20 @@ export default function EditProfile() {
                     <span>YouTube</span>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <span className={styles.statusConnected}>Connected</span>
-                    <button 
-                      className={styles.disconnectBtn}
-                      onClick={(e) => {
-                        e.preventDefault();
-                        // TODO: Implement actual disconnect logic
-                        alert('YouTube disconnect coming soon. For now, you can revoke access from your Google Account settings.');
-                      }}
-                    >
-                      Disconnect
-                    </button>
+                    {youtubeConnected ? (
+                      <>
+                        <span className={styles.statusConnected}>Connected</span>
+                        <button 
+                          className={styles.disconnectBtn}
+                          onClick={handleDisconnectYouTube}
+                          disabled={disconnecting || showDisconnectModal}
+                        >
+                          {disconnecting ? 'Disconnecting...' : 'Disconnect'}
+                        </button>
+                      </>
+                    ) : (
+                      <span className={styles.statusNotConnected}>Not Connected</span>
+                    )}
                   </div>
                 </div>
 
@@ -405,6 +478,53 @@ export default function EditProfile() {
           </div>
         </div>
       </div>
+
+      {/* Disconnect YouTube Warning Modal */}
+      {showDisconnectModal && (
+        <div className={styles.modalOverlay} onClick={() => setShowDisconnectModal(false)}>
+          <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.modalHeader}>
+              <h2 className={styles.modalTitle}>⚠️ Warning: Disconnecting YouTube</h2>
+            </div>
+            <div className={styles.modalBody}>
+              <p className={styles.modalWarning}>
+                <strong>Disconnecting YouTube is similar to deleting your account.</strong>
+              </p>
+              <p className={styles.modalText}>
+                This action will permanently delete:
+              </p>
+              <ul className={styles.modalList}>
+                <li>All your YouTube subscriptions data</li>
+                <li>All your YouTube liked videos data</li>
+                <li>Your Digital DNA profile derived from YouTube</li>
+                <li>Your interest matches and recommendations</li>
+              </ul>
+              <p className={styles.modalText}>
+                <strong>This action cannot be undone.</strong> You will lose all the personalized connections and matches that were based on your YouTube data.
+              </p>
+              <p className={styles.modalText}>
+                If you want to keep using TheNetwork effectively, you should keep YouTube connected. Disconnecting YouTube will significantly impact your experience on the platform.
+              </p>
+            </div>
+            <div className={styles.modalActions}>
+              <button
+                className={styles.modalCancelBtn}
+                onClick={() => setShowDisconnectModal(false)}
+                disabled={disconnecting}
+              >
+                Cancel
+              </button>
+              <button
+                className={styles.modalConfirmBtn}
+                onClick={confirmDisconnectYouTube}
+                disabled={disconnecting}
+              >
+                {disconnecting ? 'Disconnecting...' : 'Yes, Disconnect YouTube'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

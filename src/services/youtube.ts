@@ -476,5 +476,54 @@ export const YouTubeService = {
     const data = await response.json();
     return data?.interests || [];
   },
+
+  /**
+   * Disconnect YouTube: Delete all YouTube data and revoke OAuth token
+   */
+  async disconnectYouTube(): Promise<void> {
+    const supabase = createClient();
+    
+    // Ensure we have a valid session
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError || !session) {
+      throw new Error(`No active session: ${sessionError?.message || 'Session not found'}`);
+    }
+
+    if (!session.access_token) {
+      throw new Error('No access token in session. Please sign in again.');
+    }
+
+    console.log('Calling disconnect-youtube edge function');
+
+    try {
+      const { data, error } = await supabase.functions.invoke('disconnect-youtube', {
+        body: {},
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
+
+      if (error) {
+        console.error('Edge function error details:', {
+          message: error.message,
+          context: error.context,
+          status: error.status,
+        });
+        throw new Error(`Failed to disconnect YouTube: ${error.message}`);
+      }
+
+      if (data?.error) {
+        throw new Error(data.error);
+      }
+
+      console.log('Successfully disconnected YouTube');
+    } catch (err: any) {
+      console.error('Exception calling disconnect-youtube:', err);
+      if (err.message?.includes('Failed to disconnect YouTube')) {
+        throw err;
+      }
+      throw new Error(`Failed to disconnect YouTube: ${err.message || String(err)}`);
+    }
+  },
 };
 
