@@ -519,28 +519,28 @@ export default function WrappedPage() {
             content: (
                 <div className="relative w-full h-full flex flex-col items-center justify-center">
                     {/* Text Content */}
-                    <div className="relative z-10 max-w-[800px] text-left px-8 -translate-y-20 md:-translate-x-20">
-                        <h1 className="text-[40px] md:text-[60px] font-bold text-white font-display leading-[1.1] mb-2 tracking-tight">
+                    <div className="relative z-10 max-w-[800px] text-center md:text-left px-6 md:px-8 -translate-y-10 md:-translate-y-20 md:-translate-x-20">
+                        <h1 className="text-[28px] md:text-[60px] font-bold text-white font-display leading-[1.1] mb-2 tracking-tight">
                             You already have a digital life.
                         </h1>
-                        <p className="text-[24px] md:text-[32px] font-medium text-gray-400 font-display">
+                        <p className="text-[18px] md:text-[32px] font-medium text-gray-400 font-display">
                             But right now... it's scattered everywhere.
                         </p>
                     </div>
 
-                    {/* Floating Orbs */}
-                    <div className="absolute right-[10%] bottom-0 w-[300px] h-[300px] md:w-[400px] md:h-[400px] translate-y-1/4 animate-float-slow opacity-90 pointer-events-none">
+                    {/* Floating Orbs - smaller on mobile */}
+                    <div className="absolute right-[5%] md:right-[10%] bottom-0 w-[150px] h-[150px] md:w-[400px] md:h-[400px] translate-y-1/4 animate-float-slow opacity-90 pointer-events-none">
                          <Image src="/assets/onboarding/bubble.png" alt="" fill className="object-contain" />
                     </div>
-                    <div className="absolute right-[5%] top-[40%] w-[80px] h-[80px] md:w-[100px] md:h-[100px] animate-float-medium opacity-80 pointer-events-none">
+                    <div className="absolute right-[5%] top-[35%] md:top-[40%] w-[50px] h-[50px] md:w-[100px] md:h-[100px] animate-float-medium opacity-80 pointer-events-none">
                         <Image src="/assets/onboarding/bubble.png" alt="" fill className="object-contain" />
                     </div>
-                    <div className="absolute left-[50%] bottom-[20%] w-[100px] h-[100px] md:w-[120px] md:h-[120px] -translate-x-full animate-float-fast opacity-85 pointer-events-none">
+                    <div className="absolute left-[40%] md:left-[50%] bottom-[25%] md:bottom-[20%] w-[60px] h-[60px] md:w-[120px] md:h-[120px] -translate-x-full animate-float-fast opacity-85 pointer-events-none">
                         <Image src="/assets/onboarding/bubble.png" alt="" fill className="object-contain" />
                     </div>
 
                     {/* TN Logo */}
-                    <div className="absolute left-6 bottom-6 w-[150px] h-[120px] opacity-100 pointer-events-none">
+                    <div className="absolute left-4 md:left-6 bottom-20 md:bottom-6 w-[100px] md:w-[150px] h-[80px] md:h-[120px] opacity-100 pointer-events-none">
                         <Image src="/assets/onboarding/tn_logo.png" alt="TN" fill className="object-contain" />
                     </div>
                 </div>
@@ -553,28 +553,28 @@ export default function WrappedPage() {
             bg: 'dark',
             content: (
                 <div className="relative w-full h-full flex flex-col items-center justify-center">
-                    <div className="relative z-10 max-w-[800px] text-left px-8 -translate-y-20 md:-translate-x-20">
-                        <h1 className="text-[40px] md:text-[60px] font-bold text-white font-display leading-[1.1] mb-2 tracking-tight">
+                    <div className="relative z-10 max-w-[800px] text-center md:text-left px-6 md:px-8 -translate-y-10 md:-translate-y-20 md:-translate-x-20">
+                        <h1 className="text-[26px] md:text-[60px] font-bold text-white font-display leading-[1.1] mb-2 tracking-tight">
                             What if all of that added up to something?
                         </h1>
-                        <p className="text-[24px] md:text-[32px] font-medium text-gray-400 font-display">
+                        <p className="text-[16px] md:text-[32px] font-medium text-gray-400 font-display">
                             One profile that actually shows who you are.
                         </p>
                     </div>
 
-                     {/* Floating Orbs - Same as Slide 1 */}
-                    <div className="absolute right-[10%] bottom-0 w-[300px] h-[300px] md:w-[400px] md:h-[400px] translate-y-1/4 animate-float-slow opacity-90 pointer-events-none">
+                     {/* Floating Orbs - smaller on mobile */}
+                    <div className="absolute right-[5%] md:right-[10%] bottom-0 w-[150px] h-[150px] md:w-[400px] md:h-[400px] translate-y-1/4 animate-float-slow opacity-90 pointer-events-none">
                          <Image src="/assets/onboarding/bubble.png" alt="" fill className="object-contain" />
                     </div>
-                    <div className="absolute right-[5%] top-[40%] w-[80px] h-[80px] md:w-[100px] md:h-[100px] animate-float-medium opacity-80 pointer-events-none">
+                    <div className="absolute right-[5%] top-[35%] md:top-[40%] w-[50px] h-[50px] md:w-[100px] md:h-[100px] animate-float-medium opacity-80 pointer-events-none">
                         <Image src="/assets/onboarding/bubble.png" alt="" fill className="object-contain" />
                     </div>
-                    <div className="absolute left-[50%] bottom-[20%] w-[100px] h-[100px] md:w-[120px] md:h-[120px] -translate-x-full animate-float-fast opacity-85 pointer-events-none">
+                    <div className="absolute left-[40%] md:left-[50%] bottom-[25%] md:bottom-[20%] w-[60px] h-[60px] md:w-[120px] md:h-[120px] -translate-x-full animate-float-fast opacity-85 pointer-events-none">
                         <Image src="/assets/onboarding/bubble.png" alt="" fill className="object-contain" />
                     </div>
 
                     {/* TN Logo */}
-                    <div className="absolute left-6 bottom-6 w-[150px] h-[120px] opacity-100 pointer-events-none">
+                    <div className="absolute left-4 md:left-6 bottom-20 md:bottom-6 w-[100px] md:w-[150px] h-[80px] md:h-[120px] opacity-100 pointer-events-none">
                         <Image src="/assets/onboarding/tn_logo.png" alt="TN" fill className="object-contain" />
                     </div>
                 </div>
@@ -587,28 +587,28 @@ export default function WrappedPage() {
             bg: 'dark',
             content: (
                 <div className="relative w-full h-full flex flex-col items-center justify-center">
-                    <div className="relative z-10 max-w-[800px] text-center px-4 -translate-y-10">
-                        <h1 className="text-[34px] md:text-[50px] font-bold text-white font-display leading-[1.1] mb-2 tracking-tight">
+                    <div className="relative z-10 max-w-[800px] text-center px-6 md:px-4 -translate-y-10">
+                        <h1 className="text-[24px] md:text-[50px] font-bold text-white font-display leading-[1.1] mb-2 tracking-tight">
                             Introducing: Digital DNA Wrapped
                         </h1>
-                        <h2 className="text-[24px] md:text-[34px] font-bold text-gray-400 font-display">
-                            “Spotify Wrapped” — but for life.
+                        <h2 className="text-[16px] md:text-[34px] font-bold text-gray-400 font-display">
+                            "Spotify Wrapped" — but for life.
                         </h2>
                     </div>
 
-                    {/* Stars - Top Right */}
-                    <div className="absolute right-[10%] top-[10%] text-white animate-pulse-slow">
-                        <StarFourPoint className="w-[50px] h-[50px]" />
+                    {/* Stars - Top Right - smaller on mobile */}
+                    <div className="absolute right-[10%] top-[15%] md:top-[10%] text-white animate-pulse-slow">
+                        <StarFourPoint className="w-[30px] h-[30px] md:w-[50px] md:h-[50px]" />
                     </div>
-                    <div className="absolute right-[5%] top-[5%] text-gray-300 animate-pulse-medium delay-100">
-                        <StarFourPoint className="w-[60px] h-[60px]" />
+                    <div className="absolute right-[5%] top-[8%] md:top-[5%] text-gray-300 animate-pulse-medium delay-100">
+                        <StarFourPoint className="w-[35px] h-[35px] md:w-[60px] md:h-[60px]" />
                     </div>
-                     <div className="absolute right-[12%] top-[18%] text-gray-500 animate-pulse-fast delay-200">
-                        <StarFourPoint className="w-[40px] h-[40px]" />
+                     <div className="absolute right-[15%] md:right-[12%] top-[22%] md:top-[18%] text-gray-500 animate-pulse-fast delay-200">
+                        <StarFourPoint className="w-[25px] h-[25px] md:w-[40px] md:h-[40px]" />
                     </div>
 
                     {/* TN Logo - White */}
-                    <div className="absolute left-10 bottom-10 w-[80px] h-[60px] opacity-100 pointer-events-none">
+                    <div className="absolute left-4 md:left-10 bottom-20 md:bottom-10 w-[80px] md:w-[80px] h-[60px] md:h-[60px] opacity-100 pointer-events-none">
                         <Image src="/assets/onboarding/tn_logo.png" alt="TN" fill className="object-contain" />
                     </div>
                 </div>
@@ -620,21 +620,21 @@ export default function WrappedPage() {
             id: 4,
             bg: 'dark',
             content: (
-                <div className="relative w-full h-full flex flex-col items-center justify-center">
-                    <h1 className="text-[34px] font-bold text-white font-display mb-8">
+                <div className="relative w-full h-full flex flex-col items-center justify-center px-6">
+                    <h1 className="text-[24px] md:text-[34px] font-bold text-white font-display mb-6 md:mb-8 text-center">
                         Connecting to YouTube...
                     </h1>
                     {youtubeStatus.connected && (
-                        <p className="text-[22px] text-green-400 font-display mb-4">
+                        <p className="text-[18px] md:text-[22px] text-green-400 font-display mb-4">
                             Connected ✅
                         </p>
                     )}
-                    {/* Star - Top Left of Center */}
-                    <div className="absolute left-[40%] top-[35%] text-white animate-pulse-slow">
-                        <StarFourPoint className="w-8 h-8" />
+                    {/* Star - Responsive positioning */}
+                    <div className="absolute left-[30%] md:left-[40%] top-[30%] md:top-[35%] text-gray-500 animate-pulse-slow">
+                        <StarFourPoint className="w-6 h-6 md:w-8 md:h-8" />
                     </div>
                     {/* TN Logo - White */}
-                    <div className="absolute left-6 bottom-6 w-[150px] h-[120px] opacity-100 pointer-events-none">
+                    <div className="absolute left-4 md:left-6 bottom-20 md:bottom-6 w-[100px] md:w-[150px] h-[80px] md:h-[120px] opacity-100 pointer-events-none">
                         <Image src="/assets/onboarding/tn_logo.png" alt="TN" fill className="object-contain" />
                     </div>
                 </div>
@@ -647,23 +647,23 @@ export default function WrappedPage() {
             id: 5,
             bg: 'dark',
             content: (
-                <div className="relative w-full h-full flex flex-col items-center justify-center">
-                    <h1 className="text-[34px] font-bold text-white font-display mb-8">
+                <div className="relative w-full h-full flex flex-col items-center justify-center px-6">
+                    <h1 className="text-[24px] md:text-[34px] font-bold text-white font-display mb-6 md:mb-8 text-center">
                         Fetching your subscriptions...
                     </h1>
                     {youtubeStatus.subscriptionsCount > 0 && (
-                        <p className="text-[22px] text-gray-400 font-display">
+                        <p className="text-[16px] md:text-[22px] text-gray-400 font-display text-center">
                             {youtubeStatus.subscriptionsTotal !== null 
                                 ? `Fetched ${youtubeStatus.subscriptionsCount} subscriptions`
                                 : `Fetched ${youtubeStatus.subscriptionsCount}...`}
                         </p>
                     )}
-                    {/* Star - Right */}
-                    <div className="absolute right-[25%] top-[45%] text-gray-500 animate-pulse-medium">
-                        <StarFourPoint className="w-12 h-12" />
+                    {/* Star - Responsive positioning */}
+                    <div className="absolute right-[15%] md:right-[25%] top-[40%] md:top-[45%] text-gray-500 animate-pulse-medium">
+                        <StarFourPoint className="w-8 h-8 md:w-12 md:h-12" />
                     </div>
                     {/* TN Logo - White */}
-                    <div className="absolute left-6 bottom-6 w-[150px] h-[120px] opacity-100 pointer-events-none">
+                    <div className="absolute left-4 md:left-6 bottom-20 md:bottom-6 w-[100px] md:w-[150px] h-[80px] md:h-[120px] opacity-100 pointer-events-none">
                         <Image src="/assets/onboarding/tn_logo.png" alt="TN" fill className="object-contain" />
                     </div>
                 </div>
@@ -676,23 +676,23 @@ export default function WrappedPage() {
             id: 6,
             bg: 'dark',
             content: (
-                <div className="relative w-full h-full flex flex-col items-center justify-center">
-                    <h1 className="text-[34px] font-bold text-white font-display mb-8">
+                <div className="relative w-full h-full flex flex-col items-center justify-center px-6">
+                    <h1 className="text-[24px] md:text-[34px] font-bold text-white font-display mb-6 md:mb-8 text-center">
                         Fetching your liked videos...
                     </h1>
                     {youtubeStatus.likedVideosCount > 0 && (
-                        <p className="text-[22px] text-gray-400 font-display">
+                        <p className="text-[16px] md:text-[22px] text-gray-400 font-display text-center">
                             {youtubeStatus.likedVideosTotal !== null 
                                 ? `Fetched ${youtubeStatus.likedVideosCount} videos`
                                 : `Fetched ${youtubeStatus.likedVideosCount}...`}
                         </p>
                     )}
-                    {/* Star - Bottom Left of Center */}
-                    <div className="absolute left-[35%] bottom-[40%] text-white animate-pulse-fast">
-                        <StarFourPoint className="w-10 h-10" />
+                    {/* Star - Responsive positioning */}
+                    <div className="absolute left-[25%] md:left-[35%] bottom-[35%] md:bottom-[40%] text-gray-500 animate-pulse-fast">
+                        <StarFourPoint className="w-8 h-8 md:w-10 md:h-10" />
                     </div>
                     {/* TN Logo - White */}
-                    <div className="absolute left-6 bottom-6 w-[150px] h-[120px] opacity-100 pointer-events-none">
+                    <div className="absolute left-4 md:left-6 bottom-20 md:bottom-6 w-[100px] md:w-[150px] h-[80px] md:h-[120px] opacity-100 pointer-events-none">
                         <Image src="/assets/onboarding/tn_logo.png" alt="TN" fill className="object-contain" />
                     </div>
                 </div>
@@ -705,18 +705,18 @@ export default function WrappedPage() {
             id: 7,
             bg: 'dark',
             content: (
-                <div className="relative w-full h-full flex flex-col items-center justify-center">
-                    <div className="w-full h-full flex flex-col items-center justify-center px-4">
-                        <h1 className="text-[34px] font-bold text-white font-display mb-8 text-center">
+                <div className="relative w-full h-full flex flex-col items-center justify-center overflow-hidden">
+                    <div className="w-full h-full flex flex-col items-center justify-center px-4 pb-24 md:pb-0">
+                        <h1 className="text-[24px] md:text-[34px] font-bold text-white font-display mb-6 md:mb-8 text-center">
                             Your Interest Graph
                         </h1>
-                        <div className="w-full max-w-[900px] px-8">
+                        <div className="w-full max-w-[900px] px-4 md:px-8 overflow-y-auto max-h-[50vh] md:max-h-none">
                             {interests.length > 0 ? (
-                                <div className="flex flex-wrap gap-4 justify-center items-center">
+                                <div className="flex flex-wrap gap-2 md:gap-4 justify-center items-center">
                                     {interests.map((interest, index) => (
                                         <span
                                             key={index}
-                                            className="px-6 py-3 bg-white/5 border border-white/10 rounded-full text-white text-[18px] font-medium font-display hover:bg-white/10 hover:border-white/20 transition-all cursor-default"
+                                            className="px-4 md:px-6 py-2 md:py-3 bg-white/5 border border-white/10 rounded-full text-white text-[14px] md:text-[18px] font-medium font-display hover:bg-white/10 hover:border-white/20 transition-all cursor-default"
                                         >
                                             {interest}
                                         </span>
@@ -724,7 +724,7 @@ export default function WrappedPage() {
                                 </div>
                             ) : (
                                 <div className="w-full flex items-center justify-center">
-                                    <p className="text-gray-400 font-display">Loading your interests...</p>
+                                    <p className="text-gray-400 font-display text-[14px] md:text-base">Loading your interests...</p>
                                 </div>
                             )}
                         </div>
@@ -734,13 +734,15 @@ export default function WrappedPage() {
                                 e.stopPropagation();
                                 setShowInterestModal(true);
                             }}
-                            className="mt-8 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 flex items-center justify-center text-white text-2xl font-bold transition-all hover:scale-110"
+                            className="mt-6 md:mt-8 w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 flex items-center justify-center text-white text-xl md:text-2xl font-bold transition-all hover:scale-110"
                         >
                             ?
                         </button>
+                        {/* Tap to continue hint - mobile only */}
+                        <p className="mt-4 text-gray-500 text-sm font-display md:hidden">Tap to continue</p>
                     </div>
                     {/* TN Logo - White */}
-                    <div className="absolute left-6 bottom-6 w-[150px] h-[120px] opacity-100 pointer-events-none">
+                    <div className="absolute left-4 md:left-6 bottom-20 md:bottom-6 w-[100px] md:w-[150px] h-[80px] md:h-[120px] opacity-100 pointer-events-none">
                         <Image src="/assets/onboarding/tn_logo.png" alt="TN" fill className="object-contain" />
                     </div>
                 </div>
@@ -752,21 +754,19 @@ export default function WrappedPage() {
             id: 8,
             bg: 'dark',
             content: (
-                <div className="relative w-full h-full flex flex-col items-start justify-center px-8 md:px-20">
+                <div className="relative w-full h-full flex flex-col items-center md:items-start justify-center px-6 md:px-20">
                     <div 
-                        className="max-w-[1000px] text-left transition-transform duration-75"
-                        style={{ transform: `translate(202px, -158px)` }}
+                        className="max-w-[1000px] text-center md:text-left transition-transform duration-75"
+                        style={{ transform: typeof window !== 'undefined' && window.innerWidth >= 768 ? `translate(202px, -158px)` : 'none' }}
                     >
                         <h1 
-                            className="font-bold text-white mb-8 font-display leading-tight tracking-tight"
-                            style={{ fontSize: `45px` }}
+                            className="font-bold text-white mb-6 md:mb-8 font-display leading-tight tracking-tight text-[28px] md:text-[45px]"
                         >
                             You don't fit in one box. So we gave you four.
                         </h1>
                         {/* Custom Left-Aligned Identity Line Wrapper */}
                         <div 
-                            className="flex flex-wrap gap-x-3 w-full font-bold font-display leading-tight tracking-tight"
-                            style={{ fontSize: `25px` }}
+                            className="flex flex-wrap justify-center md:justify-start gap-x-2 md:gap-x-3 w-full font-bold font-display leading-tight tracking-tight text-[16px] md:text-[25px]"
                         >
                             {(() => {
                                 // Fallback if no data
@@ -793,7 +793,7 @@ export default function WrappedPage() {
                         </div>
                     </div>
                     {/* TN Logo - White */}
-                    <div className="absolute left-6 bottom-6 w-[150px] h-[120px] opacity-100 pointer-events-none">
+                    <div className="absolute left-4 md:left-6 bottom-20 md:bottom-6 w-[100px] md:w-[150px] h-[80px] md:h-[120px] opacity-100 pointer-events-none">
                         <Image src="/assets/onboarding/tn_logo.png" alt="TN" fill className="object-contain" />
                     </div>
                 </div>
@@ -805,13 +805,13 @@ export default function WrappedPage() {
             id: 9,
             bg: 'dark',
             content: (
-                <div className="w-full h-full relative flex items-center">
+                <div className="w-full h-full relative flex items-center justify-center md:justify-start">
                     {/* Text Content - Left Side */}
-                    <div className="w-full md:w-3/4 pl-8 md:pl-80 z-10">
-                        <h1 className="text-[34px] md:text-[50px] font-bold text-white mb-6 font-display leading-tight tracking-tight whitespace-nowrap">
+                    <div className="w-full md:w-3/4 px-6 md:pl-80 z-10 text-center md:text-left">
+                        <h1 className="text-[24px] md:text-[50px] font-bold text-white mb-4 md:mb-6 font-display leading-tight tracking-tight">
                             Your Digital Doppelgängers
                         </h1>
-                        <p className="text-[20px] md:text-[28px] font-bold text-white mb-8 font-display whitespace-nowrap">
+                        <p className="text-[16px] md:text-[28px] font-bold text-white mb-6 md:mb-8 font-display">
                             Your Digital DNA is 87% similar to:
                         </p>
                         <div className="space-y-2">
@@ -819,7 +819,7 @@ export default function WrappedPage() {
                                 doppelgangers.map((d, i) => (
                                     <p 
                                         key={i} 
-                                        className="text-[28px] md:text-[36px] font-bold text-[#b3b3b3] font-display animate-fade-in-up whitespace-nowrap" 
+                                        className="text-[20px] md:text-[36px] font-bold text-[#b3b3b3] font-display animate-fade-in-up" 
                                         style={{ animationDelay: `${i * 100}ms` }}
                                     >
                                         {d.name}
@@ -828,19 +828,21 @@ export default function WrappedPage() {
                             ) : (
                                 // Static placeholders if no data (matching Figma)
                                 <>
-                                    <p className="text-[28px] md:text-[36px] font-bold text-[#b3b3b3] font-display whitespace-nowrap">Paul Graham</p>
-                                    <p className="text-[28px] md:text-[36px] font-bold text-[#b3b3b3] font-display whitespace-nowrap">Emma Chamberlain</p>
-                                    <p className="text-[28px] md:text-[36px] font-bold text-[#b3b3b3] font-display whitespace-nowrap">Miles Morales</p>
+                                    <p className="text-[20px] md:text-[36px] font-bold text-[#b3b3b3] font-display">Paul Graham</p>
+                                    <p className="text-[20px] md:text-[36px] font-bold text-[#b3b3b3] font-display">Emma Chamberlain</p>
+                                    <p className="text-[20px] md:text-[36px] font-bold text-[#b3b3b3] font-display">Miles Morales</p>
                                 </>
                             )}
                         </div>
                     </div>
 
-                    {/* Right Side Visuals */}
-                    <DoppelgangerCircles />
+                    {/* Right Side Visuals - Hidden on mobile */}
+                    <div className="hidden md:block">
+                        <DoppelgangerCircles />
+                    </div>
 
                     {/* TN Logo - White */}
-                    <div className="absolute left-6 bottom-6 w-[150px] h-[120px] opacity-100 pointer-events-none">
+                    <div className="absolute left-4 md:left-6 bottom-20 md:bottom-6 w-[100px] md:w-[150px] h-[80px] md:h-[120px] opacity-100 pointer-events-none">
                         <Image src="/assets/onboarding/tn_logo.png" alt="TN" fill className="object-contain" />
                     </div>
                 </div>
@@ -852,9 +854,9 @@ export default function WrappedPage() {
             id: 10,
             bg: 'dark',
             content: (
-                <div className="w-full h-full relative p-8 md:p-20">
-                     <div className="max-w-[800px] text-left pt-20">
-                        <h1 className="text-[40px] md:text-[60px] font-bold text-white mb-4 font-display leading-tight tracking-tight">
+                <div className="w-full h-full relative flex flex-col items-center md:items-start justify-center px-6 md:p-20">
+                     <div className="max-w-[800px] text-center md:text-left">
+                        <h1 className="text-[28px] md:text-[60px] font-bold text-white mb-6 md:mb-4 font-display leading-tight tracking-tight">
                             Ready to meet more people like you?
                         </h1>
                         <button
@@ -869,14 +871,14 @@ export default function WrappedPage() {
                                     router.push('/network');
                                 }
                             }}
-                            className="text-[24px] md:text-[32px] font-bold text-white hover:opacity-70 transition-opacity font-display cursor-pointer flex items-center gap-2"
+                            className="text-[20px] md:text-[32px] font-bold text-white hover:opacity-70 transition-opacity font-display cursor-pointer flex items-center justify-center md:justify-start gap-2 w-full md:w-auto"
                         >
                             Continue →
                         </button>
                     </div>
 
                     {/* TN Logo - White */}
-                    <div className="absolute left-6 bottom-6 w-[150px] h-[120px] opacity-100 pointer-events-none">
+                    <div className="absolute left-4 md:left-6 bottom-20 md:bottom-6 w-[100px] md:w-[150px] h-[80px] md:h-[120px] opacity-100 pointer-events-none">
                         <Image src="/assets/onboarding/tn_logo.png" alt="TN" fill className="object-contain" />
                     </div>
                 </div>
