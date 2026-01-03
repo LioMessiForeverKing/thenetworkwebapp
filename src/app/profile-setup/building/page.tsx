@@ -91,8 +91,9 @@ export default function BuildingPage() {
 
                             // Only trigger if user has YouTube data
                             if ((ytSubs && ytSubs.length > 0) || (ytLikes && ytLikes.length > 0)) {
-                                const { error: dnaError } = await supabase.functions.invoke('compute-dna-v2', {
+                                const { error: dnaError } = await supabase.functions.invoke('compute_dna_v2', {
                                     body: {
+                                        user_id: user.id,
                                         trigger_source: 'NEW_USER_SIGNUP'
                                     }
                                 });

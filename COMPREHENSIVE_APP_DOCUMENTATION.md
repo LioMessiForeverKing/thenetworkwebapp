@@ -170,7 +170,7 @@ Checks user completion status:
 - **Complete User** (`hasInterests && hasArchetypes && hasDoppelgangers`):
   - Route: `/profile-setup/building` (then auto-redirects to wrapped)
 
-**Note**: `FORCE_ONBOARDING = true` flag forces all users through wrapped flow
+**Note**: `FORCE_ONBOARDING = false` flag forces all users through wrapped flow
 
 ---
 

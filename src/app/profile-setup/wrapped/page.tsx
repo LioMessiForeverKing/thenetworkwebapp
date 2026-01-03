@@ -85,7 +85,7 @@ interface Slide {
 }
 
 export default function WrappedPage() {
-    const { user, loading } = useAuth();
+    const { user, session, loading } = useAuth();
     const router = useRouter();
     const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
     const [archetypes, setArchetypes] = useState<Archetype[]>([]);
@@ -279,21 +279,64 @@ export default function WrappedPage() {
     }, [user]);
 
     // Process user data when reaching loading slides (for new users)
+    // We check isNewUser OR if we haven't determined status yet (isNewUser could still be false during initial load)
     useEffect(() => {
-        if (!user || !processingStatus.isNewUser || processingComplete.current) return;
+        // Must have user AND session before processing
+        if (!user || !session || processingComplete.current) return;
         
-        // Start processing when we reach the first loading slide (slide 4)
-        if (currentSlideIndex === 4 && !hasStartedProcessing.current) {
+        // Start processing when we reach slide index 3 or later (Slide 4: "Connecting to YouTube...")
+        // Slides are 0-indexed: 0=Slide1, 1=Slide2, 2=Slide3, 3=Slide4
+        // We use >= 3 to handle race condition where checkAndProcess might not have completed yet
+        // Also check isNewUser OR if we're still at the initial state (isNewUser not yet determined)
+        const shouldProcess = processingStatus.isNewUser || 
+            (!processingStatus.interests && !processingStatus.hierarchicalInterests && !processingStatus.dnaV2);
+        
+        if (currentSlideIndex >= 3 && !hasStartedProcessing.current && shouldProcess) {
+            console.log('Starting DNA processing at slide index:', currentSlideIndex, 'processingStatus:', processingStatus);
+            console.log('Session available:', !!session, 'User ID:', user.id);
             hasStartedProcessing.current = true;
             processUserDataWithYouTubeProgress();
         }
-    }, [currentSlideIndex, user, processingStatus.isNewUser]);
+    }, [currentSlideIndex, user, session, processingStatus]);
 
     // New function with YouTube progress tracking
     const processUserDataWithYouTubeProgress = async () => {
         if (!user || processingComplete.current) return;
         
+        // Verify we have a valid session from auth context
+        if (!session) {
+            console.error('No session available from auth context');
+            return;
+        }
+        
+        console.log('Starting processUserDataWithYouTubeProgress');
+        console.log('User ID from context:', user.id);
+        console.log('Session user ID:', session.user.id);
+        console.log('Session access token available:', !!session.access_token);
+        
         const supabase = createClient();
+        
+        // Verify the supabase client can see the session
+        const { data: { session: clientSession }, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError) {
+            console.error('Supabase client session error:', sessionError);
+        }
+        if (!clientSession) {
+            console.error('Supabase client has no session! This might be a cookie/storage issue.');
+            console.log('Attempting to set session manually...');
+            // Try to set the session from context
+            const { error: setSessionError } = await supabase.auth.setSession({
+                access_token: session.access_token,
+                refresh_token: session.refresh_token || ''
+            });
+            if (setSessionError) {
+                console.error('Failed to set session:', setSessionError);
+            } else {
+                console.log('Session set successfully');
+            }
+        } else {
+            console.log('Supabase client session established, user:', clientSession.user.id);
+        }
         
         try {
             // Step 1: Check YouTube connection (Slide 4)
@@ -301,8 +344,8 @@ export default function WrappedPage() {
             const accessToken = await YouTubeService.getAccessToken();
             if (accessToken) {
                 setYoutubeStatus(prev => ({ ...prev, connected: true }));
-                // Small delay to show "Connected ✅"
-                await new Promise(r => setTimeout(r, 1000));
+                // Small delay before next step
+                await new Promise(r => setTimeout(r, 500));
             } else {
                 console.warn('No YouTube access token available');
                 // Continue anyway - might have data from previous sync
@@ -311,20 +354,33 @@ export default function WrappedPage() {
             // Step 2: Fetch subscriptions with progress (Slide 5)
             let hasYouTubeData = false;
             try {
-                // Check if YouTube data already exists
-                const { data: existingSubs } = await supabase
-                    .from('youtube_subscriptions')
-                    .select('id')
-                    .eq('user_id', user.id);
+                console.log('Checking existing YouTube data for user:', user.id);
                 
-                const { data: existingLikes } = await supabase
+                // Check if YouTube data already exists
+                const { data: existingSubs, error: existingSubsError } = await supabase
+                    .from('youtube_subscriptions')
+                    .select('user_id')
+                    .eq('user_id', user.id)
+                    .limit(1);
+                
+                const { data: existingLikes, error: existingLikesError } = await supabase
                     .from('youtube_liked_videos')
-                    .select('id')
-                    .eq('user_id', user.id);
+                    .select('user_id')
+                    .eq('user_id', user.id)
+                    .limit(1);
+
+                if (existingSubsError) {
+                    console.error('Error checking existing subscriptions:', existingSubsError, 'Code:', existingSubsError.code, 'Message:', existingSubsError.message);
+                }
+                if (existingLikesError) {
+                    console.error('Error checking existing liked videos:', existingLikesError, 'Code:', existingLikesError.code, 'Message:', existingLikesError.message);
+                }
 
                 const existingSubsCount = existingSubs?.length || 0;
                 const existingLikesCount = existingLikes?.length || 0;
                 hasYouTubeData = existingSubsCount > 0 || existingLikesCount > 0;
+
+                console.log('YouTube data check:', { existingSubsCount, existingLikesCount, hasYouTubeData, hasAccessToken: !!accessToken });
 
                 // Only sync if we don't have data yet
                 if (!hasYouTubeData && accessToken) {
@@ -332,6 +388,7 @@ export default function WrappedPage() {
                     
                     // Fetch subscriptions with progress updates
                     const subscriptions = await fetchSubscriptionsWithProgress(accessToken);
+                    console.log('Fetched subscriptions:', subscriptions.length);
                     setYoutubeStatus(prev => ({ 
                         ...prev, 
                         subscriptionsCount: subscriptions.length,
@@ -340,6 +397,7 @@ export default function WrappedPage() {
                     
                     // Fetch liked videos with progress updates
                     const likedVideos = await fetchLikedVideosWithProgress(accessToken);
+                    console.log('Fetched liked videos:', likedVideos.length);
                     setYoutubeStatus(prev => ({ 
                         ...prev, 
                         likedVideosCount: likedVideos.length,
@@ -347,10 +405,17 @@ export default function WrappedPage() {
                     }));
 
                     // Sync to database
-                    await YouTubeService.syncSubscriptionsToSupabase(user.id, subscriptions);
-                    await YouTubeService.syncLikedVideosToSupabase(user.id, likedVideos);
+                    console.log('Syncing subscriptions to database...');
+                    const subsCount = await YouTubeService.syncSubscriptionsToSupabase(user.id, subscriptions);
+                    console.log('Synced subscriptions:', subsCount);
                     
-                    hasYouTubeData = true;
+                    console.log('Syncing liked videos to database...');
+                    const likesCount = await YouTubeService.syncLikedVideosToSupabase(user.id, likedVideos);
+                    console.log('Synced liked videos:', likesCount);
+                    
+                    // Only set hasYouTubeData if we actually synced something
+                    hasYouTubeData = (subsCount > 0 || likesCount > 0);
+                    console.log('YouTube sync complete, hasYouTubeData:', hasYouTubeData);
                 } else if (hasYouTubeData) {
                     console.log('YouTube data already exists, using existing counts');
                     setYoutubeStatus(prev => ({ 
@@ -360,17 +425,19 @@ export default function WrappedPage() {
                         likedVideosCount: existingLikesCount,
                         likedVideosTotal: existingLikesCount
                     }));
+                } else {
+                    console.warn('No YouTube data and no access token - cannot sync');
                 }
             } catch (syncError: any) {
                 console.error('Error syncing YouTube data:', syncError);
                 // Check again after error - might have partial data
                 const { data: checkSubs } = await supabase
                     .from('youtube_subscriptions')
-                    .select('id')
+                    .select('user_id')
                     .eq('user_id', user.id);
                 const { data: checkLikes } = await supabase
                     .from('youtube_liked_videos')
-                    .select('id')
+                    .select('user_id')
                     .eq('user_id', user.id);
                 const subsCount = checkSubs?.length || 0;
                 const likesCount = checkLikes?.length || 0;
@@ -441,26 +508,92 @@ export default function WrappedPage() {
             }
 
             // Step 3: Trigger DNA v2 computation
-            console.log('Triggering DNA v2 computation...');
-            const { data: ytSubs } = await supabase
-                .from('youtube_subscriptions')
-                .select('id')
-                .eq('user_id', user.id)
-                .limit(1);
+            // Use hasYouTubeData flag which we already computed, or re-check if needed
+            console.log('Checking YouTube data for DNA v2 computation, hasYouTubeData:', hasYouTubeData);
             
-            const { data: ytLikes } = await supabase
-                .from('youtube_liked_videos')
-                .select('id')
-                .eq('user_id', user.id)
-                .limit(1);
-
-            if ((ytSubs && ytSubs.length > 0) || (ytLikes && ytLikes.length > 0)) {
-                await supabase.functions.invoke('compute-dna-v2', {
-                    body: {
-                        user_id: user.id,
-                        trigger_source: 'NEW_USER_SIGNUP'
-                    }
+            // If we already know we have YouTube data from earlier, use that
+            // Otherwise do a fresh check
+            let shouldComputeDna = hasYouTubeData;
+            
+            if (!shouldComputeDna) {
+                // Fresh check with proper error handling
+                const { data: ytSubs, error: ytSubsError } = await supabase
+                    .from('youtube_subscriptions')
+                    .select('user_id')
+                    .eq('user_id', user.id)
+                    .limit(1);
+                
+                const { data: ytLikes, error: ytLikesError } = await supabase
+                    .from('youtube_liked_videos')
+                    .select('user_id')
+                    .eq('user_id', user.id)
+                    .limit(1);
+                
+                if (ytSubsError) {
+                    console.error('Error checking youtube_subscriptions:', ytSubsError);
+                }
+                if (ytLikesError) {
+                    console.error('Error checking youtube_liked_videos:', ytLikesError);
+                }
+                
+                shouldComputeDna = (ytSubs?.length ?? 0) > 0 || (ytLikes?.length ?? 0) > 0;
+                console.log('Fresh YouTube data check result:', { 
+                    subsCount: ytSubs?.length || 0, 
+                    likesCount: ytLikes?.length || 0,
+                    shouldComputeDna 
                 });
+            }
+
+            if (shouldComputeDna) {
+                console.log('Triggering compute-dna-v2 for user:', user.id);
+                
+                // Retry logic for DNA computation with delay
+                const maxDnaRetries = 5;
+                let dnaRetries = 0;
+                let dnaTriggered = false;
+                
+                while (dnaRetries < maxDnaRetries && !dnaTriggered) {
+                    try {
+                        // Add a small delay to ensure data is committed
+                        if (dnaRetries > 0) {
+                            console.log(`DNA v2 retry ${dnaRetries}/${maxDnaRetries}, waiting 2 seconds...`);
+                            await new Promise(r => setTimeout(r, 2000));
+                        }
+                        
+                        const response = await fetch('/api/compute-dna-v2', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                user_id: user.id,
+                                trigger_source: 'NEW_USER_SIGNUP'
+                            })
+                        });
+                        const dnaResult = await response.json();
+                        
+                        if (response.status === 202 && dnaResult.status === 'pending') {
+                            // YouTube data not ready yet, retry
+                            console.log('YouTube data not ready yet, will retry...');
+                            dnaRetries++;
+                            continue;
+                        }
+                        
+                        if (!response.ok) {
+                            console.error('DNA v2 computation error:', dnaResult.error);
+                            dnaRetries++;
+                            continue;
+                        }
+                        
+                        console.log('DNA v2 computation triggered successfully:', dnaResult);
+                        dnaTriggered = true;
+                    } catch (dnaError) {
+                        console.error('DNA v2 computation error:', dnaError);
+                        dnaRetries++;
+                    }
+                }
+                
+                if (!dnaTriggered) {
+                    console.warn('DNA v2 computation could not be triggered after retries');
+                }
 
                 // Poll for DNA v2 completion
                 let dnaReady = false;
@@ -474,6 +607,7 @@ export default function WrappedPage() {
                     
                     if (dnaV2) {
                         dnaReady = true;
+                        console.log('DNA v2 computation completed!');
                         setProcessingStatus(prev => ({ ...prev, dnaV2: true }));
                         break;
                     }
@@ -481,6 +615,12 @@ export default function WrappedPage() {
                     await new Promise(r => setTimeout(r, 1000));
                     pollCount++;
                 }
+                
+                if (!dnaReady) {
+                    console.warn('DNA v2 polling timed out after', maxPolls, 'seconds');
+                }
+            } else {
+                console.log('No YouTube data found, cannot compute DNA v2');
             }
 
             // Refresh archetypes and doppelgangers after processing
@@ -624,11 +764,6 @@ export default function WrappedPage() {
                     <h1 className="text-[24px] md:text-[34px] font-bold text-white font-display mb-6 md:mb-8 text-center">
                         Connecting to YouTube...
                     </h1>
-                    {youtubeStatus.connected && (
-                        <p className="text-[18px] md:text-[22px] text-green-400 font-display mb-4">
-                            Connected ✅
-                        </p>
-                    )}
                     {/* Star - Responsive positioning */}
                     <div className="absolute left-[30%] md:left-[40%] top-[30%] md:top-[35%] text-gray-500 animate-pulse-slow">
                         <StarFourPoint className="w-6 h-6 md:w-8 md:h-8" />
@@ -723,8 +858,33 @@ export default function WrappedPage() {
                                     ))}
                                 </div>
                             ) : (
-                                <div className="w-full flex items-center justify-center">
-                                    <p className="text-gray-400 font-display text-[14px] md:text-base">Loading your interests...</p>
+                                <div className="w-full flex flex-col items-center justify-center gap-8">
+                                    {/* Animated spinner */}
+                                    <div className="relative">
+                                        <div className="w-16 h-16 rounded-full border-2 border-white/10"></div>
+                                        <div className="absolute inset-0 w-16 h-16 rounded-full border-2 border-transparent border-t-white/60 animate-spin"></div>
+                                        <div className="absolute inset-2 w-12 h-12 rounded-full border-2 border-transparent border-b-white/30 animate-spin" style={{ animationDirection: 'reverse', animationDuration: '1.5s' }}></div>
+                                    </div>
+                                    
+                                    {/* Loading text */}
+                                    <p className="text-gray-400 font-display text-[14px] md:text-base animate-pulse">
+                                        Analyzing your interests...
+                                    </p>
+                                    
+                                    {/* Skeleton pills */}
+                                    <div className="flex flex-wrap gap-2 md:gap-3 justify-center items-center max-w-[600px]">
+                                        {[120, 80, 100, 90, 110, 70, 95, 85, 105, 75].map((width, index) => (
+                                            <div
+                                                key={index}
+                                                className="h-10 md:h-12 rounded-full bg-white/5 animate-pulse"
+                                                style={{ 
+                                                    width: `${width}px`,
+                                                    animationDelay: `${index * 100}ms`,
+                                                    animationDuration: '1.5s'
+                                                }}
+                                            />
+                                        ))}
+                                    </div>
                                 </div>
                             )}
                         </div>
@@ -862,9 +1022,55 @@ export default function WrappedPage() {
                             Ready to meet more people like you?
                         </h1>
                         <button
-                            onClick={(e) => {
+                            onClick={async (e) => {
                                 e.stopPropagation();
                                 localStorage.setItem('theme_inverted', 'true');
+                                
+                                if (user) {
+                                    const supabase = createClient();
+                                    
+                                    // Mark onboarding as completed in the database
+                                    await supabase
+                                        .from('profiles')
+                                        .update({ has_completed_onboarding: true })
+                                        .eq('id', user.id);
+                                    
+                                    // Ensure DNA v2 is computed even if user clicked through quickly
+                                    const { data: existingDna } = await supabase
+                                        .from('digital_dna_v2')
+                                        .select('id')
+                                        .eq('user_id', user.id)
+                                        .maybeSingle();
+                                    
+                                    if (!existingDna) {
+                                        const { data: ytSubs } = await supabase
+                                            .from('youtube_subscriptions')
+                                            .select('user_id')
+                                            .eq('user_id', user.id)
+                                            .limit(1);
+                                        
+                                        const { data: ytLikes } = await supabase
+                                            .from('youtube_liked_videos')
+                                            .select('user_id')
+                                            .eq('user_id', user.id)
+                                            .limit(1);
+                                        
+                                        if ((ytSubs && ytSubs.length > 0) || (ytLikes && ytLikes.length > 0)) {
+                                            console.log('DNA v2 not found, triggering background computation...');
+                                            fetch('/api/compute-dna-v2', {
+                                                method: 'POST',
+                                                headers: { 'Content-Type': 'application/json' },
+                                                body: JSON.stringify({
+                                                    user_id: user.id,
+                                                    trigger_source: 'ONBOARDING_COMPLETION_FALLBACK'
+                                                })
+                                            }).catch(err => {
+                                                console.error('Background DNA v2 computation error:', err);
+                                            });
+                                        }
+                                    }
+                                }
+                                
                                 // Check feature flag and redirect to review page if enabled
                                 const reviewEnabled = process.env.NEXT_PUBLIC_YT_REVIEW_ENABLED === 'true';
                                 if (reviewEnabled) {
@@ -936,11 +1142,60 @@ export default function WrappedPage() {
         }
     }, [currentSlideIndex, processingStatus, youtubeStatus]);
 
-    const handleNext = () => {
+    const handleNext = async () => {
         if (currentSlideIndex < SLIDES.length - 1) {
             setCurrentSlideIndex(prev => prev + 1);
         } else {
             localStorage.setItem('theme_inverted', 'true');
+            
+            if (user) {
+                const supabase = createClient();
+                
+                // Mark onboarding as completed in the database
+                await supabase
+                    .from('profiles')
+                    .update({ has_completed_onboarding: true })
+                    .eq('id', user.id);
+                
+                // Ensure DNA v2 is computed even if user clicked through quickly
+                // Check if DNA v2 exists, if not trigger computation in background
+                const { data: existingDna } = await supabase
+                    .from('digital_dna_v2')
+                    .select('id')
+                    .eq('user_id', user.id)
+                    .maybeSingle();
+                
+                if (!existingDna) {
+                    // Check if user has YouTube data
+                    const { data: ytSubs } = await supabase
+                        .from('youtube_subscriptions')
+                        .select('user_id')
+                        .eq('user_id', user.id)
+                        .limit(1);
+                    
+                    const { data: ytLikes } = await supabase
+                        .from('youtube_liked_videos')
+                        .select('user_id')
+                        .eq('user_id', user.id)
+                        .limit(1);
+                    
+                    if ((ytSubs && ytSubs.length > 0) || (ytLikes && ytLikes.length > 0)) {
+                        // Trigger DNA v2 computation in background (don't await)
+                        console.log('DNA v2 not found, triggering background computation...');
+                        fetch('/api/compute-dna-v2', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                user_id: user.id,
+                                trigger_source: 'ONBOARDING_COMPLETION_FALLBACK'
+                            })
+                        }).catch(err => {
+                            console.error('Background DNA v2 computation error:', err);
+                        });
+                    }
+                }
+            }
+            
             // Check feature flag and redirect to review page if enabled
             const reviewEnabled = process.env.NEXT_PUBLIC_YT_REVIEW_ENABLED === 'true';
             if (reviewEnabled) {

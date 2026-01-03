@@ -62,7 +62,7 @@ export default function AuthCallback() {
             // Create or get profile - ensure profile exists with Google data
             let { data: profileData } = await supabase
                 .from('profiles')
-                .select('id, interests, personality_archetypes, doppelgangers, full_name, avatar_url')
+                .select('id, interests, personality_archetypes, doppelgangers, full_name, avatar_url, has_completed_onboarding')
                 .eq('id', userId)
                 .maybeSingle();
 
@@ -84,7 +84,7 @@ export default function AuthCallback() {
                         interests: [],
                         hierarchical_interests: []
                     })
-                    .select('id, interests, personality_archetypes, doppelgangers, full_name, avatar_url')
+                    .select('id, interests, personality_archetypes, doppelgangers, full_name, avatar_url, has_completed_onboarding')
                     .single();
 
                 if (createError) {
@@ -92,7 +92,7 @@ export default function AuthCallback() {
                     // Try to continue anyway - profile might have been created by a trigger
                     const { data: existingProfile } = await supabase
                         .from('profiles')
-                        .select('id, interests, personality_archetypes, doppelgangers, full_name, avatar_url')
+                        .select('id, interests, personality_archetypes, doppelgangers, full_name, avatar_url, has_completed_onboarding')
                         .eq('id', userId)
                         .maybeSingle();
                     profileData = existingProfile;
@@ -123,7 +123,7 @@ export default function AuthCallback() {
                         .from('profiles')
                         .update(updateData)
                         .eq('id', userId)
-                        .select('id, interests, personality_archetypes, doppelgangers, full_name, avatar_url')
+                        .select('id, interests, personality_archetypes, doppelgangers, full_name, avatar_url, has_completed_onboarding')
                         .single();
 
                     if (updatedProfile) {
@@ -141,6 +141,10 @@ export default function AuthCallback() {
 
             // Determine if user needs to complete profile setup
 
+            // Check if user has already completed onboarding
+            // @ts-ignore - has_completed_onboarding may not be in the type yet
+            const hasCompletedOnboarding = profileData?.has_completed_onboarding === true;
+
             // Check for interests
             const hasInterests = profileData?.interests && profileData.interests.length > 0;
 
@@ -154,9 +158,16 @@ export default function AuthCallback() {
             const isPartial = hasInterests && (!hasArchetypes || !hasDoppelgangers);
             const isNew = !hasInterests; // No interests means totally new
 
-            const FORCE_ONBOARDING = true;
+            // Set to false for production - when true, forces all users through onboarding
+            const FORCE_ONBOARDING = false;
 
-            if (FORCE_ONBOARDING || isNew) {
+            // Skip onboarding if user has already completed it (unless FORCE_ONBOARDING is true)
+            if (hasCompletedOnboarding && !FORCE_ONBOARDING) {
+                console.log('User has already completed onboarding, redirecting to network...');
+                setStatus('Welcome back!');
+                router.push('/network');
+
+            } else if (FORCE_ONBOARDING || isNew) {
                 // New user - needs full setup
                 console.log('New user detected...');
                 setStatus('Setting up your profile...');
