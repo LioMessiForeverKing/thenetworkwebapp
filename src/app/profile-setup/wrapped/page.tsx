@@ -738,8 +738,10 @@ export default function WrappedPage() {
                         >
                             ?
                         </button>
-                        {/* Tap to continue hint - mobile only */}
-                        <p className="mt-4 text-gray-500 text-sm font-display md:hidden">Tap to continue</p>
+                        {/* Tap to continue hint - mobile only - only show when interests are loaded */}
+                        {interests.length > 0 && (
+                            <p className="mt-4 text-gray-500 text-sm font-display md:hidden">Tap to continue</p>
+                        )}
                     </div>
                     {/* TN Logo - White */}
                     <div className="absolute left-4 md:left-6 bottom-20 md:bottom-6 w-[100px] md:w-[150px] h-[80px] md:h-[120px] opacity-100 pointer-events-none">
@@ -1114,11 +1116,20 @@ export default function WrappedPage() {
         );
     };
 
+    // Check if current slide can be advanced
+    const canAdvanceSlide = () => {
+        // For slide 7 (Interest Graph), only allow advance if interests are loaded
+        if (currentSlideIndex === 6 && interests.length === 0) {
+            return false;
+        }
+        return currentSlide.type === 'manual' && !showInterestModal;
+    };
+
     return (
         <div
             className={`h-screen w-full relative overflow-hidden transition-colors duration-500 ${currentSlide.bg === 'dark' ? 'bg-[#111111] text-white' : 'bg-[#f4f3ee] text-black'
                 }`}
-            onClick={currentSlide.type === 'manual' && !showInterestModal ? handleNext : undefined}
+            onClick={canAdvanceSlide() ? handleNext : undefined}
         >
             {/* Content */}
             <div key={currentSlideIndex} className="absolute inset-0 z-10 w-full h-full flex justify-center items-center animate-fade-in">
@@ -1133,7 +1144,9 @@ export default function WrappedPage() {
             </div>
 
             {/* Tap Indicator - Moved lower and centered */}
-            {currentSlide.type === 'manual' && currentSlideIndex < SLIDES.length - 1 && (
+            {currentSlide.type === 'manual' && currentSlideIndex < SLIDES.length - 1 && 
+             // For slide 7 (Interest Graph), only show indicator when interests are loaded
+             (currentSlideIndex !== 6 || interests.length > 0) && (
                 <div className="absolute bottom-8 left-1/2 -translate-x-1/2 text-sm opacity-50 animate-bounce font-display pointer-events-none">
                     Tap to continue
                 </div>

@@ -13,6 +13,12 @@ export default function ConsentPage() {
 
     const allAgreed = agreedToPrivacy && agreedToTermsOfService && agreedToTermsOfUse;
 
+    const handleAcceptAll = () => {
+        setAgreedToPrivacy(true);
+        setAgreedToTermsOfService(true);
+        setAgreedToTermsOfUse(true);
+    };
+
     const handleContinue = () => {
         if (allAgreed) {
             // Store consent in localStorage or sessionStorage
@@ -31,6 +37,16 @@ export default function ConsentPage() {
                     <p className={styles.subtitle}>
                         To continue, please review and agree to our policies
                     </p>
+                </div>
+
+                {/* Accept All Button */}
+                <div className={styles.acceptAllContainer}>
+                    <button
+                        onClick={handleAcceptAll}
+                        className={styles.acceptAllButton}
+                    >
+                        Accept All
+                    </button>
                 </div>
 
                 {/* Agreement Items */}

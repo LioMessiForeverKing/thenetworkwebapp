@@ -388,7 +388,9 @@ export default function Home() {
               .limit(10);
 
             // Filter out users already in network
-            const notInNetworkProfiles = (similarProfiles || []).filter((p: any) => !connectedUserIds.has(p.id)).slice(0, 3);
+            // Only show remaining slots (3 minus interactions)
+            const remainingSlots = Math.max(0, 3 - interactedIds.size);
+            const notInNetworkProfiles = (similarProfiles || []).filter((p: any) => !connectedUserIds.has(p.id) && !interactedIds.has(p.id)).slice(0, remainingSlots);
 
             if (notInNetworkProfiles && notInNetworkProfiles.length > 0) {
               const formattedPromises = notInNetworkProfiles.map(async (profile: any) => {
@@ -575,7 +577,9 @@ export default function Home() {
       }
 
       // 8. Format suggestions with compelling reasons (only from not-in-network matches)
-      const topNotInNetworkMatches = notInNetworkMatches.slice(0, 3); // Top 3 not in network
+      // Only fetch remaining slots (3 minus interactions already made)
+      const remainingSuggestionCount = Math.max(0, 3 - interactedIds.size);
+      const topNotInNetworkMatches = notInNetworkMatches.slice(0, remainingSuggestionCount);
       const formattedSuggestionsPromises = topNotInNetworkMatches
         .map(async (match: any) => {
           const profile = fullProfiles.find((p: any) => p.id === match.id);
@@ -653,10 +657,13 @@ export default function Home() {
           };
         });
 
+      // Calculate how many suggestions we should show (3 minus how many they've interacted with)
+      const remainingSuggestionSlots = Math.max(0, 3 - interactedIds.size);
+      
       const formattedSuggestions = (await Promise.all(formattedSuggestionsPromises))
         .filter((s: any) => s !== null)
         .filter((s: any) => !interactedIds.has(s.id)) // Filter out already interacted suggestions
-        .slice(0, 3); // Ensure exactly 3 suggestions max
+        .slice(0, remainingSuggestionSlots); // Only show remaining slots (3 minus interactions)
 
       // If all suggestions have been interacted with, show message
       if (formattedSuggestions.length === 0) {
