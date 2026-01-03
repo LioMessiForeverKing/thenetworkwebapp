@@ -237,6 +237,7 @@ export default function LandingPage() {
   const gallerySectionRef = useRef<HTMLElement>(null);
   const [galleryVisible, setGalleryVisible] = useState(false);
   const [openFAQ, setOpenFAQ] = useState<number | null>(null);
+  const [showSignalsModal, setShowSignalsModal] = useState(false);
 
   const FAQ_DATA = [
     {
@@ -443,7 +444,15 @@ export default function LandingPage() {
             <AnimatedWord />
 
             <p className="text-white/90 text-lg md:text-xl font-medium max-w-lg mx-auto leading-relaxed animate-fade-in-up opacity-0" style={{ animationDelay: '0.3s' }}>
-              We turn your YouTube liked videos and subscriptions into new people you could meet.
+              Turn your signals into people you'll actually want to meet.
+              <button
+                onClick={() => setShowSignalsModal(true)}
+                className="ml-2 inline-flex items-center justify-center w-5 h-5 md:w-6 md:h-6 rounded-full border border-white/30 hover:border-white/60 text-white/50 hover:text-white/80 transition-all duration-200 cursor-pointer bg-transparent text-sm md:text-base font-normal hover:bg-white/10 -mt-10"
+                aria-label="What are signals?"
+                title="What are signals?"
+              >
+                ?
+              </button>
             </p>
 
             <button
@@ -544,7 +553,7 @@ export default function LandingPage() {
         <div className="sticky top-0 min-h-screen flex flex-col justify-between py-12 px-6 md:px-12 overflow-hidden" style={{ paddingTop: '80px', paddingBottom: '30px' }}>
           <div className="w-full mb-6">
             <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-black leading-tight text-left max-w-7xl">
-              We turn your feeds, starting with your YouTube - your digital DNA into a personalized set of people, moments, and opportunities that feel just right.
+              We turn your feeds, starting with YouTube, into your Digital DNA; a personalized set of people, moments, and opportunities that feel just right.
             </h2>
           </div>
 
@@ -576,7 +585,7 @@ export default function LandingPage() {
       {/* Mobile Gallery */}
       <section className="bg-white px-6 py-10 space-y-8 md:hidden">
         <h2 className="text-2xl font-bold text-black leading-tight">
-          We turn your feeds, starting with your YouTube - your digital DNA into a personalized set of people, moments, and opportunities that feel just right.
+          We turn your feeds, starting with YouTube, into your Digital DNA; a personalized set of people, moments, and opportunities that feel just right.
         </h2>
         <div className="overflow-x-auto flex gap-4 snap-x snap-mandatory pb-2">
           {COMMUNITY_IMAGES.map((src) => (
@@ -596,8 +605,8 @@ export default function LandingPage() {
           </h2>
           <div className="max-w-2xl space-y-6">
             <p className="text-xl md:text-2xl text-black leading-relaxed font-medium">The small signals you leave behind every day.</p>
-            <p className="text-xl md:text-2xl text-black leading-relaxed font-medium">With your permission, we read your YouTube subscriptions and liked videos — nothing more.</p>
-            <p className="text-xl md:text-2xl text-black leading-relaxed font-medium">We use them to understand what you genuinely care about, so discovering people feels intentional, not random.</p>
+            <p className="text-xl md:text-2xl text-black leading-relaxed font-medium">You choose to connect YouTube, and we use your subscriptions and liked videos, read-only, to build your Digital DNA.</p>
+            <p className="text-xl md:text-2xl text-black leading-relaxed font-medium">That's how meeting people starts to feel intentional, not random.</p>
           </div>
         </div>
       </section>
@@ -634,6 +643,42 @@ export default function LandingPage() {
           </button>
         </div>
       </section>
+
+      {/* Signals Explanation Modal */}
+      {showSignalsModal && (
+        <div
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[9999] animate-fade-in"
+          onClick={() => setShowSignalsModal(false)}
+        >
+          <div
+            className="bg-white rounded-3xl p-8 max-w-lg w-[90%] relative animate-slide-up max-h-[85vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={() => setShowSignalsModal(false)}
+              className="absolute top-4 right-4 text-black/50 hover:text-black transition-colors cursor-pointer bg-transparent border-none text-2xl p-2"
+              aria-label="Close"
+            >
+              ×
+            </button>
+            <h3 className="text-2xl font-bold text-black mb-4">What are signals?</h3>
+            <div className="text-gray-700 text-lg leading-relaxed space-y-4">
+              <p>
+                Your signals are the digital breadcrumbs you leave behind: the YouTube channels you subscribe to, the videos you like, the content you engage with.
+              </p>
+              <p>
+                From a neuroscience perspective, what you watch is what you're genuinely interested in, and that's something you can't fake. In a world where connection can feel lonely and random, we wanted to create something that makes sense for you to use and feel confident using.
+              </p>
+              <p>
+                We started with a small experiment with 20 friends. The success rate of finding new people who were very similar to each other was remarkably high. That small scale experiment convinced us to make this a large scale experiment, and here we are.
+              </p>
+              <p>
+                We use your signals to connect you with people who share what you actually care about, based on what you genuinely watch, not just what you say you like.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

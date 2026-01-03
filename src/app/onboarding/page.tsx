@@ -339,24 +339,25 @@ export default function OnboardingPage() {
     }
 
     return (
-     <div className="h-screen bg-white flex flex-col items-center pt-12 pb-4 px-4 gap-4 overflow-hidden relative">
-        <div className="flex flex-col md:flex-row gap-6 w-full max-w-[1280px] justify-center items-center md:items-start h-full md:scale-[0.70] md:origin-top">
-             <Card1 className="snap-center" />
-             <Card2 className="snap-center" />
-             <Card3 className="snap-center" />
+     <div className="min-h-screen bg-white flex flex-col items-center pt-8 md:pt-12 pb-24 md:pb-4 px-4 gap-4 overflow-x-hidden relative">
+        {/* Mobile: horizontal scroll, Desktop: row layout */}
+        <div className="flex flex-row md:flex-row gap-4 md:gap-6 w-full max-w-[1280px] justify-start md:justify-center items-stretch md:items-start overflow-x-auto md:overflow-visible snap-x snap-mandatory md:snap-none pb-4 md:pb-0 md:scale-[0.70] md:origin-top scrollbar-hide">
+             <Card1 className="snap-center shrink-0 scale-[0.75] md:scale-100 origin-top-left md:origin-center -mr-24 md:mr-0" />
+             <Card2 className="snap-center shrink-0 scale-[0.75] md:scale-100 origin-top-left md:origin-center -mr-24 md:mr-0" />
+             <Card3 className="snap-center shrink-0 scale-[0.75] md:scale-100 origin-top-left md:origin-center" />
         </div>
 
-        <div className="flex flex-col items-center gap-4 pb-12 fixed bottom-0 left-0 right-0 pointer-events-none">
+        <div className="flex flex-col items-center gap-4 pb-8 md:pb-12 fixed bottom-0 left-0 right-0 pointer-events-none bg-gradient-to-t from-white via-white to-transparent pt-8">
             <button 
                 onClick={signInWithGoogle}
                 className="pointer-events-auto relative group"
             >
-                <div className="flex items-center overflow-clip px-[21px] py-[14px] relative rounded-[100px] shadow-[0px_0px_2px_0px_rgba(0,0,0,0.1),0px_1px_8px_0px_rgba(0,0,0,0.1)] bg-white transition-transform group-hover:scale-105">
+                <div className="flex items-center overflow-clip px-[16px] md:px-[21px] py-[12px] md:py-[14px] relative rounded-[100px] shadow-[0px_0px_2px_0px_rgba(0,0,0,0.1),0px_1px_8px_0px_rgba(0,0,0,0.1)] bg-white transition-transform group-hover:scale-105">
                     <div className="absolute inset-0 pointer-events-none shadow-[inset_3px_3px_0.5px_-3.5px_white,inset_2px_2px_0.5px_-2px_#262626,inset_-2px_-2px_0.5px_-2px_#262626,inset_0px_0px_0px_1px_#a6a6a6,inset_0px_0px_8px_0px_#f2f2f2] rounded-[100px]" />
-                    <span className="text-[20px] font-semibold text-black font-display tracking-tight mr-2">
+                    <span className="text-[16px] md:text-[20px] font-semibold text-black font-display tracking-tight mr-2">
                         Continue with Google
                     </span>
-                    <span className="text-[20px] font-semibold text-black font-display">
+                    <span className="text-[16px] md:text-[20px] font-semibold text-black font-display">
                         →
                     </span>
                 </div>
