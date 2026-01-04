@@ -99,23 +99,16 @@ export default function BuildingPage() {
                                 });
 
                                 if (dnaError) {
-                                    console.error('Error triggering DNA v2 computation:', dnaError);
                                     // Don't block the flow if DNA computation fails
-                                } else {
-                                    console.log('DNA v2 computation triggered successfully');
                                 }
-                            } else {
-                                console.log('No YouTube data found, skipping DNA v2 computation');
                             }
                         }
                     } catch (dnaErr) {
-                        console.error('Error triggering DNA v2:', dnaErr);
                         // Don't block the flow if DNA computation fails
                     }
 
                     setIsComplete(true);
                 } catch (err) {
-                    console.error("Error processing:", err);
                     // Continue anyway
                     setIsComplete(true);
                 }

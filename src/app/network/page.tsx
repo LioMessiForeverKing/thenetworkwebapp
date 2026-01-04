@@ -167,7 +167,6 @@ export default function Home() {
         .eq('status', 'pending');
 
       if (connError) {
-        console.error('Error fetching connections:', connError);
         // Try friend_requests table as fallback
         const { data: friendRequests, error: frError } = await supabase
           .from('friend_requests')
@@ -176,7 +175,6 @@ export default function Home() {
           .eq('status', 'accepted');
 
         if (frError) {
-          console.error('Error fetching friend requests:', frError);
           setPeople([createCurrentUserNode(user.id, 'You', '#8E5BFF')]);
           setIsLoadingNetwork(false);
           return;
@@ -188,7 +186,6 @@ export default function Home() {
 
       await processConnections(supabase, connections || [], user.id);
     } catch (e) {
-      console.error('Error loading network:', e);
       setPeople([createCurrentUserNode(user.id, 'You', '#8E5BFF')]);
       setIsLoadingNetwork(false);
     }
@@ -233,18 +230,11 @@ export default function Home() {
       // First verify the user is authenticated
       const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
       if (authError) {
-        console.error('Auth error when loading interactions:', authError);
+        // Auth error when loading interactions
       }
 
       let interactedIds = new Set<string>();
       try {
-        // Verify auth.uid() matches user.id
-        console.log('Checking suggestion interactions:', {
-          user_id_from_auth: user.id,
-          auth_uid: authUser?.id,
-          match: user.id === authUser?.id
-        });
-
         // Try querying with explicit error handling
         const query = supabase
           .from('suggestion_interactions')
@@ -254,21 +244,11 @@ export default function Home() {
         const { data: interactions, error: interactionsError } = await query;
 
         if (interactionsError) {
-          // Only log real errors, ignore empty objects or expected "not found" issues
-          if (Object.keys(interactionsError).length > 0 || interactionsError.message) {
-            console.warn('Suggestion interactions fetch issue (non-critical):', interactionsError.message || interactionsError);
-          }
           interactedIds = new Set<string>();
         } else {
           interactedIds = new Set<string>((interactions || []).map(i => i.suggested_user_id));
-          if (interactions && interactions.length > 0) {
-            console.log('Found interacted suggestions:', Array.from(interactedIds));
-          } else {
-            console.log('No interacted suggestions found for user:', user.id);
-          }
         }
       } catch (err) {
-        console.error('Exception loading suggestion interactions:', err);
         // Continue with empty set if exception occurs
         interactedIds = new Set<string>();
       }
@@ -300,7 +280,6 @@ export default function Home() {
         .single();
 
       if (profileError || !userProfile) {
-        console.error('Error fetching user profile:', profileError);
         setSuggestions([]);
         setIsLoadingSuggestions(false);
         return;
@@ -433,27 +412,18 @@ export default function Home() {
                     );
 
                     if (reasonError) {
-                      console.error('Error generating reason:', {
-                        message: reasonError.message,
-                        context: reasonError.context,
-                        status: reasonError.status,
-                        details: reasonError
-                      });
                       return null; // Don't show suggestion if we can't generate reason
                     }
 
                     if (reasonData?.reason) {
                       reason = reasonData.reason;
                     } else if (reasonData?.error) {
-                      console.error('Edge function returned error:', reasonData.error);
                       return null; // Don't show suggestion if error
                     } else {
-                      console.error('No reason returned from edge function. Response:', reasonData);
                       return null; // Don't show suggestion if no reason
                     }
                   }
                 } catch (error) {
-                  console.error('Error generating reason:', error);
                   return null; // Don't show suggestion on error
                 }
 
@@ -549,7 +519,6 @@ export default function Home() {
           : { data: null, error: { message: 'No DNA v2 available' } };
 
       if (matchError || !matchedProfiles || matchedProfiles.length === 0) {
-        console.error('Error matching profiles:', matchError);
         setSuggestions([]);
         setIsLoadingSuggestions(false);
         return;
@@ -625,27 +594,18 @@ export default function Home() {
               );
 
               if (reasonError) {
-                console.error('Error generating reason:', {
-                  message: reasonError.message,
-                  context: reasonError.context,
-                  status: reasonError.status,
-                  details: reasonError
-                });
                 return null; // Don't show suggestion if we can't generate reason
               }
 
               if (reasonData?.reason) {
                 reason = reasonData.reason;
               } else if (reasonData?.error) {
-                console.error('Edge function returned error:', reasonData.error);
                 return null; // Don't show suggestion if error
               } else {
-                console.error('No reason returned from edge function. Response:', reasonData);
                 return null; // Don't show suggestion if no reason
               }
             }
           } catch (error) {
-            console.error('Error generating reason:', error);
             return null; // Don't show suggestion on error
           }
 
@@ -675,7 +635,6 @@ export default function Home() {
         setSuggestions(formattedSuggestions);
       }
     } catch (error) {
-      console.error('Error loading Ari suggestions:', error);
       setSuggestions([]);
     } finally {
       setIsLoadingSuggestions(false);
@@ -700,14 +659,12 @@ export default function Home() {
         .eq('status', 'pending');
 
       if (error) {
-        console.error('Error checking friend requests:', error);
         setPendingRequestCount(0);
         return;
       }
 
       setPendingRequestCount(friendRequests?.length || 0);
     } catch (error) {
-      console.error('Error checking friend requests:', error);
       setPendingRequestCount(0);
     }
   }, [user]);
@@ -907,19 +864,11 @@ export default function Home() {
                 const supabase = createClient();
                 const { data: { user: currentUser }, error: authError } = await supabase.auth.getUser();
                 if (authError) {
-                  console.error('Error getting user for interaction tracking:', authError);
                   return;
                 }
                 if (!currentUser) {
-                  console.error('No current user found for interaction tracking');
                   return;
                 }
-
-                console.log('Attempting to insert suggestion interaction:', {
-                  user_id: currentUser.id,
-                  suggested_user_id: suggestionId,
-                  interaction_type: 'connected'
-                });
 
                 const { data: insertData, error: insertError } = await supabase
                   .from('suggestion_interactions')
@@ -931,17 +880,8 @@ export default function Home() {
                   .select();
 
                 if (insertError) {
-                  console.error('Error inserting suggestion interaction:', {
-                    error: insertError,
-                    errorString: JSON.stringify(insertError),
-                    message: insertError.message,
-                    details: insertError.details,
-                    hint: insertError.hint,
-                    code: insertError.code
-                  });
+                  // Error inserting suggestion interaction
                 } else {
-                  console.log('Successfully tracked suggestion interaction:', insertData);
-
                   // Verify the insert worked by querying it back
                   const { data: verifyData, error: verifyError } = await supabase
                     .from('suggestion_interactions')
@@ -951,13 +891,11 @@ export default function Home() {
                     .single();
 
                   if (verifyError) {
-                    console.error('Warning: Could not verify inserted interaction:', verifyError);
-                  } else {
-                    console.log('Verified: Interaction exists in database:', verifyData);
+                    // Could not verify inserted interaction
                   }
                 }
               } catch (err) {
-                console.error('Error tracking interaction:', err);
+                // Error tracking interaction
               }
             })();
 
@@ -993,19 +931,11 @@ export default function Home() {
                 const supabase = createClient();
                 const { data: { user: currentUser }, error: authError } = await supabase.auth.getUser();
                 if (authError) {
-                  console.error('Error getting user for interaction tracking:', authError);
                   return;
                 }
                 if (!currentUser) {
-                  console.error('No current user found for interaction tracking');
                   return;
                 }
-
-                console.log('Attempting to insert suggestion interaction:', {
-                  user_id: currentUser.id,
-                  suggested_user_id: suggestionId,
-                  interaction_type: 'skipped'
-                });
 
                 const { data: insertData, error: insertError } = await supabase
                   .from('suggestion_interactions')
@@ -1017,17 +947,8 @@ export default function Home() {
                   .select();
 
                 if (insertError) {
-                  console.error('Error inserting suggestion interaction:', {
-                    error: insertError,
-                    errorString: JSON.stringify(insertError),
-                    message: insertError.message,
-                    details: insertError.details,
-                    hint: insertError.hint,
-                    code: insertError.code
-                  });
+                  // Error inserting suggestion interaction
                 } else {
-                  console.log('Successfully tracked suggestion interaction:', insertData);
-
                   // Verify the insert worked by querying it back
                   const { data: verifyData, error: verifyError } = await supabase
                     .from('suggestion_interactions')
@@ -1037,13 +958,11 @@ export default function Home() {
                     .single();
 
                   if (verifyError) {
-                    console.error('Warning: Could not verify inserted interaction:', verifyError);
-                  } else {
-                    console.log('Verified: Interaction exists in database:', verifyData);
+                    // Could not verify inserted interaction
                   }
                 }
               } catch (err) {
-                console.error('Error tracking interaction:', err);
+                // Error tracking interaction
               }
             })();
           }

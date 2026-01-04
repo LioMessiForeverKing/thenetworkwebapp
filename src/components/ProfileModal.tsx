@@ -123,7 +123,6 @@ export default function ProfileModal({ person, onClose }: ProfileModalProps) {
                     const otherVec = parseVector(otherDnaV2.composite_vector);
                     if (userVec && otherVec && userVec.length > 0 && otherVec.length > 0) {
                         similarity = cosineSimilarity(userVec, otherVec);
-                        console.log('DNA v2 similarity:', similarity, 'percent:', Math.round(similarity * 100));
                     }
                 } else {
                     // Fallback to DNA v1
@@ -144,7 +143,6 @@ export default function ProfileModal({ person, onClose }: ProfileModalProps) {
                         const otherVec = parseVector(otherDnaV1.interest_vector);
                         if (userVec && otherVec && userVec.length > 0 && otherVec.length > 0) {
                             similarity = cosineSimilarity(userVec, otherVec);
-                            console.log('DNA v1 similarity:', similarity, 'percent:', Math.round(similarity * 100));
                         }
                     }
                 }
@@ -153,11 +151,9 @@ export default function ProfileModal({ person, onClose }: ProfileModalProps) {
                 if (similarity === 0 && sharedInterests.length > 0) {
                     const totalInterests = new Set([...userInterests, ...otherInterests]).size;
                     similarity = sharedInterests.length / Math.max(totalInterests, 1);
-                    console.log('Shared interests similarity:', similarity, 'percent:', Math.round(similarity * 100));
                 }
 
                 const stars = calculateStars(similarity);
-                console.log('Calculated stars:', stars, 'from similarity:', similarity);
                 setRealStars(stars);
 
                 // Check for cached compatibility description
@@ -199,7 +195,7 @@ export default function ProfileModal({ person, onClose }: ProfileModalProps) {
                     }
                 }
             } catch (error) {
-                console.error('Error loading compatibility:', error);
+                // Error loading compatibility
             } finally {
                 setIsLoading(false);
             }

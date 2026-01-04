@@ -81,7 +81,6 @@ export default function EditProfile() {
       await checkYouTubeConnection(user.id);
 
     } catch (error) {
-      console.error('Error loading profile:', error);
     } finally {
       setLoading(false);
     }
@@ -113,7 +112,6 @@ export default function EditProfile() {
       // YouTube is connected if there's data or a valid token
       setYoutubeConnected(hasData || hasToken);
     } catch (error) {
-      console.error('Error checking YouTube connection:', error);
       // Default to false if check fails
       setYoutubeConnected(false);
     }
@@ -163,7 +161,6 @@ export default function EditProfile() {
       alert('Profile picture updated!');
 
     } catch (error: any) {
-      console.error('Error uploading avatar:', error);
       alert(`Error uploading image: ${error.message}`);
     } finally {
       setUploading(false);
@@ -218,7 +215,6 @@ export default function EditProfile() {
 
       alert('Profile updated successfully!');
     } catch (error: any) {
-      console.error('Error updating profile:', error);
       alert(`Error saving changes: ${error.message}`);
     } finally {
       setSaving(false);
@@ -250,7 +246,6 @@ export default function EditProfile() {
       
       alert('YouTube has been disconnected successfully. All YouTube data has been deleted.');
     } catch (error: any) {
-      console.error('Error disconnecting YouTube:', error);
       alert(`Error disconnecting YouTube: ${error.message || 'An unexpected error occurred'}`);
     } finally {
       setDisconnecting(false);
@@ -314,7 +309,6 @@ export default function EditProfile() {
       await supabase.auth.signOut();
       router.push('/');
     } catch (error: any) {
-      console.error('Error deleting account:', error);
       alert(`Error deleting account: ${error.message || 'An unexpected error occurred'}`);
       setDeleting(false);
     }

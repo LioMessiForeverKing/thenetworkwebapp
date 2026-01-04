@@ -213,7 +213,7 @@ export default function WrappedPage() {
                     likedVideos: likesCount || 0
                 });
             } catch (error) {
-                console.error('Error fetching YouTube counts:', error);
+                // Error fetching YouTube counts
             }
         };
         fetchYoutubeCounts();
@@ -294,8 +294,6 @@ export default function WrappedPage() {
             (!processingStatus.interests && !processingStatus.hierarchicalInterests && !processingStatus.dnaV2);
 
         if (currentSlideIndex >= 3 && !hasStartedProcessing.current && shouldProcess) {
-            console.log('Starting DNA processing at slide index:', currentSlideIndex, 'processingStatus:', processingStatus);
-            console.log('Session available:', !!session, 'User ID:', user.id);
             hasStartedProcessing.current = true;
             processUserDataWithYouTubeProgress();
         }
@@ -307,57 +305,39 @@ export default function WrappedPage() {
 
         // Verify we have a valid session from auth context
         if (!session) {
-            console.error('No session available from auth context');
             return;
         }
-
-        console.log('Starting processUserDataWithYouTubeProgress');
-        console.log('User ID from context:', user.id);
-        console.log('Session user ID:', session.user.id);
-        console.log('Session access token available:', !!session.access_token);
 
         const supabase = createClient();
 
         // Verify the supabase client can see the session
         const { data: { session: clientSession }, error: sessionError } = await supabase.auth.getSession();
         if (sessionError) {
-            console.error('Supabase client session error:', sessionError);
+            // Supabase client session error
         }
         if (!clientSession) {
-            console.error('Supabase client has no session! This might be a cookie/storage issue.');
-            console.log('Attempting to set session manually...');
             // Try to set the session from context
             const { error: setSessionError } = await supabase.auth.setSession({
                 access_token: session.access_token,
                 refresh_token: session.refresh_token || ''
             });
             if (setSessionError) {
-                console.error('Failed to set session:', setSessionError);
-            } else {
-                console.log('Session set successfully');
+                // Failed to set session
             }
-        } else {
-            console.log('Supabase client session established, user:', clientSession.user.id);
         }
 
         try {
             // Step 1: Check YouTube connection (Slide 4)
-            console.log('Checking YouTube connection...');
             const accessToken = await YouTubeService.getAccessToken();
             if (accessToken) {
                 setYoutubeStatus(prev => ({ ...prev, connected: true }));
                 // Small delay before next step
                 await new Promise(r => setTimeout(r, 500));
-            } else {
-                console.warn('No YouTube access token available');
-                // Continue anyway - might have data from previous sync
             }
 
             // Step 2: Fetch subscriptions with progress (Slide 5)
             let hasYouTubeData = false;
             try {
-                console.log('Checking existing YouTube data for user:', user.id);
-
                 // Check if YouTube data already exists
                 const { data: existingSubs, error: existingSubsError } = await supabase
                     .from('youtube_subscriptions')
@@ -372,25 +352,20 @@ export default function WrappedPage() {
                     .limit(1);
 
                 if (existingSubsError) {
-                    console.error('Error checking existing subscriptions:', existingSubsError, 'Code:', existingSubsError.code, 'Message:', existingSubsError.message);
+                    // Error checking existing subscriptions
                 }
                 if (existingLikesError) {
-                    console.error('Error checking existing liked videos:', existingLikesError, 'Code:', existingLikesError.code, 'Message:', existingLikesError.message);
+                    // Error checking existing liked videos
                 }
 
                 const existingSubsCount = existingSubs?.length || 0;
                 const existingLikesCount = existingLikes?.length || 0;
                 hasYouTubeData = existingSubsCount > 0 || existingLikesCount > 0;
 
-                console.log('YouTube data check:', { existingSubsCount, existingLikesCount, hasYouTubeData, hasAccessToken: !!accessToken });
-
                 // Only sync if we don't have data yet
                 if (!hasYouTubeData && accessToken) {
-                    console.log('No YouTube data found, syncing with progress...');
-
                     // Fetch subscriptions with progress updates
                     const subscriptions = await fetchSubscriptionsWithProgress(accessToken);
-                    console.log('Fetched subscriptions:', subscriptions.length);
                     setYoutubeStatus(prev => ({
                         ...prev,
                         subscriptionsCount: subscriptions.length,
@@ -399,7 +374,6 @@ export default function WrappedPage() {
 
                     // Fetch liked videos with progress updates
                     const likedVideos = await fetchLikedVideosWithProgress(accessToken);
-                    console.log('Fetched liked videos:', likedVideos.length);
                     setYoutubeStatus(prev => ({
                         ...prev,
                         likedVideosCount: likedVideos.length,
@@ -407,19 +381,12 @@ export default function WrappedPage() {
                     }));
 
                     // Sync to database
-                    console.log('Syncing subscriptions to database...');
                     const subsCount = await YouTubeService.syncSubscriptionsToSupabase(user.id, subscriptions);
-                    console.log('Synced subscriptions:', subsCount);
-
-                    console.log('Syncing liked videos to database...');
                     const likesCount = await YouTubeService.syncLikedVideosToSupabase(user.id, likedVideos);
-                    console.log('Synced liked videos:', likesCount);
 
                     // Only set hasYouTubeData if we actually synced something
                     hasYouTubeData = (subsCount > 0 || likesCount > 0);
-                    console.log('YouTube sync complete, hasYouTubeData:', hasYouTubeData);
                 } else if (hasYouTubeData) {
-                    console.log('YouTube data already exists, using existing counts');
                     setYoutubeStatus(prev => ({
                         ...prev,
                         subscriptionsCount: existingSubsCount,
@@ -427,11 +394,9 @@ export default function WrappedPage() {
                         likedVideosCount: existingLikesCount,
                         likedVideosTotal: existingLikesCount
                     }));
-                } else {
-                    console.warn('No YouTube data and no access token - cannot sync');
                 }
             } catch (syncError: any) {
-                console.error('Error syncing YouTube data:', syncError);
+                // Error syncing YouTube data
                 // Check again after error - might have partial data
                 const { data: checkSubs } = await supabase
                     .from('youtube_subscriptions')
@@ -455,23 +420,19 @@ export default function WrappedPage() {
 
             // Check if user has no YouTube data after sync - if so, delete account and redirect
             if (!hasYouTubeData) {
-                console.log('No YouTube data found after sync - showing message and deleting account');
                 setShowNoYouTubeDataModal(true);
                 return; // Stop processing, modal will handle account deletion
             }
 
             // Step 2: Derive interests and hierarchical interests (only if we have YouTube data)
             if (hasYouTubeData) {
-                console.log('Deriving interests...');
                 try {
                     await YouTubeService.deriveInterests(user.id);
                 } catch (deriveError: any) {
-                    console.error('Error deriving interests:', deriveError);
                     // Mark as ready to continue flow even if derivation fails
                     setProcessingStatus(prev => ({ ...prev, interests: true, hierarchicalInterests: true }));
                 }
             } else {
-                console.log('No YouTube data available, skipping interests derivation');
                 // Mark as ready since we can't derive without YouTube data
                 setProcessingStatus(prev => ({ ...prev, interests: true, hierarchicalInterests: true }));
             }
@@ -505,7 +466,6 @@ export default function WrappedPage() {
 
                 // If we've been polling for a while and still nothing, mark as ready to continue
                 if (pollCount >= 10 && !interestsReady && !hierarchicalReady) {
-                    console.log('Polling timeout - marking interests as ready to continue flow');
                     setProcessingStatus(prev => ({ ...prev, interests: true, hierarchicalInterests: true }));
                     break;
                 }
@@ -518,7 +478,6 @@ export default function WrappedPage() {
 
             // Step 3: Trigger DNA v2 computation
             // Use hasYouTubeData flag which we already computed, or re-check if needed
-            console.log('Checking YouTube data for DNA v2 computation, hasYouTubeData:', hasYouTubeData);
 
             // If we already know we have YouTube data from earlier, use that
             // Otherwise do a fresh check
@@ -539,23 +498,16 @@ export default function WrappedPage() {
                     .limit(1);
 
                 if (ytSubsError) {
-                    console.error('Error checking youtube_subscriptions:', ytSubsError);
+                    // Error checking youtube_subscriptions
                 }
                 if (ytLikesError) {
-                    console.error('Error checking youtube_liked_videos:', ytLikesError);
+                    // Error checking youtube_liked_videos
                 }
 
                 shouldComputeDna = (ytSubs?.length ?? 0) > 0 || (ytLikes?.length ?? 0) > 0;
-                console.log('Fresh YouTube data check result:', {
-                    subsCount: ytSubs?.length || 0,
-                    likesCount: ytLikes?.length || 0,
-                    shouldComputeDna
-                });
             }
 
             if (shouldComputeDna) {
-                console.log('Triggering compute-dna-v2 for user:', user.id);
-
                 // Retry logic for DNA computation with delay
                 const maxDnaRetries = 5;
                 let dnaRetries = 0;
@@ -565,7 +517,6 @@ export default function WrappedPage() {
                     try {
                         // Add a small delay to ensure data is committed
                         if (dnaRetries > 0) {
-                            console.log(`DNA v2 retry ${dnaRetries}/${maxDnaRetries}, waiting 2 seconds...`);
                             await new Promise(r => setTimeout(r, 2000));
                         }
 
@@ -581,27 +532,19 @@ export default function WrappedPage() {
 
                         if (response.status === 202 && dnaResult.status === 'pending') {
                             // YouTube data not ready yet, retry
-                            console.log('YouTube data not ready yet, will retry...');
                             dnaRetries++;
                             continue;
                         }
 
                         if (!response.ok) {
-                            console.error('DNA v2 computation error:', dnaResult.error);
                             dnaRetries++;
                             continue;
                         }
 
-                        console.log('DNA v2 computation triggered successfully:', dnaResult);
                         dnaTriggered = true;
                     } catch (dnaError) {
-                        console.error('DNA v2 computation error:', dnaError);
                         dnaRetries++;
                     }
-                }
-
-                if (!dnaTriggered) {
-                    console.warn('DNA v2 computation could not be triggered after retries');
                 }
 
                 // Poll for DNA v2 completion
@@ -616,7 +559,6 @@ export default function WrappedPage() {
 
                     if (dnaV2) {
                         dnaReady = true;
-                        console.log('DNA v2 computation completed!');
                         setProcessingStatus(prev => ({ ...prev, dnaV2: true }));
                         break;
                     }
@@ -624,12 +566,6 @@ export default function WrappedPage() {
                     await new Promise(r => setTimeout(r, 1000));
                     pollCount++;
                 }
-
-                if (!dnaReady) {
-                    console.warn('DNA v2 polling timed out after', maxPolls, 'seconds');
-                }
-            } else {
-                console.log('No YouTube data found, cannot compute DNA v2');
             }
 
             // Refresh archetypes and doppelgangers after processing
@@ -649,9 +585,7 @@ export default function WrappedPage() {
             }
 
             processingComplete.current = true;
-            console.log('Processing complete!');
         } catch (error) {
-            console.error('Error processing user data:', error);
             // Continue anyway - don't block the flow
             processingComplete.current = true;
         }
@@ -1065,7 +999,6 @@ export default function WrappedPage() {
                                             .limit(1);
 
                                         if ((ytSubs && ytSubs.length > 0) || (ytLikes && ytLikes.length > 0)) {
-                                            console.log('DNA v2 not found, triggering background computation...');
                                             fetch('/api/compute-dna-v2', {
                                                 method: 'POST',
                                                 headers: { 'Content-Type': 'application/json' },
@@ -1073,8 +1006,8 @@ export default function WrappedPage() {
                                                     user_id: user.id,
                                                     trigger_source: 'ONBOARDING_COMPLETION_FALLBACK'
                                                 })
-                                            }).catch(err => {
-                                                console.error('Background DNA v2 computation error:', err);
+                                            }).catch(() => {
+                                                // Background DNA v2 computation error
                                             });
                                         }
                                     }
@@ -1190,7 +1123,6 @@ export default function WrappedPage() {
 
                     if ((ytSubs && ytSubs.length > 0) || (ytLikes && ytLikes.length > 0)) {
                         // Trigger DNA v2 computation in background (don't await)
-                        console.log('DNA v2 not found, triggering background computation...');
                         fetch('/api/compute-dna-v2', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
@@ -1198,8 +1130,8 @@ export default function WrappedPage() {
                                 user_id: user.id,
                                 trigger_source: 'ONBOARDING_COMPLETION_FALLBACK'
                             })
-                        }).catch(err => {
-                            console.error('Background DNA v2 computation error:', err);
+                        }).catch(() => {
+                            // Background DNA v2 computation error
                         });
                     }
                 }
@@ -1408,7 +1340,6 @@ export default function WrappedPage() {
             await supabase.auth.signOut();
             router.push('/');
         } catch (error: any) {
-            console.error('Error deleting account:', error);
             alert(`Error deleting account: ${error.message || 'An unexpected error occurred'}`);
             setDeletingAccount(false);
         }

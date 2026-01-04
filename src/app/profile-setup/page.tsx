@@ -109,7 +109,6 @@ export default function ProfileSetupPage() {
             // Navigate to signals page
             router.push('/profile-setup/signals');
         } catch (err: any) {
-            console.error('Error saving profile:', err);
             setError(err.message || 'Failed to save profile');
         } finally {
             setIsSaving(false);

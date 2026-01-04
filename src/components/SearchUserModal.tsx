@@ -102,7 +102,6 @@ export default function SearchUserModal({ isOpen, onClose, onRequestSent }: Sear
       }
 
       if (error) {
-        console.error('Error searching users:', error);
         setResults([]);
         setLoading(false);
         return;
@@ -110,7 +109,6 @@ export default function SearchUserModal({ isOpen, onClose, onRequestSent }: Sear
 
       setResults(profiles);
     } catch (error) {
-      console.error('Error performing search:', error);
       setResults([]);
     } finally {
       setLoading(false);
@@ -172,7 +170,6 @@ export default function SearchUserModal({ isOpen, onClose, onRequestSent }: Sear
           setSentRequests(new Set(sentRequestsData.map(req => req.receiver_id)));
         }
       } catch (error) {
-        console.error('Error checking existing connections:', error);
       }
     };
 
@@ -222,7 +219,6 @@ export default function SearchUserModal({ isOpen, onClose, onRequestSent }: Sear
         });
 
       if (error) {
-        console.error('Error sending friend request:', error);
         return;
       }
 
@@ -234,7 +230,6 @@ export default function SearchUserModal({ isOpen, onClose, onRequestSent }: Sear
         onRequestSent();
       }
     } catch (error) {
-      console.error('Error sending friend request:', error);
     } finally {
       setSendingIds(prev => {
         const next = new Set(prev);

@@ -82,7 +82,6 @@ export default function SuggestionDetailModal({ isOpen, onClose, person, onReque
         setRequestStatus('none');
       }
     } catch (error) {
-      console.error('Error checking existing connection:', error);
       setRequestStatus('none');
     }
   };
@@ -121,7 +120,6 @@ export default function SuggestionDetailModal({ isOpen, onClose, person, onReque
         });
 
       if (error) {
-        console.error('Error sending friend request:', error);
       } else {
         setRequestStatus('pending');
         if (onRequestSent) {
@@ -133,7 +131,6 @@ export default function SuggestionDetailModal({ isOpen, onClose, person, onReque
         }, 500);
       }
     } catch (error) {
-      console.error('Error sending friend request:', error);
     } finally {
       setIsSending(false);
     }

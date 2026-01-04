@@ -68,7 +68,6 @@ export default function YouTubeDataReviewPage() {
                     .order('title', { ascending: true });
 
                 if (subsError) {
-                    console.error('Error loading subscriptions:', subsError);
                 } else {
                     setSubscriptions(subsData || []);
                 }
@@ -82,7 +81,6 @@ export default function YouTubeDataReviewPage() {
                     .limit(100); // Limit to first 100 for display
 
                 if (videosError) {
-                    console.error('Error loading liked videos:', videosError);
                 } else {
                     setLikedVideos(videosData || []);
                 }
@@ -108,7 +106,6 @@ export default function YouTubeDataReviewPage() {
                     setHierarchicalInterests((profileData.hierarchical_interests as any[]) || []);
                 }
             } catch (error) {
-                console.error('Error loading YouTube data:', error);
             } finally {
                 setLoadingData(false);
                 setLoadingInterests(false);

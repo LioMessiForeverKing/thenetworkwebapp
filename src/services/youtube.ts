@@ -44,7 +44,6 @@ export const YouTubeService = {
     let { data: { session }, error } = await supabase.auth.getSession();
 
     if (error) {
-      console.error('Error getting session:', error);
       return null;
     }
 
@@ -57,7 +56,6 @@ export const YouTubeService = {
     const { data: { session: refreshedSession }, error: refreshError } = await supabase.auth.refreshSession();
 
     if (refreshError) {
-      console.error('Error refreshing session:', refreshError);
       return null;
     }
 
@@ -74,7 +72,6 @@ export const YouTubeService = {
       }
     }
 
-    console.warn('No provider token found in session. User may need to sign in again.');
     return null;
   },
 
@@ -98,7 +95,7 @@ export const YouTubeService = {
     });
 
     if (!response.ok) {
-      throw new Error(`YouTube API error: ${response.status} ${await response.text()}`);
+      throw new Error(`YouTube API error: ${response.status}`);
     }
 
     const data = await response.json();
@@ -143,7 +140,7 @@ export const YouTubeService = {
     });
 
     if (!response.ok) {
-      throw new Error(`YouTube API error: ${response.status} ${await response.text()}`);
+      throw new Error(`YouTube API error: ${response.status}`);
     }
 
     const data = await response.json();
@@ -201,22 +198,18 @@ export const YouTubeService = {
       .filter((row): row is NonNullable<typeof row> => row !== null);
 
     if (rows.length === 0) {
-      console.log('No subscription rows to sync');
       return 0;
     }
 
-    console.log(`Syncing ${rows.length} subscriptions to database...`);
     const { data, error } = await supabase
       .from('youtube_subscriptions')
       .upsert(rows, { onConflict: 'user_id,channel_id' })
       .select();
 
     if (error) {
-      console.error('Subscription sync error:', error);
-      throw new Error(`Failed to sync subscriptions: ${error.message}`);
+      throw new Error(`Failed to sync subscriptions`);
     }
 
-    console.log(`Successfully synced ${rows.length} subscriptions`);
     return rows.length;
   },
 
@@ -243,22 +236,18 @@ export const YouTubeService = {
       .filter((row): row is NonNullable<typeof row> => row !== null);
 
     if (rows.length === 0) {
-      console.log('No liked video rows to sync');
       return 0;
     }
 
-    console.log(`Syncing ${rows.length} liked videos to database...`);
     const { data, error } = await supabase
       .from('youtube_liked_videos')
       .upsert(rows, { onConflict: 'user_id,video_id' })
       .select();
 
     if (error) {
-      console.error('Liked videos sync error:', error);
-      throw new Error(`Failed to sync liked videos: ${error.message}`);
+      throw new Error(`Failed to sync liked videos`);
     }
 
-    console.log(`Successfully synced ${rows.length} liked videos`);
     return rows.length;
   },
 
@@ -271,23 +260,17 @@ export const YouTubeService = {
       throw new Error('No Google access token available. Please sign in again.');
     }
 
-    console.log('Starting full YouTube data sync (fetching all subscriptions and liked videos)...');
-
     // Fetch all data with pagination
     const [subscriptions, likedVideos] = await Promise.all([
       this.fetchAllSubscriptions(accessToken, 50),
       this.fetchAllLikedVideos(accessToken, 50, 800), // Limit liked videos to 800 to avoid excessive API calls
     ]);
 
-    console.log(`Fetched ${subscriptions.length} subscriptions and ${likedVideos.length} liked videos`);
-
     // Sync to database
     const [subsCount, likesCount] = await Promise.all([
       this.syncSubscriptionsToSupabase(userId, subscriptions),
       this.syncLikedVideosToSupabase(userId, likedVideos),
     ]);
-
-    console.log('Sync completed:', { subsCount, likesCount, subsLength: subscriptions.length, likesLength: likedVideos.length });
 
     return { subsCount, likesCount };
   },
@@ -316,13 +299,6 @@ export const YouTubeService = {
       const subsCount = subsData.data?.length || 0;
       const likesCount = likesData.data?.length || 0;
 
-      console.log('Verification result:', {
-        subsError: subsData.error,
-        likesError: likesData.error,
-        subsCount,
-        likesCount
-      });
-
       return {
         hasSubs: subsCount > 0,
         hasLikes: likesCount > 0,
@@ -330,7 +306,6 @@ export const YouTubeService = {
         likesCount,
       };
     } catch (error) {
-      console.error('Error verifying YouTube data:', error);
       return {
         hasSubs: false,
         hasLikes: false,
@@ -354,17 +329,12 @@ export const YouTubeService = {
     // Ensure we have a valid session
     const { data: { session }, error: sessionError } = await supabase.auth.getSession();
     if (sessionError || !session) {
-      throw new Error(`No active session: ${sessionError?.message || 'Session not found'}`);
+      throw new Error('No active session');
     }
 
     if (!session.access_token) {
       throw new Error('No access token in session. Please sign in again.');
     }
-
-    console.log('Calling derive_interests for user:', userId);
-    console.log('Session available:', !!session);
-    console.log('Access token available:', !!session.access_token);
-    console.log('Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL);
 
     try {
       // Try using the Supabase client first
@@ -372,21 +342,7 @@ export const YouTubeService = {
         body: { user_id: userId, max_interests: 15 },
       });
 
-      console.log('Edge function response:', {
-        hasData: !!data,
-        hasError: !!error,
-        dataKeys: data ? Object.keys(data) : [],
-        errorMessage: error?.message
-      });
-
       if (error) {
-        console.error('Edge function error details:', {
-          message: error.message,
-          context: error.context,
-          status: error.status,
-          fullError: JSON.stringify(error, null, 2)
-        });
-
         // Try to get more details from the error response
         let errorDetails = error.message || 'Unknown error';
         if (error.context) {
@@ -402,27 +358,20 @@ export const YouTubeService = {
 
         // If the Supabase client method fails, try direct fetch as fallback
         if (error.message?.includes('Failed to send') || error.message?.includes('CORS')) {
-          console.log('Attempting direct fetch to edge function...');
           return await this.deriveInterestsDirectFetch(userId, session.access_token);
         }
 
         throw new Error(`Failed to derive interests: ${errorDetails}`);
       }
 
-      // Log the full response for debugging
-      console.log('Full edge function data:', JSON.stringify(data, null, 2));
-
       // Check if the response contains an error (even with 200 status)
       if (data && typeof data === 'object' && 'error' in data) {
-        console.error('Edge function returned error in response:', data);
-        throw new Error(`Edge function error: ${data.error || JSON.stringify(data)}`);
+        throw new Error(`Edge function error: ${data.error || 'Unknown error'}`);
       }
 
       if (!data) {
         throw new Error('No data returned from derive_interests function');
       }
-
-      console.log('Successfully derived interests:', data.interests);
 
       // Verify the interests were actually saved to the profile
       const { data: profile } = await supabase
@@ -431,11 +380,8 @@ export const YouTubeService = {
         .eq('id', userId)
         .single();
 
-      console.log('Profile interests after derive:', profile?.interests);
-
       return data?.interests || [];
     } catch (err: any) {
-      console.error('Exception calling derive_interests:', err);
       // If it's already our error, rethrow it
       if (err.message?.includes('Failed to derive interests')) {
         throw err;
@@ -456,8 +402,6 @@ export const YouTubeService = {
 
     const functionUrl = `${supabaseUrl}/functions/v1/derive_interests`;
 
-    console.log('Calling edge function directly:', functionUrl);
-
     const response = await fetch(functionUrl, {
       method: 'POST',
       headers: {
@@ -468,9 +412,7 @@ export const YouTubeService = {
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Direct fetch error:', response.status, errorText);
-      throw new Error(`Edge function returned ${response.status}: ${errorText}`);
+      throw new Error(`Edge function returned ${response.status}`);
     }
 
     const data = await response.json();
@@ -486,14 +428,12 @@ export const YouTubeService = {
     // Ensure we have a valid session
     const { data: { session }, error: sessionError } = await supabase.auth.getSession();
     if (sessionError || !session) {
-      throw new Error(`No active session: ${sessionError?.message || 'Session not found'}`);
+      throw new Error('No active session');
     }
 
     if (!session.access_token) {
       throw new Error('No access token in session. Please sign in again.');
     }
-
-    console.log('Calling disconnect-youtube edge function');
 
     try {
       const { data, error } = await supabase.functions.invoke('disconnect-youtube', {
@@ -504,21 +444,13 @@ export const YouTubeService = {
       });
 
       if (error) {
-        console.error('Edge function error details:', {
-          message: error.message,
-          context: error.context,
-          status: error.status,
-        });
         throw new Error(`Failed to disconnect YouTube: ${error.message}`);
       }
 
       if (data?.error) {
         throw new Error(data.error);
       }
-
-      console.log('Successfully disconnected YouTube');
     } catch (err: any) {
-      console.error('Exception calling disconnect-youtube:', err);
       if (err.message?.includes('Failed to disconnect YouTube')) {
         throw err;
       }

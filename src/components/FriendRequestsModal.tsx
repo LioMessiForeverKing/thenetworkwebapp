@@ -59,7 +59,6 @@ export default function FriendRequestsModal({ isOpen, onClose, onRequestAccepted
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('Error fetching friend requests:', error);
         setRequests([]);
         setLoading(false);
         return;
@@ -84,7 +83,6 @@ export default function FriendRequestsModal({ isOpen, onClose, onRequestAccepted
         setRequests([]);
       }
     } catch (error) {
-      console.error('Error loading friend requests:', error);
       setRequests([]);
     } finally {
       setLoading(false);
@@ -113,7 +111,6 @@ export default function FriendRequestsModal({ isOpen, onClose, onRequestAccepted
         .eq('receiver_id', user.id);
 
       if (updateError) {
-        console.error('Error accepting friend request:', updateError);
         return;
       }
 
@@ -147,7 +144,6 @@ export default function FriendRequestsModal({ isOpen, onClose, onRequestAccepted
           .eq('id', existingConn.id);
 
         if (updateConnError) {
-          console.error('Error updating connection:', updateConnError);
           // Continue anyway - the friend request is accepted
         }
       } else {
@@ -163,7 +159,6 @@ export default function FriendRequestsModal({ isOpen, onClose, onRequestAccepted
           });
 
         if (connError) {
-          console.error('Error creating connection:', connError);
           // Continue anyway - the friend request is accepted
         }
       }
@@ -176,7 +171,6 @@ export default function FriendRequestsModal({ isOpen, onClose, onRequestAccepted
         onRequestAccepted();
       }
     } catch (error) {
-      console.error('Error accepting friend request:', error);
     } finally {
       setProcessingIds(prev => {
         const next = new Set(prev);
@@ -208,14 +202,12 @@ export default function FriendRequestsModal({ isOpen, onClose, onRequestAccepted
         .eq('receiver_id', user.id);
 
       if (error) {
-        console.error('Error declining friend request:', error);
         return;
       }
 
       // Remove from list
       setRequests(prev => prev.filter(req => req.id !== requestId));
     } catch (error) {
-      console.error('Error declining friend request:', error);
     } finally {
       setProcessingIds(prev => {
         const next = new Set(prev);

@@ -53,7 +53,6 @@ export default function AuthCallback() {
                 userId = result.userId;
                 session = result.session;
             } catch (error: any) {
-                console.error('Session error:', error);
                 setStatus('Authentication failed. Redirecting...');
                 setTimeout(() => router.push('/'), 2000);
                 return;
@@ -72,8 +71,6 @@ export default function AuthCallback() {
                 const googleName = userMetadata.name || userMetadata.full_name || session.user.email?.split('@')[0] || 'User';
                 const googlePicture = userMetadata.picture || userMetadata.avatar_url || null;
 
-                console.log('Creating profile for new user:', { userId, googleName, hasPicture: !!googlePicture });
-
                 const { data: newProfile, error: createError } = await supabase
                     .from('profiles')
                     .insert({
@@ -88,7 +85,6 @@ export default function AuthCallback() {
                     .single();
 
                 if (createError) {
-                    console.error('Error creating profile:', createError);
                     // Try to continue anyway - profile might have been created by a trigger
                     const { data: existingProfile } = await supabase
                         .from('profiles')
@@ -110,7 +106,6 @@ export default function AuthCallback() {
                     (googlePicture && profileData.avatar_url !== googlePicture);
 
                 if (needsUpdate) {
-                    console.log('Updating profile with Google data:', { googleName, hasPicture: !!googlePicture });
                     const updateData: any = {};
                     if (googleName && profileData.full_name !== googleName) {
                         updateData.full_name = googleName;
@@ -135,7 +130,6 @@ export default function AuthCallback() {
             // Sync YouTube data in the background (don't block the flow)
             // This fetches subscriptions and liked videos into the database
             YouTubeService.syncYouTubeData(userId).catch((error) => {
-                console.error('Error syncing YouTube data (non-blocking):', error);
                 // Don't throw - this is background sync, user can continue
             });
 
@@ -163,13 +157,11 @@ export default function AuthCallback() {
 
             // Skip onboarding if user has already completed it (unless FORCE_ONBOARDING is true)
             if (hasCompletedOnboarding && !FORCE_ONBOARDING) {
-                console.log('User has already completed onboarding, redirecting to network...');
                 setStatus('Welcome back!');
                 router.push('/network');
 
             } else if (FORCE_ONBOARDING || isNew) {
                 // New user - needs full setup
-                console.log('New user detected...');
                 setStatus('Setting up your profile...');
 
                 // Redirect to Profile Setup (Step 1)
@@ -178,7 +170,6 @@ export default function AuthCallback() {
 
             } else if (isPartial) {
                 // Partial user - has interests but needs upgrade
-                console.log('Partial profile detected (missing new stats)...');
                 setStatus('Upgrading your profile...');
                 // Send to "Building" page which will detect missing parts and auto-generate them
                 router.push('/profile-setup/building');
@@ -186,7 +177,6 @@ export default function AuthCallback() {
             } else {
                 // Existing user with complete profile
                 // Redirect to building page to show "Retrieving DNA" animation -> Wrapped -> Home
-                console.log('Existing user, redirecting to building...');
                 router.push('/profile-setup/building');
             }
         };

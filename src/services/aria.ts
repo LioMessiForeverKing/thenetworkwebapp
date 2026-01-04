@@ -39,7 +39,6 @@ export const AriaService = {
             });
 
             if (error) {
-                console.error('AriaService: Error invoking function:', error);
                 return null;
             }
 
@@ -88,7 +87,6 @@ export const AriaService = {
                 candidates: candidates,
             };
         } catch (e) {
-            console.error('AriaService: Exception:', e);
             return null;
         }
     },
@@ -103,7 +101,7 @@ export const AriaService = {
                 is_from_user: isFromUser,
             });
         } catch (e) {
-            console.error('AriaService: Error storing message:', e);
+            // Error storing message
         }
     },
 
@@ -169,7 +167,6 @@ export const AriaService = {
 
             return history.reverse();
         } catch (e) {
-            console.error('AriaService: Error fetching history:', e);
             return [];
         }
     }

@@ -78,7 +78,6 @@ export default function DigitalDnaPage() {
                 throw new Error(data?.error || 'Failed to fetch explanation');
             }
         } catch (err: any) {
-            console.error('Error fetching interest explanation:', err);
             setExplanationError('Failed to load insight. Please try again.');
         } finally {
             setIsExplanationLoading(false);
@@ -114,7 +113,6 @@ export default function DigitalDnaPage() {
                     .single();
 
                 if (error) {
-                    console.error('Error fetching profile:', error);
                     break;
                 }
 
@@ -190,7 +188,6 @@ export default function DigitalDnaPage() {
                     const allCached = archetypes.every(a => descriptionsMap[a.name]);
                     
                     if (allCached) {
-                        console.log('Loaded archetype descriptions from cache');
                         setArchetypeDescriptions(descriptionsMap);
                         setIsLoadingDescriptions(false);
                         return;
@@ -199,7 +196,6 @@ export default function DigitalDnaPage() {
 
                 // If no cache or incomplete, call edge function to generate (only if we have interests)
                 if (interests.length > 0) {
-                    console.log('Cache miss - generating archetype descriptions via edge function');
                     const { data, error } = await supabase.functions.invoke('generate-archetype-descriptions', {
                         body: {
                             user_id: user.id,
@@ -214,7 +210,6 @@ export default function DigitalDnaPage() {
                     }
                 }
             } catch (err) {
-                console.error('Error fetching archetype descriptions:', err);
                 // Will fall back to generic descriptions via getArchetypeDescription()
             } finally {
                 setIsLoadingDescriptions(false);
@@ -251,7 +246,6 @@ export default function DigitalDnaPage() {
                     const allCached = doppelgangers.every(d => descriptionsMap[d.name]);
                     
                     if (allCached) {
-                        console.log('Loaded doppelgänger descriptions from cache');
                         setDoppelgangerDescriptions(descriptionsMap);
                         setIsLoadingDoppelgangerDescriptions(false);
                         return;
@@ -260,7 +254,6 @@ export default function DigitalDnaPage() {
 
                 // If no cache or incomplete, call edge function to generate (only if we have interests)
                 if (interests.length > 0) {
-                    console.log('Cache miss - generating doppelgänger descriptions via edge function');
                     const { data, error } = await supabase.functions.invoke('generate-doppelganger-descriptions', {
                         body: {
                             user_id: user.id,
@@ -275,7 +268,6 @@ export default function DigitalDnaPage() {
                     }
                 }
             } catch (err) {
-                console.error('Error fetching doppelgänger descriptions:', err);
                 // Will fall back to generic descriptions
             } finally {
                 setIsLoadingDoppelgangerDescriptions(false);
