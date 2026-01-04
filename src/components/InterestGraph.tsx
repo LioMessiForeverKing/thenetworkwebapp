@@ -281,7 +281,7 @@ export default function InterestGraph({
                     right: 20px;
                     top: 50%;
                     transform: translateY(-50%);
-                    z-index: 2000;
+                    z-index: 10; /* Keep below menu (z-index: 19) */
                     background: rgba(0, 0, 0, 0.6);
                     border: 1px solid rgba(255, 255, 255, 0.2);
                     border-radius: 50%;

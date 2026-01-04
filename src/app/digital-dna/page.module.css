@@ -109,13 +109,18 @@
     transform: translateX(-50%);
     display: flex;
     gap: 8px;
-    z-index: 100;
+    z-index: 15; /* Below menu (z-index: 19) */
     background: rgba(20, 20, 20, 0.95);
     backdrop-filter: blur(12px);
     padding: 6px;
     border-radius: 16px;
     border: 1px solid rgba(255, 255, 255, 0.1);
     box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+}
+
+/* Cancel out global inversion for tab navigation */
+:global(.theme-inverted) .tabNavigation {
+    filter: invert(1) hue-rotate(180deg);
 }
 
 .tabButton {
@@ -152,6 +157,11 @@
     align-items: center;
     overflow-y: auto;
     background: #0a0a0a;
+}
+
+/* Cancel out global inversion for this section when in inverted theme */
+:global(.theme-inverted) .contentContainer {
+    filter: invert(1) hue-rotate(180deg);
 }
 
 .contentHeader {

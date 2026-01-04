@@ -272,18 +272,18 @@ export default function DigitalDnaPage() {
                     left: 0,
                     right: 0,
                     bottom: 0,
-                    backgroundColor: '#ffffff',
+                    backgroundColor: '#0a0a0a',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    zIndex: 9999
+                    zIndex: 15 // Below menu (z-index: 19)
                 }}>
                     <div style={{ textAlign: 'center' }}>
                         <div style={{
                             width: '48px',
                             height: '48px',
-                            border: '3px solid rgba(0, 0, 0, 0.1)',
-                            borderTopColor: '#000000',
+                            border: '3px solid rgba(255, 255, 255, 0.1)',
+                            borderTopColor: '#ffffff',
                             borderRadius: '50%',
                             animation: 'spin 1s linear infinite',
                             margin: '0 auto'
@@ -320,6 +320,7 @@ export default function DigitalDnaPage() {
                 visibility: showLoading || activeTab !== 'interests' ? 'hidden' : 'visible',
                 position: activeTab !== 'interests' ? 'absolute' : 'relative',
                 pointerEvents: activeTab !== 'interests' ? 'none' : 'auto',
+                zIndex: 1, // Keep below menu (z-index: 19)
             }}>
                 {!isLoadingGraph && interests.length > 0 && (
                     <InterestGraph
