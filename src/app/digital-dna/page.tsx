@@ -145,12 +145,12 @@ export default function DigitalDnaPage() {
     // Show loading spinner until both data is loaded AND graph is ready
     const showLoading = loading || isLoadingGraph || !isGraphReady;
 
-    // Archetype colors for visual distinction
+    // Archetype colors for visual distinction - more vibrant and distinct
     const archetypeColors = [
-        { bg: 'rgba(212, 175, 55, 0.15)', border: 'rgba(212, 175, 55, 0.4)', accent: '#D4AF37' }, // Gold
-        { bg: 'rgba(159, 159, 255, 0.15)', border: 'rgba(159, 159, 255, 0.4)', accent: '#9F9FFF' }, // Periwinkle
-        { bg: 'rgba(74, 222, 128, 0.15)', border: 'rgba(74, 222, 128, 0.4)', accent: '#4ADE80' }, // Green
-        { bg: 'rgba(255, 107, 107, 0.15)', border: 'rgba(255, 107, 107, 0.4)', accent: '#FF6B6B' }, // Red
+        { bg: 'linear-gradient(145deg, rgba(99, 102, 241, 0.15) 0%, rgba(99, 102, 241, 0.05) 100%)', border: 'rgba(99, 102, 241, 0.35)', accent: '#818CF8' }, // Indigo
+        { bg: 'linear-gradient(145deg, rgba(236, 72, 153, 0.15) 0%, rgba(236, 72, 153, 0.05) 100%)', border: 'rgba(236, 72, 153, 0.35)', accent: '#F472B6' }, // Pink
+        { bg: 'linear-gradient(145deg, rgba(34, 197, 94, 0.15) 0%, rgba(34, 197, 94, 0.05) 100%)', border: 'rgba(34, 197, 94, 0.35)', accent: '#4ADE80' }, // Emerald
+        { bg: 'linear-gradient(145deg, rgba(251, 146, 60, 0.15) 0%, rgba(251, 146, 60, 0.05) 100%)', border: 'rgba(251, 146, 60, 0.35)', accent: '#FB923C' }, // Orange
     ];
 
     // State for generated archetype descriptions
@@ -501,12 +501,14 @@ export default function DigitalDnaPage() {
                         doppelgangers.slice(0, 3).map((doppelganger, index) => (
                             <div
                                 key={index}
-                                className={`${styles.twinCard} ${index === 0 ? styles.twinCardFeatured : ''}`}
+                                className={styles.twinCard}
                             >
                                 <div className={styles.twinGlow} style={{ background: doppelgangerColors[index % 3].bg }} />
                                 <div 
                                     className={styles.twinAvatar}
-                                    style={{ background: doppelgangerColors[index % 3].bg }}
+                                    style={{ 
+                                        background: doppelgangerColors[index % 3].bg
+                                    }}
                                 >
                                     <span className={styles.twinInitials}>{getInitials(doppelganger.name)}</span>
                                 </div>
