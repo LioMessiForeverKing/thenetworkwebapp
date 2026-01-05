@@ -744,14 +744,24 @@ export default function Home() {
         <h2 className={styles.panelTitle}>Ari's Suggestions</h2>
 
         <div className={styles.actionIcons}>
-          <div className={styles.iconButton} onClick={() => setShowFriendRequests(true)} style={{ position: 'relative' }}>
-            <AddUserIcon />
-            {pendingRequestCount > 0 && (
-              <span className={styles.notificationBadge}>{pendingRequestCount}</span>
-            )}
+          <div className={styles.iconButtonWrapper} onClick={() => setShowFriendRequests(true)}>
+            <div className={styles.iconButton} style={{ position: 'relative' }}>
+              <div className={styles.iconContainer}>
+                <AddUserIcon />
+              </div>
+              {pendingRequestCount > 0 && (
+                <span className={styles.notificationBadge}>{pendingRequestCount}</span>
+              )}
+            </div>
+            <span className={styles.iconLabel}>Friend Requests</span>
           </div>
-          <div className={styles.iconButton} onClick={() => setShowSearchUser(true)}>
-            <SearchIcon />
+          <div className={styles.iconButtonWrapper} onClick={() => setShowSearchUser(true)}>
+            <div className={styles.iconButton}>
+              <div className={styles.iconContainer}>
+                <SearchIcon />
+              </div>
+            </div>
+            <span className={styles.iconLabel}>Search Users</span>
           </div>
         </div>
 

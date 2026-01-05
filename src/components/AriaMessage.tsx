@@ -34,7 +34,7 @@ export default function AriaMessage() {
           And truly: thank you for joining us on this journey. Every single person who signs up means the world to us. 
           We want to build this for you, and you're the reason we can turn it into something real.
         </p>
-        <div className={styles.signature}>— TheNetwork Team 💙</div>
+        <div className={styles.signature}>— TheNetwork Team</div>
       </div>
     </div>
   );

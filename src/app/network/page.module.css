@@ -147,12 +147,12 @@
 .panelTitle {
     font-size: 28px;
     font-weight: 700;
-    text-align: left;
-    /* Aligned left as per Figma */
-    margin-bottom: 20px;
+    text-align: center;
+    margin-bottom: 24px;
     letter-spacing: -0.5px;
     margin-top: 0;
     color: #000;
+    width: 100%;
     /* Inverts to White */
 }
 
@@ -160,49 +160,140 @@
 @media (max-width: 768px) {
     .panelTitle {
         font-size: 24px;
-        margin-bottom: 16px;
+        margin-bottom: 20px;
     }
 }
 
 .actionIcons {
     display: flex;
-    gap: 12px;
-    margin-bottom: 30px;
+    justify-content: center;
+    align-items: center;
+    gap: 20px;
+    margin-bottom: 32px;
+    width: 100%;
+    padding: 0;
 }
 
 /* Mobile: Smaller action icons */
 @media (max-width: 768px) {
     .actionIcons {
-        margin-bottom: 20px;
-        gap: 10px;
+        margin-bottom: 24px;
+        gap: 16px;
+        justify-content: center;
     }
 }
 
+.iconButtonWrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    flex: 0 0 auto;
+}
+
 .iconButton {
-    width: 48px;
-    height: 48px;
-    border-radius: 50%;
-    background: transparent;
-    border: 1px solid rgba(0, 0, 0, 0.2);
+    width: 56px;
+    height: 56px;
+    border-radius: 16px;
+    background: rgba(0, 0, 0, 0.03);
+    border: 1.5px solid rgba(0, 0, 0, 0.12);
     /* Inverts to light border */
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.iconButton::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.05);
+    opacity: 0;
+    transition: opacity 0.25s ease;
+}
+
+.iconButton:hover {
+    background: rgba(0, 0, 0, 0.08);
+    border-color: rgba(0, 0, 0, 0.2);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.iconButton:hover::before {
+    opacity: 1;
+}
+
+.iconButton:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.iconContainer {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+}
+
+.iconContainer svg {
+    width: 26px;
+    height: 26px;
 }
 
 /* Mobile: Smaller icon buttons */
 @media (max-width: 768px) {
     .iconButton {
-        width: 42px;
-        height: 42px;
+        width: 50px;
+        height: 50px;
+        border-radius: 14px;
+    }
+    
+    .iconContainer svg {
+        width: 24px;
+        height: 24px;
+    }
+    
+    .iconButton:hover {
+        transform: none;
+    }
+    
+    .iconButton:active {
+        transform: scale(0.96);
     }
 }
 
-.iconButton:hover {
-    background: rgba(0, 0, 0, 0.05);
-    /* Slight hover effect */
+.iconLabel {
+    font-size: 13px;
+    font-weight: 600;
+    color: rgba(0, 0, 0, 0.75);
+    text-align: center;
+    line-height: 1.3;
+    letter-spacing: -0.01em;
+    transition: color 0.2s ease;
+    /* Inverts to light text */
+}
+
+.iconButtonWrapper:hover .iconLabel {
+    color: rgba(0, 0, 0, 0.9);
+}
+
+/* Mobile: Smaller labels */
+@media (max-width: 768px) {
+    .iconLabel {
+        font-size: 12px;
+        font-weight: 500;
+    }
 }
 
 .notificationBadge {
@@ -253,6 +344,7 @@
     gap: 16px;
     overflow-y: auto;
     flex: 1;
+    width: 100%;
     /* Hide scrollbar */
     scrollbar-width: none;
     -ms-overflow-style: none;

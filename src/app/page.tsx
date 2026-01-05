@@ -459,7 +459,7 @@ export default function LandingPage() {
               onClick={() => router.push('/consent')}
               className="mt-4 px-10 py-5 bg-white text-black rounded-full text-xl font-semibold hover:bg-gray-100 transition-all duration-300 shadow-xl transform hover:scale-105 active:scale-95 cursor-pointer border-none"
             >
-              Claim my Digital DNA
+              Discover My Network
             </button>
           </div>
 
