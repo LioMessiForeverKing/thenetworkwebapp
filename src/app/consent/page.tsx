@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useAuth } from '@/contexts/AuthContext';
 import styles from './page.module.css';
 
 export default function ConsentPage() {
@@ -12,6 +13,16 @@ export default function ConsentPage() {
     const [agreedToTermsOfUse, setAgreedToTermsOfUse] = useState(false);
 
     const allAgreed = agreedToPrivacy && agreedToTermsOfService && agreedToTermsOfUse;
+
+    const { user, loading } = useAuth();
+
+    useEffect(() => {
+        if (!loading && user) {
+            router.push('/network');
+        }
+    }, [user, loading, router]);
+
+    if (loading || user) return null;
 
     const handleAcceptAll = () => {
         setAgreedToPrivacy(true);
@@ -109,7 +120,7 @@ export default function ConsentPage() {
                 {/* Info Box */}
                 <div className={styles.infoBox}>
                     <p className={styles.infoText}>
-                        By agreeing, you acknowledge that you have read, understood, and accept all three policies. 
+                        By agreeing, you acknowledge that you have read, understood, and accept all three policies.
                         You can review these policies at any time using the links above.
                     </p>
                 </div>
