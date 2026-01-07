@@ -732,13 +732,9 @@ export default function WrappedPage() {
                     <h1 className="text-[24px] md:text-[34px] font-bold text-white font-display mb-6 md:mb-8 text-center">
                         Fetching your subscriptions...
                     </h1>
-                    {youtubeStatus.subscriptionsCount > 0 && (
-                        <p className="text-[16px] md:text-[22px] text-gray-400 font-display text-center">
-                            {youtubeStatus.subscriptionsTotal !== null
-                                ? `Fetched ${youtubeStatus.subscriptionsCount} subscriptions`
-                                : `Fetched ${youtubeStatus.subscriptionsCount}...`}
-                        </p>
-                    )}
+                    <p className="text-[16px] md:text-[22px] text-gray-400 font-display text-center">
+                        Analyzing your niche...
+                    </p>
                     {/* Star - Responsive positioning */}
                     <div className="absolute right-[15%] md:right-[25%] top-[40%] md:top-[45%] text-gray-500 animate-pulse-medium">
                         <StarFourPoint className="w-8 h-8 md:w-12 md:h-12" />
@@ -761,13 +757,9 @@ export default function WrappedPage() {
                     <h1 className="text-[24px] md:text-[34px] font-bold text-white font-display mb-6 md:mb-8 text-center">
                         Fetching your liked videos...
                     </h1>
-                    {youtubeStatus.likedVideosCount > 0 && (
-                        <p className="text-[16px] md:text-[22px] text-gray-400 font-display text-center">
-                            {youtubeStatus.likedVideosTotal !== null
-                                ? `Fetched ${youtubeStatus.likedVideosCount} videos`
-                                : `Fetched ${youtubeStatus.likedVideosCount}...`}
-                        </p>
-                    )}
+                    <p className="text-[16px] md:text-[22px] text-gray-400 font-display text-center">
+                        Decoding your taste...
+                    </p>
                     {/* Star - Responsive positioning */}
                     <div className="absolute left-[25%] md:left-[35%] bottom-[35%] md:bottom-[40%] text-gray-500 animate-pulse-fast">
                         <StarFourPoint className="w-8 h-8 md:w-10 md:h-10" />
@@ -970,7 +962,7 @@ export default function WrappedPage() {
                         <button
                             onClick={async (e) => {
                                 e.stopPropagation();
-                                localStorage.setItem('theme_inverted', 'true');
+                                // localStorage.setItem('theme_inverted', 'true');
 
                                 if (user) {
                                     const supabase = createClient();
@@ -1091,7 +1083,7 @@ export default function WrappedPage() {
         if (currentSlideIndex < SLIDES.length - 1) {
             setCurrentSlideIndex(prev => prev + 1);
         } else {
-            localStorage.setItem('theme_inverted', 'true');
+            // localStorage.setItem('theme_inverted', 'true');
 
             if (user) {
                 const supabase = createClient();

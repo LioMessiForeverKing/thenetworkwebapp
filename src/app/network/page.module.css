@@ -45,7 +45,7 @@
     .suggestionsPanel {
         display: none;
     }
-    
+
     .suggestionsPanel.mobileOpen {
         display: flex;
         position: fixed;
@@ -69,6 +69,7 @@
         transform: translateX(100%);
         opacity: 0;
     }
+
     to {
         transform: translateX(0);
         opacity: 1;
@@ -98,11 +99,11 @@
         box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
         transition: transform 0.2s, box-shadow 0.2s;
     }
-    
+
     .mobileSuggestionsButton:active {
         transform: scale(0.95);
     }
-    
+
     .mobileSuggestionsButton svg {
         width: 24px;
         height: 24px;
@@ -132,11 +133,11 @@
         z-index: 101;
         transition: background 0.2s;
     }
-    
+
     .mobileCloseButton:active {
         background: rgba(0, 0, 0, 0.2);
     }
-    
+
     .mobileCloseButton svg {
         width: 20px;
         height: 20px;
@@ -144,23 +145,23 @@
     }
 }
 
-.panelTitle {
+.sectionTitle {
     font-size: 28px;
     font-weight: 700;
     text-align: center;
-    margin-bottom: 24px;
+    margin-bottom: 32px;
+    /* Increased spacing */
     letter-spacing: -0.5px;
     margin-top: 0;
     color: #000;
     width: 100%;
-    /* Inverts to White */
 }
 
 /* Mobile: Title styling */
 @media (max-width: 768px) {
-    .panelTitle {
+    .sectionTitle {
         font-size: 24px;
-        margin-bottom: 20px;
+        margin-bottom: 28px;
     }
 }
 
@@ -258,16 +259,16 @@
         height: 50px;
         border-radius: 14px;
     }
-    
+
     .iconContainer svg {
         width: 24px;
         height: 24px;
     }
-    
+
     .iconButton:hover {
         transform: none;
     }
-    
+
     .iconButton:active {
         transform: scale(0.96);
     }
@@ -318,9 +319,12 @@
 }
 
 @keyframes pulse {
-    0%, 100% {
+
+    0%,
+    100% {
         transform: scale(1);
     }
+
     50% {
         transform: scale(1.1);
     }
@@ -399,7 +403,7 @@
     .suggestionCard:hover {
         transform: none;
     }
-    
+
     .suggestionCard:active {
         background: #EEEEEE;
         transform: scale(0.98);
@@ -446,7 +450,78 @@
     letter-spacing: -0.2px;
     color: #000;
     margin: 0;
-    line-height: 1.3;
+    line-height: 1.5;
+}
+
+.tabContainer {
+    display: flex;
+    gap: 12px;
+    margin: 0 auto 24px auto;
+    padding: 4px;
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 12px;
+    width: fit-content;
+}
+
+.tabButton {
+    padding: 8px 16px;
+    border-radius: 8px;
+    border: none;
+    background: transparent;
+    color: rgba(0, 0, 0, 0.5);
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.tabButton:hover {
+    color: rgba(0, 0, 0, 0.8);
+}
+
+.activeTab {
+    background: #fff;
+    color: #000 !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.statusMessageCard {
+    text-align: center;
+    padding: 60px 40px;
+    background: rgba(0, 0, 0, 0.03);
+    border-radius: 24px;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    margin: 20px 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    animation: fadeInScale 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.statusMessageTitle {
+    font-size: 24px;
+    font-weight: 700;
+    color: #000;
+    margin: 0;
+}
+
+.statusMessageSub {
+    font-size: 16px;
+    color: rgba(0, 0, 0, 0.5);
+    margin: 0;
+}
+
+@keyframes fadeInScale {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
 }
 
 /* Mobile: Smaller name */
@@ -464,6 +539,7 @@
     margin: 0;
     display: -webkit-box;
     -webkit-line-clamp: 2;
+    line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -527,4 +603,95 @@
     to {
         transform: rotate(360deg);
     }
+}
+
+/* Debug Tool Styles */
+.debugContainer {
+    position: fixed;
+    top: 24px;
+    left: 80px;
+    /* Offset from menu button */
+    z-index: 10000;
+}
+
+.debugTrigger {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: #FF3B30;
+    /* High contrast red */
+    color: #fff;
+    border: 2px solid #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    transition: all 0.2s ease;
+    font-size: 20px;
+}
+
+.debugTrigger:hover {
+    transform: scale(1.1);
+    background: #000;
+}
+
+.debugMenu {
+    position: absolute;
+    top: 50px;
+    left: 0;
+    background: #fff;
+    border-radius: 16px;
+    padding: 16px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-width: 240px;
+    animation: slideDownFade 0.2s ease-out;
+}
+
+@keyframes slideDownFade {
+    from {
+        transform: translateY(-10px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.debugTitle {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: rgba(0, 0, 0, 0.4);
+    margin-bottom: 4px;
+}
+
+.debugAction {
+    background: #f5f5f5;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.debugAction:hover {
+    background: #eeeeee;
+}
+
+.debugAction.danger {
+    color: #ff3b30;
+}
+
+.debugAction.danger:hover {
+    background: #fff5f5;
 }

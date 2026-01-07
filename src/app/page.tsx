@@ -292,13 +292,20 @@ export default function LandingPage() {
     '/Community Images/b5e87c57a5bfe48c5f712da2782fdad3.jpeg',
   ];
 
+  // Theme persistence
+  useEffect(() => {
+    const saved = localStorage.getItem('theme_inverted');
+    if (saved === 'true') {
+      document.documentElement.style.filter = 'invert(1) hue-rotate(180deg)';
+      document.documentElement.classList.add('theme-inverted');
+    } else {
+      document.documentElement.style.filter = '';
+      document.documentElement.classList.remove('theme-inverted');
+    }
+  }, []);
+
   // If already authenticated, redirect to home
   useEffect(() => {
-    // Ensure theme is not inverted on landing page
-    document.documentElement.style.filter = '';
-    document.documentElement.style.backgroundColor = '';
-    document.documentElement.classList.remove('theme-inverted');
-
     if (!loading && user) {
       router.push('/network');
     }

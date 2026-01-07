@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { format, startOfWeek, addDays, isAfter, setHours, setMinutes, setSeconds, setMilliseconds } from 'date-fns';
 import Menu from '@/components/Menu';
 import ProfileModal from '@/components/ProfileModal';
 import dynamic from 'next/dynamic';
@@ -55,6 +56,16 @@ export default function Home() {
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
   const [interactedSuggestionIds, setInteractedSuggestionIds] = useState<Set<string>>(new Set());
   const [shouldShowMessage, setShouldShowMessage] = useState(false);
+
+  // Monday Drop State
+  const [mondayDrop, setMondayDrop] = useState<any | null>(null);
+  const [isLoadingMondayDrop, setIsLoadingMondayDrop] = useState(false);
+  const [activeTab, setActiveTab] = useState<'philosophy' | 'drop'>('philosophy');
+  const [isEligibleForMondayDrop, setIsEligibleForMondayDrop] = useState(false);
+
+  // Debug State
+  const [showDebugMenu, setShowDebugMenu] = useState(false);
+  const [debugForceEligible, setDebugForceEligible] = useState(false);
 
   // Friend Requests Modal State
   const [showFriendRequests, setShowFriendRequests] = useState(false);
@@ -260,22 +271,19 @@ export default function Home() {
 
       setInteractedSuggestionIds(interactedIds);
 
-      // Only show suggestions if user has 4 or fewer connections AND hasn't interacted with all suggestions
-      if (connectionCount > 4) {
-        setShouldShowMessage(true);
+      // Show Monday Drop if user has > 4 connections OR has interacted with 3+ suggestions
+      if (connectionCount > 4 || interactedIds.size >= 3 || debugForceEligible) {
+        console.log('🚀 Loading Monday Drop Path... debug:', debugForceEligible);
+        setIsEligibleForMondayDrop(true);
+        setShouldShowMessage(false);
         setSuggestions([]);
+        // Don't set setIsLoadingSuggestions(false) yet, loadMondayDrop will handle its own loading state
+        loadMondayDrop(connectionCount);
         setIsLoadingSuggestions(false);
         return;
       }
 
-      // If user has already interacted with 3 or more suggestions, show the message
-      // This ensures once all 3 initial suggestions are handled, no new ones appear
-      if (interactedIds.size >= 3) {
-        setShouldShowMessage(true);
-        setSuggestions([]);
-        setIsLoadingSuggestions(false);
-        return;
-      }
+      setIsEligibleForMondayDrop(false);
 
       // 2. Get user's profile and DNA v2
       const { data: userProfile, error: profileError } = await supabase
@@ -646,6 +654,356 @@ export default function Home() {
     }
   }, [user]);
 
+  // Function to load Monday Drop
+  const loadMondayDrop = useCallback(async (connectionCount?: number) => {
+    if (!user) return;
+
+    setIsLoadingMondayDrop(true);
+    const supabase = createClient();
+
+    try {
+      // 1. Determine current week's Monday
+      const now = new Date();
+      let monday = startOfWeek(now, { weekStartsOn: 1 });
+
+      // If today is Monday but before 8am, the active drop is still from last week
+      const monday8am = setMilliseconds(setSeconds(setMinutes(setHours(monday, 0), 0), 0), 0);
+      monday8am.setHours(8);
+
+      if (isAfter(monday8am, now)) {
+        monday = addDays(monday, -7);
+      }
+
+      const weekStartDate = format(monday, 'yyyy-MM-dd');
+      console.log('📅 Monday Drop: Week Start Date:', weekStartDate);
+
+      // 2. Check if a drop already exists for this week
+      const { data: existingDrop, error: fetchError } = await supabase
+        .from('weekly_drops')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('week_start_date', weekStartDate)
+        .maybeSingle();
+
+      console.log('📍 Monday Drop: DB Query Params:', { user_id: user.id, week_start_date: weekStartDate });
+      if (fetchError) console.error('❌ Monday Drop: Fetch error details:', fetchError);
+      console.log('📍 Monday Drop: DB Result:', existingDrop);
+
+      if (existingDrop) {
+        console.log('✅ Monday Drop: Found existing drop:', existingDrop.status, existingDrop.candidate_user_id);
+
+        // If we already connected or skipped, we're DONE for the week. STOP SELECTION.
+        if (existingDrop.status !== 'shown' && existingDrop.status !== 'no_match') {
+          setMondayDrop(existingDrop);
+          setIsLoadingMondayDrop(false);
+          return;
+        }
+
+        // If there's a candidate, fetch their full profile details separately to avoid join syntax issues
+        if (existingDrop.candidate_user_id) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('id, full_name, avatar_url, interests, bio')
+            .eq('id', existingDrop.candidate_user_id)
+            .single();
+
+          if (profile) {
+            // Fetch user profile for reason generation
+            const { data: userProfile } = await supabase
+              .from('profiles')
+              .select('interests, bio')
+              .eq('id', user.id)
+              .single();
+
+            let reason = '';
+            if (userProfile) {
+              const { data: reasonData } = await supabase.functions.invoke('generate-suggestion-reason', {
+                body: {
+                  userAId: user.id,
+                  userBId: profile.id,
+                  userProfile,
+                  candidateProfile: { interests: profile.interests || [], bio: profile.bio || '' },
+                  similarity: existingDrop.similarity_score || 0.8
+                }
+              });
+              reason = reasonData?.reason || '';
+            }
+
+            setMondayDrop({
+              ...existingDrop,
+              candidate: {
+                id: profile.id,
+                name: profile.full_name?.split(' ')[0] || 'User',
+                avatar: getAvatarUrl(profile.avatar_url) || '/assets/onboarding/tn_logo_black.png',
+                bio: profile.bio,
+                interests: profile.interests,
+                reason
+              }
+            });
+          } else {
+            setMondayDrop(existingDrop);
+          }
+        } else {
+          setMondayDrop(existingDrop);
+        }
+        setIsLoadingMondayDrop(false);
+        return;
+      }
+
+      // 3. Selection Algorithm (if no drop exists)
+      const { data: userDnaV2 } = await supabase
+        .from('digital_dna_v2')
+        .select('composite_vector')
+        .eq('user_id', user.id)
+        .single();
+
+      console.log('🧬 Monday Drop: DNA v2:', userDnaV2 ? 'Found' : 'Missing');
+
+      if (!userDnaV2?.composite_vector) {
+        console.log('⚠️ Monday Drop: No composite vector, recording no_match');
+        await supabase.from('weekly_drops').insert({
+          user_id: user.id,
+          week_start_date: weekStartDate,
+          status: 'no_match'
+        });
+        setMondayDrop({ status: 'no_match' });
+        setIsLoadingMondayDrop(false);
+        return;
+      }
+
+      console.log('🔍 Monday Drop: Running match_profiles_v2 with threshold:', debugForceEligible ? 0.35 : 0.75);
+      const { data: matchedProfiles, error: matchError } = await supabase.rpc('match_profiles_v2', {
+        query_embedding: userDnaV2.composite_vector,
+        match_threshold: debugForceEligible ? 0.35 : 0.75, // Lower threshold for testing/debug
+        match_count: 50,
+        ignore_user_id: user.id
+      });
+
+      if (matchError) console.error('❌ Monday Drop: RPC Error:', matchError);
+      console.log('📊 Monday Drop: Matched profiles count:', matchedProfiles?.length || 0);
+
+      if (matchError || !matchedProfiles || matchedProfiles.length === 0) {
+        console.log('⚠️ Monday Drop: No profiles matched, recording no_match');
+        await supabase.from('weekly_drops').insert({
+          user_id: user.id,
+          week_start_date: weekStartDate,
+          status: 'no_match'
+        });
+        setMondayDrop({ status: 'no_match' });
+        setIsLoadingMondayDrop(false);
+        return;
+      }
+
+      // Filter connected/history
+      const { data: connections } = await supabase
+        .from('user_connections')
+        .select('sender_id, receiver_id')
+        .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`);
+
+      const { data: history } = await supabase
+        .from('weekly_drops')
+        .select('candidate_user_id')
+        .eq('user_id', user.id)
+        .not('candidate_user_id', 'is', null);
+
+      const { data: friendRequests } = await supabase
+        .from('friend_requests')
+        .select('sender_id, receiver_id')
+        .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`);
+
+      const excludeIds = new Set([
+        user.id,
+        ...(connections || []).flatMap(c => [c.sender_id, c.receiver_id]),
+        ...(friendRequests || []).flatMap(f => [f.sender_id, f.receiver_id]),
+        ...(history || []).map(h => h.candidate_user_id)
+      ]);
+
+      const candidates = matchedProfiles.filter((m: any) => !excludeIds.has(m.id));
+      console.log('🎯 Monday Drop: Filtered candidates count:', candidates.length);
+
+      if (candidates.length === 0) {
+        console.log('⚠️ Monday Drop: All matches were already connected or seen, recording no_match');
+        await supabase.from('weekly_drops').insert({
+          user_id: user.id,
+          week_start_date: weekStartDate,
+          status: 'no_match'
+        });
+        setMondayDrop({ status: 'no_match' });
+        setIsLoadingMondayDrop(false);
+        return;
+      }
+
+      const selected = candidates[0];
+      console.log('✨ Monday Drop: Selected candidate:', selected.id, 'Similarity:', selected.similarity);
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('id, full_name, avatar_url, interests, bio')
+        .eq('id', selected.id)
+        .single();
+
+      if (!profile) {
+        setMondayDrop({ status: 'no_match' });
+        setIsLoadingMondayDrop(false);
+        return;
+      }
+
+      // Generate reason
+      const { data: userProfile } = await supabase
+        .from('profiles')
+        .select('interests, bio')
+        .eq('id', user.id)
+        .single();
+
+      let reason = '';
+      if (userProfile) {
+        const { data: reasonData } = await supabase.functions.invoke('generate-suggestion-reason', {
+          body: {
+            userAId: user.id,
+            userBId: profile.id,
+            userProfile,
+            candidateProfile: { interests: profile.interests || [], bio: profile.bio || '' },
+            similarity: selected.similarity
+          }
+        });
+        reason = reasonData?.reason || '';
+      }
+
+      const { data: newDrop, error: insertError } = await supabase
+        .from('weekly_drops')
+        .upsert({
+          user_id: user.id,
+          week_start_date: weekStartDate,
+          candidate_user_id: profile.id,
+          similarity_score: selected.similarity,
+          status: 'shown',
+          shown_at: new Date().toISOString()
+        }, { onConflict: 'user_id,week_start_date' })
+        .select()
+        .single();
+
+      if (insertError) console.error('❌ Monday Drop: Upsert error:', insertError);
+
+      setMondayDrop({
+        ...newDrop,
+        candidate: {
+          id: profile.id,
+          name: profile.full_name?.split(' ')[0] || 'User',
+          avatar: getAvatarUrl(profile.avatar_url) || '/assets/onboarding/tn_logo_black.png',
+          bio: profile.bio,
+          interests: profile.interests,
+          reason
+        }
+      });
+    } catch (error) {
+      console.error('Error in loadMondayDrop:', error);
+    } finally {
+      setIsLoadingMondayDrop(false);
+    }
+  }, [user]);
+
+  // Function to handle Monday Drop interaction
+  const handleMondayDropInteraction = async (type: 'connected' | 'skipped' | 'hidden') => {
+    if (!user || !mondayDrop || !mondayDrop.id) return;
+
+    const supabase = createClient();
+    try {
+      await supabase
+        .from('weekly_drops')
+        .update({
+          status: type,
+          interacted_at: new Date().toISOString()
+        })
+        .eq('id', mondayDrop.id);
+
+      setMondayDrop((prev: any) => ({ ...prev, status: type }));
+
+      // If connected, also refresh network
+      if (type === 'connected') {
+        loadNetworkData();
+      }
+    } catch (error) {
+      console.error('Error updating Monday Drop status:', error);
+    }
+  };
+
+  // Re-run suggestions loading when force eligibility changes
+  useEffect(() => {
+    if (debugForceEligible) {
+      loadAriaSuggestions();
+    }
+  }, [debugForceEligible, loadAriaSuggestions]);
+
+  // Debug Handlers
+  const handleDebugReset = async () => {
+    if (!user) return;
+    const supabase = createClient();
+    const now = new Date();
+    let monday = startOfWeek(now, { weekStartsOn: 1 });
+    const monday8am = setMilliseconds(setSeconds(setMinutes(setHours(monday, 0), 0), 0), 0);
+    monday8am.setHours(8);
+    if (isAfter(monday8am, now)) monday = addDays(monday, -7);
+    const weekStartDate = format(monday, 'yyyy-MM-dd');
+
+    await supabase
+      .from('weekly_drops')
+      .delete()
+      .eq('user_id', user.id)
+      .eq('week_start_date', weekStartDate);
+
+    setMondayDrop(null);
+    loadAriaSuggestions();
+  };
+
+  const handleDebugNoMatch = async () => {
+    if (!user) return;
+    const supabase = createClient();
+    const now = new Date();
+    let monday = startOfWeek(now, { weekStartsOn: 1 });
+    const monday8am = setMilliseconds(setSeconds(setMinutes(setHours(monday, 0), 0), 0), 0);
+    monday8am.setHours(8);
+    if (isAfter(monday8am, now)) monday = addDays(monday, -7);
+    const weekStartDate = format(monday, 'yyyy-MM-dd');
+
+    await supabase
+      .from('weekly_drops')
+      .upsert({
+        user_id: user.id,
+        week_start_date: weekStartDate,
+        status: 'no_match'
+      }, { onConflict: 'user_id,week_start_date' });
+
+    setMondayDrop({ status: 'no_match' });
+  };
+
+  const handleSimulateMonday = async () => {
+    if (!user) return;
+
+    setIsLoadingMondayDrop(true);
+    setMondayDrop(null);
+    setDebugForceEligible(true);
+
+    // 1. Delete current week's drop from DB
+    const supabase = createClient();
+    const now = new Date();
+    let monday = startOfWeek(now, { weekStartsOn: 1 });
+    const monday8am = setMilliseconds(setSeconds(setMinutes(setHours(monday, 0), 0), 0), 0);
+    monday8am.setHours(8);
+    if (isAfter(monday8am, now)) monday = addDays(monday, -7);
+    const weekStartDate = format(monday, 'yyyy-MM-dd');
+
+    await supabase
+      .from('weekly_drops')
+      .delete()
+      .eq('user_id', user.id)
+      .eq('week_start_date', weekStartDate);
+
+    // 2. Small delay to ensure the "Curating" state is seen
+    await new Promise(r => setTimeout(r, 1500));
+
+    // 3. Trigger fresh selection
+    loadAriaSuggestions();
+  };
+
   // Function to check for pending friend requests
   const checkPendingFriendRequests = useCallback(async () => {
     if (!user) return;
@@ -746,7 +1104,11 @@ export default function Home() {
           </svg>
         </button>
 
-        <h2 className={styles.panelTitle}>Ari's Suggestions</h2>
+        <h2 className={styles.sectionTitle}>
+          {isEligibleForMondayDrop
+            ? (activeTab === 'drop' ? 'Your Monday Drop' : 'Network Philosophy')
+            : "Ari's Suggestions"}
+        </h2>
 
         <div className={styles.actionIcons}>
           <div className={styles.iconButtonWrapper} onClick={() => setShowFriendRequests(true)}>
@@ -779,10 +1141,79 @@ export default function Home() {
         </div>
 
         <div className={styles.suggestionList}>
-          {isLoadingSuggestions ? (
-            <div style={{ textAlign: 'center', padding: '40px', color: 'rgba(0, 0, 0, 0.6)' }}>
-              Loading suggestions...
+          {isEligibleForMondayDrop && !isLoadingMondayDrop && !isLoadingSuggestions && (
+            <div className={styles.tabContainer}>
+              <button
+                className={`${styles.tabButton} ${activeTab === 'philosophy' ? styles.activeTab : ''}`}
+                onClick={() => setActiveTab('philosophy')}
+              >
+                Philosophy
+              </button>
+              <button
+                className={`${styles.tabButton} ${activeTab === 'drop' ? styles.activeTab : ''}`}
+                onClick={() => setActiveTab('drop')}
+              >
+                Weekly Drop
+              </button>
             </div>
+          )}
+
+          {isLoadingSuggestions || isLoadingMondayDrop ? (
+            <div style={{ textAlign: 'center', padding: '40px', color: 'rgba(0, 0, 0, 0.6)' }}>
+              {isLoadingMondayDrop ? 'Curating your Monday Drop...' : 'Loading suggestions...'}
+            </div>
+          ) : isEligibleForMondayDrop ? (
+            activeTab === 'philosophy' ? (
+              <AriaMessage />
+            ) : mondayDrop?.status === 'shown' && mondayDrop.candidate ? (
+              <div key={mondayDrop.candidate.id} className={styles.suggestionCard}>
+                <img src={mondayDrop.candidate.avatar} alt={mondayDrop.candidate.name} className={styles.cardAvatar} />
+                <div className={styles.cardInfo}>
+                  <div className={styles.cardName}>{mondayDrop.candidate.name}</div>
+                  <div className={styles.cardReason}>
+                    {mondayDrop.candidate.reason || "One high-fit person this week."}
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
+                    <button
+                      className={styles.readMoreButton}
+                      style={{ backgroundColor: '#000', color: '#fff', padding: '6px 16px', borderRadius: '20px' }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedSuggestion(mondayDrop.candidate);
+                      }}
+                    >
+                      View Profile
+                    </button>
+                    <button
+                      className={styles.readMoreButton}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleMondayDropInteraction('skipped');
+                      }}
+                    >
+                      Skip
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : mondayDrop?.status === 'no_match' ? (
+              <div style={{ textAlign: 'center', padding: '40px', color: 'rgba(0, 0, 0, 0.6)' }}>
+                <p style={{ fontWeight: 500 }}>None this week — we're keeping quality high.</p>
+                <p style={{ fontSize: '0.85em', marginTop: '12px', opacity: 0.8 }}>Check back next Monday.</p>
+              </div>
+            ) : mondayDrop?.status === 'connected' || mondayDrop?.status === 'skipped' ? (
+              <div className={styles.statusMessageCard}>
+                <h3 className={styles.statusMessageTitle}>
+                  {mondayDrop.status === 'connected' ? 'Request sent!' : 'Drop skipped.'}
+                </h3>
+                <p className={styles.statusMessageSub}>See you next Monday! ✨</p>
+              </div>
+            ) : (
+              // Fallback for unexpected states while in dropdown tab
+              <div style={{ textAlign: 'center', padding: '40px', color: 'rgba(0, 0, 0, 0.6)' }}>
+                <p style={{ fontWeight: 500 }}>Looking for your next drop...</p>
+              </div>
+            )
           ) : shouldShowMessage ? (
             <AriaMessage />
           ) : suggestions.length === 0 ? (
@@ -870,6 +1301,13 @@ export default function Home() {
           if (selectedSuggestion) {
             const suggestionId = selectedSuggestion.id;
 
+            // Handle Monday Drop connection
+            if (isEligibleForMondayDrop && mondayDrop?.candidate?.id === suggestionId) {
+              await handleMondayDropInteraction('connected');
+              setSelectedSuggestion(null);
+              return;
+            }
+
             // Immediately remove the suggestion from the list (before async operations)
             const updatedSuggestions = suggestions.filter(s => s.id !== suggestionId);
             setSuggestions(updatedSuggestions);
@@ -878,8 +1316,14 @@ export default function Home() {
             const newInteractedIds = new Set([...interactedSuggestionIds, suggestionId]);
             setInteractedSuggestionIds(newInteractedIds);
 
-            // If user has interacted with 3 total suggestions OR all current suggestions are gone, show the message
-            if (newInteractedIds.size >= 3 || updatedSuggestions.length === 0) {
+            // If user has interacted with 3 total suggestions, transition to Monday Drop UI immediately
+            if (newInteractedIds.size >= 3) {
+              setIsEligibleForMondayDrop(true);
+              setShouldShowMessage(false);
+              setSuggestions([]);
+              setActiveTab('philosophy');
+              loadMondayDrop();
+            } else if (updatedSuggestions.length === 0) {
               setShouldShowMessage(true);
               setSuggestions([]); // Clear any remaining suggestions
             }
@@ -937,6 +1381,13 @@ export default function Home() {
           if (selectedSuggestion) {
             const suggestionId = selectedSuggestion.id;
 
+            // Handle Monday Drop skip
+            if (isEligibleForMondayDrop && mondayDrop?.candidate?.id === suggestionId) {
+              await handleMondayDropInteraction('skipped');
+              setSelectedSuggestion(null);
+              return;
+            }
+
             // Immediately remove the suggestion from the list (before async operations)
             const updatedSuggestions = suggestions.filter(s => s.id !== suggestionId);
             setSuggestions(updatedSuggestions);
@@ -945,8 +1396,14 @@ export default function Home() {
             const newInteractedIds = new Set([...interactedSuggestionIds, suggestionId]);
             setInteractedSuggestionIds(newInteractedIds);
 
-            // If user has interacted with 3 total suggestions OR all current suggestions are gone, show the message
-            if (newInteractedIds.size >= 3 || updatedSuggestions.length === 0) {
+            // If user has interacted with 3 total suggestions, transition to Monday Drop UI immediately
+            if (newInteractedIds.size >= 3) {
+              setIsEligibleForMondayDrop(true);
+              setShouldShowMessage(false);
+              setSuggestions([]);
+              setActiveTab('philosophy');
+              loadMondayDrop();
+            } else if (updatedSuggestions.length === 0) {
               setShouldShowMessage(true);
               setSuggestions([]); // Clear any remaining suggestions
             }
@@ -997,6 +1454,59 @@ export default function Home() {
           }
         }}
       />
+
+      {/* Debug Menu */}
+      <div className={styles.debugContainer}>
+        <button
+          className={styles.debugTrigger}
+          onClick={() => setShowDebugMenu(!showDebugMenu)}
+          title="Debug Monday Drop"
+        >
+          ⚙️
+        </button>
+        {showDebugMenu && (
+          <div className={styles.debugMenu}>
+            <div className={styles.debugTitle}>Monday Drop Debug</div>
+            <button
+              className={styles.debugAction}
+              onClick={() => {
+                handleSimulateMonday();
+                setShowDebugMenu(false);
+              }}
+              style={{ backgroundColor: '#000', color: '#fff' }}
+            >
+              🚀 Simulate New Monday
+            </button>
+            <button
+              className={styles.debugAction}
+              onClick={() => {
+                setDebugForceEligible(!debugForceEligible);
+                setShowDebugMenu(false);
+              }}
+            >
+              {debugForceEligible ? '🟢 Forced Eligible' : '⚪️ Not Forced'}
+            </button>
+            <button
+              className={styles.debugAction}
+              onClick={() => {
+                handleDebugReset();
+                setShowDebugMenu(false);
+              }}
+            >
+              🔄 Clear DB Record Only
+            </button>
+            <button
+              className={styles.debugAction}
+              onClick={() => {
+                handleDebugNoMatch();
+                setShowDebugMenu(false);
+              }}
+            >
+              🚫 Force "No Match"
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

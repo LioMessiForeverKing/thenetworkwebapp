@@ -27,9 +27,11 @@ export default function Menu() {
   useEffect(() => {
     setMounted(true);
     const saved = localStorage.getItem('theme_inverted');
-    // Default to true (dark mode) if not set, or if set to true
-    if (saved === null || saved === 'true') {
+    // Default to false (dark mode) if not set
+    if (saved === 'true') {
       setIsInverted(true);
+    } else {
+      setIsInverted(false);
     }
   }, []);
 
@@ -56,12 +58,6 @@ export default function Menu() {
   };
 
   const handleLogout = async () => {
-    // Reset invert state before logging out
-    setIsInverted(false);
-    localStorage.removeItem('theme_inverted');
-    document.documentElement.style.filter = '';
-    document.documentElement.classList.remove('theme-inverted');
-
     const supabase = createClient();
     await supabase.auth.signOut();
     router.push('/');
