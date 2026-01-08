@@ -64,8 +64,9 @@ export default function Home() {
   const [isEligibleForMondayDrop, setIsEligibleForMondayDrop] = useState(false);
 
   // Debug State
-  const [showDebugMenu, setShowDebugMenu] = useState(false);
-  const [debugForceEligible, setDebugForceEligible] = useState(false);
+  // const [showDebugMenu, setShowDebugMenu] = useState(false);
+  // const [debugForceEligible, setDebugForceEligible] = useState(false);
+  const debugForceEligible = false; // Hardcoded to false
 
   // Friend Requests Modal State
   const [showFriendRequests, setShowFriendRequests] = useState(false);
@@ -933,7 +934,7 @@ export default function Home() {
     }
   }, [debugForceEligible, loadAriaSuggestions]);
 
-  // Debug Handlers
+  /* Debug Handlers
   const handleDebugReset = async () => {
     if (!user) return;
     const supabase = createClient();
@@ -1003,6 +1004,7 @@ export default function Home() {
     // 3. Trigger fresh selection
     loadAriaSuggestions();
   };
+  */
 
   // Function to check for pending friend requests
   const checkPendingFriendRequests = useCallback(async () => {
@@ -1455,7 +1457,7 @@ export default function Home() {
         }}
       />
 
-      {/* Debug Menu */}
+      {/* Debug Menu
       <div className={styles.debugContainer}>
         <button
           className={styles.debugTrigger}
@@ -1507,6 +1509,7 @@ export default function Home() {
           </div>
         )}
       </div>
+      */}
     </div>
   );
 }
