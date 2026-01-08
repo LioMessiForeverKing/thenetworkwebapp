@@ -233,6 +233,8 @@ function FAQItem({ question, answer, isOpen, onClick }: {
 export default function LandingPage() {
   const { user, loading } = useAuth();
   const router = useRouter();
+  const [isInverted, setIsInverted] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const transitionSectionRef = useRef<HTMLElement>(null);
   const gallerySectionRef = useRef<HTMLElement>(null);
   const [galleryVisible, setGalleryVisible] = useState(false);
@@ -294,15 +296,30 @@ export default function LandingPage() {
 
   // Theme persistence
   useEffect(() => {
+    setMounted(true);
     const saved = localStorage.getItem('theme_inverted');
     if (saved === 'true') {
+      setIsInverted(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
+
+    localStorage.setItem('theme_inverted', isInverted.toString());
+
+    if (isInverted) {
       document.documentElement.style.filter = 'invert(1) hue-rotate(180deg)';
       document.documentElement.classList.add('theme-inverted');
     } else {
       document.documentElement.style.filter = '';
       document.documentElement.classList.remove('theme-inverted');
     }
-  }, []);
+  }, [isInverted, mounted]);
+
+  const toggleTheme = () => {
+    setIsInverted(!isInverted);
+  };
 
   // If already authenticated, redirect to home
   useEffect(() => {
@@ -443,6 +460,17 @@ export default function LandingPage() {
               Terms of Service
             </Link>
           </div>
+        </div>
+
+        {/* Top Right - Theme Toggle */}
+        <div className="absolute top-8 right-8 z-50">
+          <button
+            onClick={toggleTheme}
+            className="w-12 h-12 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 border border-white/20 transition-all duration-300 cursor-pointer text-xl"
+            title={isInverted ? "Switch to Dark Mode" : "Switch to Light Mode"}
+          >
+            {isInverted ? "🌙" : "☀️"}
+          </button>
         </div>
 
         {/* Center Content */}
