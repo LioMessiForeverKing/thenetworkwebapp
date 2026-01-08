@@ -440,7 +440,7 @@ export default function LandingPage() {
   );
 
   return (
-    <main style={{ backgroundColor: '#FFFFFF', paddingBottom: '80px' }}>
+    <main style={{ backgroundColor: '#000000', paddingBottom: '80px' }}>
       <InstagramFloat />
 
       {/* Initial Landing Section - Full Screen */}
@@ -584,10 +584,10 @@ export default function LandingPage() {
       </section>
 
       {/* Gallery Section */}
-      <section ref={gallerySectionRef} className="relative bg-white overflow-hidden hidden md:block" style={{ minHeight: '200vh' }}>
+      <section ref={gallerySectionRef} className="relative bg-black overflow-hidden hidden md:block" style={{ minHeight: '200vh' }}>
         <div className="sticky top-0 min-h-screen flex flex-col justify-between py-12 px-6 md:px-12 overflow-hidden" style={{ paddingTop: '80px', paddingBottom: '30px' }}>
           <div className="w-full mb-6">
-            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-black leading-tight text-left max-w-7xl">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-white leading-tight text-left max-w-7xl">
               We turn your feeds, starting with YouTube, into your Digital DNA; a personalized set of people, moments, and opportunities that feel just right.
             </h2>
           </div>
@@ -596,7 +596,7 @@ export default function LandingPage() {
             <div className="gallery-scroll-container flex items-center gap-6">
               {COMMUNITY_IMAGES.map((src) => (
                 <div className="flex-shrink-0" style={{ width: '350px', height: '440px' }} key={src}>
-                  <div className="aspect-[4/5] bg-gray-300 rounded-2xl overflow-hidden w-full h-full">
+                  <div className="aspect-[4/5] bg-neutral-800 rounded-2xl overflow-hidden w-full h-full">
                     <img src={src} alt="Community moment" className="w-full h-full object-cover" />
                   </div>
                 </div>
@@ -606,10 +606,10 @@ export default function LandingPage() {
 
           <div className="w-full overflow-hidden mt-8">
             <div className="gallery-text-container flex items-center gap-12" style={{ whiteSpace: 'nowrap' }}>
-              <h2 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-bold text-black leading-none tracking-tight inline-block" style={{ fontSize: 'clamp(3.2rem, 9.6vw, 9.6rem)' }}>
+              <h2 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-bold text-white leading-none tracking-tight inline-block" style={{ fontSize: 'clamp(3.2rem, 9.6vw, 9.6rem)' }}>
                 THIS COULD BE YOU!
               </h2>
-              <h2 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-bold text-black leading-none tracking-tight inline-block" style={{ fontSize: 'clamp(3.2rem, 9.6vw, 9.6rem)' }}>
+              <h2 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-bold text-white leading-none tracking-tight inline-block" style={{ fontSize: 'clamp(3.2rem, 9.6vw, 9.6rem)' }}>
                 THIS COULD BE YOU!
               </h2>
             </div>
@@ -618,8 +618,8 @@ export default function LandingPage() {
       </section>
 
       {/* Mobile Gallery */}
-      <section className="bg-white px-6 py-10 space-y-8 md:hidden">
-        <h2 className="text-2xl font-bold text-black leading-tight">
+      <section className="bg-black px-6 py-10 space-y-8 md:hidden">
+        <h2 className="text-2xl font-bold text-white leading-tight">
           We turn your feeds, starting with YouTube, into your Digital DNA; a personalized set of people, moments, and opportunities that feel just right.
         </h2>
         <div className="overflow-x-auto flex gap-4 snap-x snap-mandatory pb-2">
@@ -629,30 +629,30 @@ export default function LandingPage() {
             </div>
           ))}
         </div>
-        <h2 className="text-4xl font-bold text-black">THIS COULD BE YOU!</h2>
+        <h2 className="text-4xl font-bold text-white">THIS COULD BE YOU!</h2>
       </section>
 
       {/* Signal Intelligence Section */}
-      <section id="signal-intelligence" className="relative bg-white overflow-hidden py-24 px-6 md:px-12">
+      <section id="signal-intelligence" className="relative bg-black overflow-hidden py-24 px-6 md:px-12">
         <div className="max-w-7xl mx-auto">
-          <h2 className="font-bold text-black mb-12 leading-none" style={{ fontSize: 'clamp(2rem, 8vw, 6rem)' }}>
+          <h2 className="font-bold text-white mb-12 leading-none" style={{ fontSize: 'clamp(2rem, 8vw, 6rem)' }}>
             {signalHeading}
           </h2>
           <div className="max-w-2xl space-y-6">
-            <p className="text-xl md:text-2xl text-black leading-relaxed font-medium">The small signals you leave behind every day.</p>
-            <p className="text-xl md:text-2xl text-black leading-relaxed font-medium">You choose to connect YouTube, and we use your subscriptions and liked videos, read-only, to build your Digital DNA.</p>
-            <p className="text-xl md:text-2xl text-black leading-relaxed font-medium">That's how meeting people starts to feel intentional, not random.</p>
+            <p className="text-xl md:text-2xl text-white leading-relaxed font-medium">The small signals you leave behind every day.</p>
+            <p className="text-xl md:text-2xl text-white leading-relaxed font-medium">You choose to connect YouTube, and we use your subscriptions and liked videos, read-only, to build your Digital DNA.</p>
+            <p className="text-xl md:text-2xl text-white leading-relaxed font-medium">That's how meeting people starts to feel intentional, not random.</p>
           </div>
         </div>
       </section>
 
       {/* FAQ Section */}
-      <section id="faq" className="relative bg-white overflow-hidden pt-32 pb-24 px-6 md:px-12 mt-8">
+      <section id="faq" className="relative bg-black overflow-hidden pt-32 pb-24 px-6 md:px-12 mt-8">
         <div className="max-w-4xl mx-auto">
-          <h2 className="font-bold text-black mb-12 leading-none" style={{ fontSize: 'clamp(2rem, 8vw, 4rem)' }}>
-            QUESTIONS? <span className="border-b-[3px] border-black pb-2 inline-block sm:inline">ANSWERS.</span>
+          <h2 className="font-bold text-white mb-12 leading-none" style={{ fontSize: 'clamp(2rem, 8vw, 4rem)' }}>
+            QUESTIONS? <span className="border-b-[3px] border-white pb-2 inline-block sm:inline">ANSWERS.</span>
           </h2>
-          <div className="bg-gray-50 rounded-2xl p-6 md:p-10">
+          <div className="bg-neutral-900 rounded-2xl p-6 md:p-10">
             {FAQ_DATA.map((faq, index) => (
               <FAQItem
                 key={index}
@@ -667,12 +667,12 @@ export default function LandingPage() {
       </section>
 
       {/* Join Us Section */}
-      <section className="relative min-h-screen bg-white overflow-hidden flex items-center justify-center px-6">
+      <section className="relative min-h-screen bg-black overflow-hidden flex items-center justify-center px-6">
         <div className="text-center">
-          <h2 className="text-6xl sm:text-7xl md:text-8xl lg:text-9xl font-bold text-black mb-12 leading-none">JOIN US</h2>
+          <h2 className="text-6xl sm:text-7xl md:text-8xl lg:text-9xl font-bold text-white mb-12 leading-none">JOIN US</h2>
           <button
             onClick={() => router.push('/consent')}
-            className="px-10 py-5 bg-black text-white rounded-full text-xl font-semibold hover:bg-gray-800 transition-colors shadow-xl transform hover:scale-105 active:scale-95 cursor-pointer border-none"
+            className="px-10 py-5 bg-white text-black rounded-full text-xl font-semibold hover:bg-gray-100 transition-colors shadow-xl transform hover:scale-105 active:scale-95 cursor-pointer border-none"
           >
             Connect to TheNetwork
           </button>

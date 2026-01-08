@@ -6,6 +6,7 @@
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
@@ -142,7 +143,7 @@
 @font-face {
   font-family: 'Saans';
   src: url('/DP_trial_324837/DP_saans_TRIAL/DP_saans_TRIAL/Saans-TRIAL-Regular.woff2') format('woff2'),
-       url('/DP_trial_324837/DP_saans_TRIAL/DP_saans_TRIAL/Saans-TRIAL-Regular.woff') format('woff');
+    url('/DP_trial_324837/DP_saans_TRIAL/DP_saans_TRIAL/Saans-TRIAL-Regular.woff') format('woff');
   font-weight: 400;
   font-style: normal;
   font-display: swap;
@@ -151,7 +152,7 @@
 @font-face {
   font-family: 'Saans';
   src: url('/DP_trial_324837/DP_saans_TRIAL/DP_saans_TRIAL/Saans-TRIAL-Medium.woff2') format('woff2'),
-       url('/DP_trial_324837/DP_saans_TRIAL/DP_saans_TRIAL/Saans-TRIAL-Medium.woff') format('woff');
+    url('/DP_trial_324837/DP_saans_TRIAL/DP_saans_TRIAL/Saans-TRIAL-Medium.woff') format('woff');
   font-weight: 500;
   font-style: normal;
   font-display: swap;
@@ -160,7 +161,7 @@
 @font-face {
   font-family: 'Saans';
   src: url('/DP_trial_324837/DP_saans_TRIAL/DP_saans_TRIAL/Saans-TRIAL-Bold.woff2') format('woff2'),
-       url('/DP_trial_324837/DP_saans_TRIAL/DP_saans_TRIAL/Saans-TRIAL-Bold.woff') format('woff');
+    url('/DP_trial_324837/DP_saans_TRIAL/DP_saans_TRIAL/Saans-TRIAL-Bold.woff') format('woff');
   font-weight: 700;
   font-style: normal;
   font-display: swap;
@@ -340,10 +341,12 @@
       transform: scale(1);
       opacity: 0.6;
     }
+
     50% {
       transform: scale(2);
       opacity: 0.35;
     }
+
     100% {
       transform: scale(3);
       opacity: 0;
