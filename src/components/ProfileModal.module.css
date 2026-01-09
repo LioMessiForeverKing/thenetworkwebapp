@@ -111,28 +111,28 @@
     margin: 0 0 8px;
 }
 
-.stars {
+.compatibilityPercentage {
     display: flex;
+    flex-direction: column;
+    align-items: center;
     justify-content: center;
-    gap: 2px;
+    gap: 4px;
     margin-bottom: 16px;
 }
 
-.star {
-    color: #000; /* Inverts to White/Gold logic? Gold inverts to Blueish. Let's use a color that inverts well or standard text. 
-                   Actually, standard Star Gold (#FFD700) inverts to Dark Blue (#0028FF). 
-                   Better to use neutral or specific variable. 
-                   Let's use a color that inverts to Yellow? 
-                   Yellow (255, 255, 0) inverts to Blue (0, 0, 255).
-                   Blue (0, 0, 255) inverts to Yellow.
-                   So let's use Blue for Light Mode. */
-    color: #0000FF; 
-    font-size: 16px;
+.percentageValue {
+    font-size: 32px;
+    font-weight: 700;
+    color: #000; /* Inverts to #fff */
+    line-height: 1;
 }
 
-.starEmpty {
-    color: rgba(0, 0, 0, 0.2); /* Inverts to White 0.2 */
-    font-size: 16px;
+.percentageLabel {
+    font-size: 12px;
+    color: rgba(0, 0, 0, 0.6); /* Inverts to White 0.6 */
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 500;
 }
 
 .bio {

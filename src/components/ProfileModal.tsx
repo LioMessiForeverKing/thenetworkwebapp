@@ -63,7 +63,7 @@ function calculateStars(similarity: number): number {
 export default function ProfileModal({ person, onClose }: ProfileModalProps) {
     const { user } = useAuth();
     const [compatibilityDescription, setCompatibilityDescription] = useState<string>('');
-    const [realStars, setRealStars] = useState<number>(0);
+    const [compatibilityPercentage, setCompatibilityPercentage] = useState<number | null>(null);
     const [sharedInterests, setSharedInterests] = useState<string[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [profileData, setProfileData] = useState<any>(null);
@@ -103,58 +103,96 @@ export default function ProfileModal({ person, onClose }: ProfileModalProps) {
                 const shared = userInterests.filter(i => otherInterests.includes(i));
                 setSharedInterests(shared);
 
-                // Calculate star rating from DNA similarity
-                // Try DNA v2 first, then DNA v1
-                const { data: userDnaV2 } = await supabase
-                    .from('digital_dna_v2')
-                    .select('composite_vector')
+                // Get compatibility score from user_matches table (pre-calculated using DNA v2)
+                const { data: matchData } = await supabase
+                    .from('user_matches')
+                    .select('compatibility_percentage, similarity_score, shared_interests')
                     .eq('user_id', user.id)
-                    .single();
-
-                const { data: otherDnaV2 } = await supabase
-                    .from('digital_dna_v2')
-                    .select('composite_vector')
-                    .eq('user_id', person.id)
-                    .single();
+                    .eq('match_user_id', person.id)
+                    .maybeSingle();
 
                 let similarity = 0;
-                if (userDnaV2?.composite_vector && otherDnaV2?.composite_vector) {
-                    const userVec = parseVector(userDnaV2.composite_vector);
-                    const otherVec = parseVector(otherDnaV2.composite_vector);
-                    if (userVec && otherVec && userVec.length > 0 && otherVec.length > 0) {
-                        similarity = cosineSimilarity(userVec, otherVec);
+                if (matchData?.compatibility_percentage != null) {
+                    // Use stored compatibility percentage from user_matches
+                    setCompatibilityPercentage(matchData.compatibility_percentage);
+                    // Convert percentage back to similarity for fallback calculations
+                    similarity = matchData.compatibility_percentage / 100;
+                    
+                    // Update shared interests from stored data if available
+                    if (matchData.shared_interests && Array.isArray(matchData.shared_interests)) {
+                        setSharedInterests(matchData.shared_interests as string[]);
+                    }
+                } else if (matchData?.similarity_score != null) {
+                    // Fallback: use similarity_score if compatibility_percentage is not available
+                    similarity = matchData.similarity_score;
+                    setCompatibilityPercentage(Math.round(similarity * 100));
+                    
+                    // Update shared interests from stored data if available
+                    if (matchData.shared_interests && Array.isArray(matchData.shared_interests)) {
+                        setSharedInterests(matchData.shared_interests as string[]);
                     }
                 } else {
-                    // Fallback to DNA v1
-                    const { data: userDnaV1 } = await supabase
-                        .from('digital_dna_v1')
-                        .select('interest_vector')
+                    // Fallback: Calculate on-the-fly if not in user_matches table
+                    // Try DNA v2 first, then DNA v1
+                    const { data: userDnaV2 } = await supabase
+                        .from('digital_dna_v2')
+                        .select('composite_vector')
                         .eq('user_id', user.id)
                         .single();
 
-                    const { data: otherDnaV1 } = await supabase
-                        .from('digital_dna_v1')
-                        .select('interest_vector')
+                    const { data: otherDnaV2 } = await supabase
+                        .from('digital_dna_v2')
+                        .select('composite_vector')
                         .eq('user_id', person.id)
                         .single();
 
-                    if (userDnaV1?.interest_vector && otherDnaV1?.interest_vector) {
-                        const userVec = parseVector(userDnaV1.interest_vector);
-                        const otherVec = parseVector(otherDnaV1.interest_vector);
+                    if (userDnaV2?.composite_vector && otherDnaV2?.composite_vector) {
+                        const userVec = parseVector(userDnaV2.composite_vector);
+                        const otherVec = parseVector(otherDnaV2.composite_vector);
                         if (userVec && otherVec && userVec.length > 0 && otherVec.length > 0) {
                             similarity = cosineSimilarity(userVec, otherVec);
                         }
+                    } else {
+                        // Fallback to DNA v1
+                        const { data: userDnaV1 } = await supabase
+                            .from('digital_dna_v1')
+                            .select('interest_vector')
+                            .eq('user_id', user.id)
+                            .single();
+
+                        const { data: otherDnaV1 } = await supabase
+                            .from('digital_dna_v1')
+                            .select('interest_vector')
+                            .eq('user_id', person.id)
+                            .single();
+
+                        if (userDnaV1?.interest_vector && otherDnaV1?.interest_vector) {
+                            const userVec = parseVector(userDnaV1.interest_vector);
+                            const otherVec = parseVector(otherDnaV1.interest_vector);
+                            if (userVec && otherVec && userVec.length > 0 && otherVec.length > 0) {
+                                similarity = cosineSimilarity(userVec, otherVec);
+                            }
+                        }
                     }
+
+                    // If no DNA found, use shared interests as fallback
+                    if (similarity === 0 && sharedInterests.length > 0) {
+                        const totalInterests = new Set([...userInterests, ...otherInterests]).size;
+                        similarity = sharedInterests.length / Math.max(totalInterests, 1);
+                    }
+                    
+                    // Trigger background calculation to store this score for future use
+                    // (non-blocking, fire-and-forget)
+                    supabase.functions.invoke('update-dna-v2-compatibility', {
+                        body: { user_id: user.id }
+                    }).catch(() => {
+                        // Silently fail - this is just for caching
+                    });
                 }
 
-                // If no DNA found, use shared interests as fallback
-                if (similarity === 0 && sharedInterests.length > 0) {
-                    const totalInterests = new Set([...userInterests, ...otherInterests]).size;
-                    similarity = sharedInterests.length / Math.max(totalInterests, 1);
-                }
-
-                const stars = calculateStars(similarity);
-                setRealStars(stars);
+                // Convert similarity (0-1) to percentage (0-100)
+                const percentage = Math.round(similarity * 100);
+                setCompatibilityPercentage(percentage);
 
                 // Check for cached compatibility description
                 const userAId = user.id < person.id ? user.id : person.id;
@@ -232,12 +270,11 @@ export default function ProfileModal({ person, onClose }: ProfileModalProps) {
                 {/* Name */}
                 <h2 className={styles.name}>{person.name}</h2>
 
-                {/* Real Stars */}
-                {realStars > 0 && (
-                    <div className={styles.stars}>
-                        {Array.from({ length: 5 }).map((_, i) => (
-                            <span key={i} className={i < realStars ? styles.star : styles.starEmpty}>★</span>
-                        ))}
+                {/* Compatibility Percentage */}
+                {compatibilityPercentage !== null && (
+                    <div className={styles.compatibilityPercentage}>
+                        <span className={styles.percentageValue}>{compatibilityPercentage}%</span>
+                        <span className={styles.percentageLabel}>Compatibility</span>
                     </div>
                 )}
 

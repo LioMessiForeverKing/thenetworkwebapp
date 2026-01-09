@@ -69,36 +69,66 @@ export async function calculateCompatibility(
   // Calculate shared interests
   const sharedInterests = userInterests.filter(i => connectionInterests.includes(i));
   
-  // Try DNA v2 first (most accurate)
-  const [userDnaV2, connectionDnaV2] = await Promise.all([
-    supabase.from('digital_dna_v2').select('composite_vector').eq('user_id', userId).single(),
-    supabase.from('digital_dna_v2').select('composite_vector').eq('user_id', connectionId).single()
-  ]);
+  // First, try to get stored compatibility score from user_matches table
+  const { data: matchData } = await supabase
+    .from('user_matches')
+    .select('similarity_score, shared_interests')
+    .eq('user_id', userId)
+    .eq('match_user_id', connectionId)
+    .maybeSingle();
   
   let similarity = 0;
   
-  if (userDnaV2.data?.composite_vector && connectionDnaV2.data?.composite_vector) {
-    const userVec = parseVector(userDnaV2.data.composite_vector);
-    const connectionVec = parseVector(connectionDnaV2.data.composite_vector);
-    similarity = cosineSimilarity(userVec, connectionVec);
+  if (matchData?.similarity_score != null) {
+    // Use stored compatibility score (calculated from DNA v2)
+    similarity = matchData.similarity_score;
+    
+    // Use stored shared interests if available
+    if (matchData.shared_interests && Array.isArray(matchData.shared_interests)) {
+      return { 
+        similarity, 
+        sharedInterests: matchData.shared_interests as string[] 
+      };
+    }
   } else {
-    // Fallback to DNA v1
-    const [userDnaV1, connectionDnaV1] = await Promise.all([
-      supabase.from('digital_dna_v1').select('interest_vector').eq('user_id', userId).single(),
-      supabase.from('digital_dna_v1').select('interest_vector').eq('user_id', connectionId).single()
+    // Fallback: Calculate on-the-fly if not in user_matches table
+    // Try DNA v2 first (most accurate)
+    const [userDnaV2, connectionDnaV2] = await Promise.all([
+      supabase.from('digital_dna_v2').select('composite_vector').eq('user_id', userId).single(),
+      supabase.from('digital_dna_v2').select('composite_vector').eq('user_id', connectionId).single()
     ]);
     
-    if (userDnaV1.data?.interest_vector && connectionDnaV1.data?.interest_vector) {
-      const userVec = parseVector(userDnaV1.data.interest_vector);
-      const connectionVec = parseVector(connectionDnaV1.data.interest_vector);
+    if (userDnaV2.data?.composite_vector && connectionDnaV2.data?.composite_vector) {
+      const userVec = parseVector(userDnaV2.data.composite_vector);
+      const connectionVec = parseVector(connectionDnaV2.data.composite_vector);
       similarity = cosineSimilarity(userVec, connectionVec);
+    } else {
+      // Fallback to DNA v1
+      const [userDnaV1, connectionDnaV1] = await Promise.all([
+        supabase.from('digital_dna_v1').select('interest_vector').eq('user_id', userId).single(),
+        supabase.from('digital_dna_v1').select('interest_vector').eq('user_id', connectionId).single()
+      ]);
+      
+      if (userDnaV1.data?.interest_vector && connectionDnaV1.data?.interest_vector) {
+        const userVec = parseVector(userDnaV1.data.interest_vector);
+        const connectionVec = parseVector(connectionDnaV1.data.interest_vector);
+        similarity = cosineSimilarity(userVec, connectionVec);
+      }
     }
-  }
-  
-  // If no DNA found, use shared interests as fallback
-  if (similarity === 0 && sharedInterests.length > 0) {
-    const totalInterests = new Set([...userInterests, ...connectionInterests]).size;
-    similarity = sharedInterests.length / Math.max(totalInterests, 1);
+    
+    // If no DNA found, use shared interests as fallback
+    if (similarity === 0 && sharedInterests.length > 0) {
+      const totalInterests = new Set([...userInterests, ...connectionInterests]).size;
+      similarity = sharedInterests.length / Math.max(totalInterests, 1);
+    }
+    
+    // Trigger background calculation to store this score for future use
+    // (non-blocking, fire-and-forget)
+    supabase.functions.invoke('update-dna-v2-compatibility', {
+      body: { user_id: userId }
+    }).catch(() => {
+      // Silently fail - this is just for caching
+    });
   }
   
   return { similarity, sharedInterests };

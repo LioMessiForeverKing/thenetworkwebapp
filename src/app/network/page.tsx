@@ -91,7 +91,7 @@ export default function Home() {
     starColor: color,
     x: 400,
     y: 500,
-    stars: 5,
+    compatibilityPercentage: 100, // User is 100% compatible with themselves
     connections: [],
     imageUrl: avatarUrl
   });
@@ -131,6 +131,19 @@ export default function Home() {
         .select('*')
         .in('id', friendIds);
 
+      // Fetch compatibility scores from user_matches table
+      const { data: matches } = await supabase
+        .from('user_matches')
+        .select('match_user_id, compatibility_percentage')
+        .eq('user_id', userId)
+        .in('match_user_id', friendIds);
+
+      // Create a map for quick lookup
+      const compatibilityMap = new Map<string, number>();
+      (matches || []).forEach((match: any) => {
+        compatibilityMap.set(match.match_user_id, match.compatibility_percentage || 0);
+      });
+
       // Position friends in a spiral pattern around center
       let index = 1;
       for (const profile of (profiles || [])) {
@@ -139,13 +152,16 @@ export default function Home() {
         const x = 400 + Math.cos(angle) * radius;
         const y = 500 + Math.sin(angle) * radius;
 
+        // Get compatibility percentage from user_matches table
+        const compatibilityPercentage = compatibilityMap.get(profile.id);
+
         loadedPeople.push({
           id: profile.id,
           name: profile.full_name?.split(' ')[0] || 'Friend',
           starColor: profile.star_color || '#8E5BFF',
           x,
           y,
-          stars: 4, // Default stars
+          compatibilityPercentage,
           connections: [userId],
           bio: profile.bio,
           imageUrl: getAvatarUrl(profile.avatar_url)

@@ -5,7 +5,7 @@ export interface NetworkPerson {
     starColor?: string;
     x: number;
     y: number;
-    stars: number;
+    compatibilityPercentage?: number; // Percentage (0-100) from user_matches table
     connections: string[];
     bio?: string;
 }
@@ -40,7 +40,7 @@ export function getMockPeople(): NetworkPerson[] {
             imageUrl: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&q=80",
             x: 180,
             y: 300,
-            stars: 5,
+            compatibilityPercentage: 85,
             connections: ["2", "5", "7"],
         },
         {
@@ -49,7 +49,7 @@ export function getMockPeople(): NetworkPerson[] {
             imageUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&q=80",
             x: 420,
             y: 270,
-            stars: 5,
+            compatibilityPercentage: 85,
             connections: ["1", "3", "8"],
         },
         {
@@ -58,7 +58,7 @@ export function getMockPeople(): NetworkPerson[] {
             imageUrl: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400&q=80",
             x: 300,
             y: 480,
-            stars: 5,
+            compatibilityPercentage: 85,
             connections: ["2", "4", "9"],
         },
         {
@@ -67,7 +67,7 @@ export function getMockPeople(): NetworkPerson[] {
             imageUrl: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&q=80",
             x: 510,
             y: 525,
-            stars: 4,
+            compatibilityPercentage: 72,
             connections: ["3", "6", "10"],
         },
         {
@@ -76,7 +76,7 @@ export function getMockPeople(): NetworkPerson[] {
             imageUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&q=80",
             x: 120,
             y: 570,
-            stars: 5,
+            compatibilityPercentage: 85,
             connections: ["1", "6", "11"],
         },
         {
@@ -85,7 +85,7 @@ export function getMockPeople(): NetworkPerson[] {
             imageUrl: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=400&q=80",
             x: 360,
             y: 720,
-            stars: 4,
+            compatibilityPercentage: 72,
             connections: ["4", "5", "12"],
         },
         {
@@ -94,7 +94,7 @@ export function getMockPeople(): NetworkPerson[] {
             imageUrl: "https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?w=400&q=80",
             x: 240,
             y: 150,
-            stars: 5,
+            compatibilityPercentage: 85,
             connections: ["1", "8", "13"],
         },
         {
@@ -103,7 +103,7 @@ export function getMockPeople(): NetworkPerson[] {
             imageUrl: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&q=80",
             x: 480,
             y: 120,
-            stars: 4,
+            compatibilityPercentage: 72,
             connections: ["2", "7", "14"],
         },
         {
@@ -112,7 +112,7 @@ export function getMockPeople(): NetworkPerson[] {
             imageUrl: "https://images.unsplash.com/photo-1489424731084-a5d8b219a5bb?w=400&q=80",
             x: 150,
             y: 780,
-            stars: 5,
+            compatibilityPercentage: 85,
             connections: ["3", "10", "15"],
         },
         {
@@ -121,7 +121,7 @@ export function getMockPeople(): NetworkPerson[] {
             imageUrl: "https://images.unsplash.com/photo-1519345182560-3f2917c472ef?w=400&q=80",
             x: 540,
             y: 750,
-            stars: 4,
+            compatibilityPercentage: 72,
             connections: ["4", "9", "16"],
         },
         {
@@ -130,7 +130,7 @@ export function getMockPeople(): NetworkPerson[] {
             imageUrl: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=400&q=80",
             x: 60,
             y: 390,
-            stars: 5,
+            compatibilityPercentage: 85,
             connections: ["5", "12", "17"],
         },
         {
@@ -139,7 +139,7 @@ export function getMockPeople(): NetworkPerson[] {
             imageUrl: "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400&q=80",
             x: 420,
             y: 870,
-            stars: 4,
+            compatibilityPercentage: 72,
             connections: ["6", "11", "18"],
         },
         {
@@ -148,7 +148,7 @@ export function getMockPeople(): NetworkPerson[] {
             imageUrl: "https://images.unsplash.com/photo-1524638431109-93d95c968f03?w=400&q=80",
             x: 90,
             y: 210,
-            stars: 5,
+            compatibilityPercentage: 85,
             connections: ["7", "14", "19"],
         },
         {
@@ -157,7 +157,7 @@ export function getMockPeople(): NetworkPerson[] {
             imageUrl: "https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=400&q=80",
             x: 570,
             y: 330,
-            stars: 4,
+            compatibilityPercentage: 72,
             connections: ["8", "13", "20"],
         },
         {
@@ -166,7 +166,7 @@ export function getMockPeople(): NetworkPerson[] {
             imageUrl: "https://images.unsplash.com/photo-1502685104226-ee32379fefbe?w=400&q=80",
             x: 270,
             y: 930,
-            stars: 5,
+            compatibilityPercentage: 85,
             connections: ["9", "16"],
         },
         {
@@ -175,7 +175,7 @@ export function getMockPeople(): NetworkPerson[] {
             imageUrl: "https://images.unsplash.com/photo-1531427186611-ecfd6d936c79?w=400&q=80",
             x: 510,
             y: 960,
-            stars: 4,
+            compatibilityPercentage: 72,
             connections: ["10", "15"],
         },
         {
@@ -184,7 +184,7 @@ export function getMockPeople(): NetworkPerson[] {
             imageUrl: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=400&q=80",
             x: 30,
             y: 660,
-            stars: 5,
+            compatibilityPercentage: 85,
             connections: ["11", "18"],
         },
         {
@@ -193,7 +193,7 @@ export function getMockPeople(): NetworkPerson[] {
             imageUrl: "https://images.unsplash.com/photo-1504593811423-6dd665756598?w=400&q=80",
             x: 330,
             y: 1080,
-            stars: 4,
+            compatibilityPercentage: 72,
             connections: ["12", "17"],
         },
         {
@@ -202,7 +202,7 @@ export function getMockPeople(): NetworkPerson[] {
             imageUrl: "https://images.unsplash.com/photo-1521566652839-697aa473761a?w=400&q=80",
             x: 210,
             y: 60,
-            stars: 5,
+            compatibilityPercentage: 85,
             connections: ["13", "20"],
         },
         {
@@ -211,7 +211,7 @@ export function getMockPeople(): NetworkPerson[] {
             imageUrl: "https://images.unsplash.com/photo-1520409364224-63400afe26e5?w=400&q=80",
             x: 570,
             y: 180,
-            stars: 4,
+            compatibilityPercentage: 72,
             connections: ["14", "19"],
         },
     ];
