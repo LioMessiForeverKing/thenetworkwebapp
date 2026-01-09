@@ -1,0 +1,270 @@
+/* School Leaderboard Page Styles - Light theme by default */
+/* The global theme inversion in Menu.tsx handles dark mode automatically */
+
+.container {
+  min-height: 100vh;
+  background: linear-gradient(180deg, #f8f8f8 0%, #ffffff 50%, #f8f8f8 100%);
+  position: relative;
+  color: #000000;
+}
+
+/* Background pattern */
+.container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: radial-gradient(rgba(0, 0, 0, 0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+}
+
+.content {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 120px 20px 40px;
+  position: relative;
+  z-index: 1;
+}
+
+.title {
+  font-size: 42px;
+  font-weight: 800;
+  margin: 0 0 12px 0;
+  color: #000000;
+  text-align: center;
+  letter-spacing: -0.03em;
+}
+
+.subtitle {
+  font-size: 16px;
+  color: rgba(0, 0, 0, 0.6);
+  text-align: center;
+  margin: 0 0 40px 0;
+  font-weight: 400;
+}
+
+.loading {
+  text-align: center;
+  padding: 80px 20px;
+  color: rgba(0, 0, 0, 0.6);
+  font-size: 16px;
+}
+
+/* Leaderboard List */
+.leaderboard {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.leaderboardItem {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px 24px;
+  background: rgba(0, 0, 0, 0.02);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 16px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: slideIn 0.4s ease forwards;
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+@keyframes slideIn {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.leaderboardItem:nth-child(1) {
+  animation-delay: 0.05s;
+}
+
+.leaderboardItem:nth-child(2) {
+  animation-delay: 0.1s;
+}
+
+.leaderboardItem:nth-child(3) {
+  animation-delay: 0.15s;
+}
+
+.leaderboardItem:nth-child(4) {
+  animation-delay: 0.2s;
+}
+
+.leaderboardItem:nth-child(5) {
+  animation-delay: 0.25s;
+}
+
+.leaderboardItem:nth-child(6) {
+  animation-delay: 0.3s;
+}
+
+.leaderboardItem:nth-child(7) {
+  animation-delay: 0.35s;
+}
+
+.leaderboardItem:nth-child(8) {
+  animation-delay: 0.4s;
+}
+
+.leaderboardItem:nth-child(9) {
+  animation-delay: 0.45s;
+}
+
+.leaderboardItem:nth-child(10) {
+  animation-delay: 0.5s;
+}
+
+.leaderboardItem:hover {
+  transform: translateY(-4px) scale(1.01);
+  border-color: rgba(0, 0, 0, 0.2);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.1);
+  background: rgba(0, 0, 0, 0.04);
+}
+
+/* Rank styling */
+.rank {
+  font-size: 24px;
+  font-weight: 900;
+  color: rgba(0, 0, 0, 0.3);
+  min-width: 50px;
+  text-align: center;
+  letter-spacing: -0.02em;
+}
+
+/* Special styling for top 3 */
+.leaderboardItem:nth-child(1) .rank {
+  color: #FFD700;
+  text-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+}
+
+.leaderboardItem:nth-child(2) .rank {
+  color: #C0C0C0;
+  text-shadow: 0 0 20px rgba(192, 192, 192, 0.5);
+}
+
+.leaderboardItem:nth-child(3) .rank {
+  color: #CD7F32;
+  text-shadow: 0 0 20px rgba(205, 127, 50, 0.5);
+}
+
+.schoolInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.schoolName {
+  font-size: 17px;
+  font-weight: 600;
+  color: #000000;
+  letter-spacing: -0.01em;
+}
+
+.location {
+  font-size: 14px;
+  color: rgba(0, 0, 0, 0.5);
+  font-weight: 400;
+}
+
+.schoolCode {
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.4);
+  font-weight: 500;
+  font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+  margin-top: 2px;
+}
+
+.count {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  min-width: 80px;
+  text-align: right;
+}
+
+.countValue {
+  font-size: 28px;
+  font-weight: 800;
+  color: #000000;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+.countLabel {
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.5);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 4px;
+}
+
+.empty {
+  text-align: center;
+  padding: 80px 20px;
+  color: rgba(0, 0, 0, 0.5);
+  font-size: 16px;
+  background: rgba(0, 0, 0, 0.02);
+  border-radius: 20px;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .content {
+    padding: 100px 16px 32px;
+  }
+
+  .title {
+    font-size: 28px;
+    margin-bottom: 8px;
+  }
+
+  .subtitle {
+    font-size: 14px;
+    margin-bottom: 32px;
+  }
+
+  .leaderboardItem {
+    padding: 16px;
+    gap: 12px;
+  }
+
+  .rank {
+    font-size: 20px;
+    min-width: 40px;
+  }
+
+  .schoolName {
+    font-size: 15px;
+  }
+
+  .location {
+    font-size: 13px;
+  }
+
+  .schoolCode {
+    font-size: 11px;
+  }
+
+  .count {
+    min-width: 70px;
+  }
+
+  .countValue {
+    font-size: 24px;
+  }
+
+  .countLabel {
+    font-size: 11px;
+  }
+}
