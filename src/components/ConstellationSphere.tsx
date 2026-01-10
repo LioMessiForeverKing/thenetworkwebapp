@@ -48,6 +48,7 @@ type ConstellationProps = {
   animated?: boolean;
   radius?: number;
   detail?: number;
+  theme?: 'dark' | 'light';
 };
 
 function TracerLines({
@@ -163,7 +164,7 @@ function TracerLines({
   );
 }
 
-function Constellation({ animated = true, radius = 1.2, detail = 4 }: ConstellationProps) {
+function Constellation({ animated = true, radius = 1.2, detail = 4, theme = 'dark' }: ConstellationProps) {
   const groupRef = useRef<THREE.Group>(null!);
   const { pointer } = useThree();
 
@@ -230,20 +231,22 @@ function Constellation({ animated = true, radius = 1.2, detail = 4 }: Constellat
     group.rotation.y = THREE.MathUtils.lerp(group.rotation.y, targetY + group.rotation.y, 0.02);
   });
 
+  const mainColor = theme === 'dark' ? '#ffffff' : '#000000';
+
   return (
     <group ref={groupRef}>
       {/* Constellation lines */}
       <lineSegments geometry={edgesGeometry}>
-        <lineBasicMaterial color="#ffffff" transparent opacity={0.3} />
+        <lineBasicMaterial color={mainColor} transparent opacity={theme === 'dark' ? 0.3 : 0.15} />
       </lineSegments>
       {/* Star points */}
       <points geometry={pointsGeometry}>
         <pointsMaterial
-          color="#ffffff"
+          color={mainColor}
           size={0.012}
           sizeAttenuation
           transparent
-          opacity={0.85}
+          opacity={theme === 'dark' ? 0.85 : 0.6}
         />
       </points>
       {/* Neon tracer lines connecting random stars */}
@@ -252,7 +255,7 @@ function Constellation({ animated = true, radius = 1.2, detail = 4 }: Constellat
   );
 }
 
-export default function ConstellationSphere() {
+export default function ConstellationSphere({ theme }: { theme?: 'dark' | 'light' }) {
   const prefersReducedMotion = usePrefersReducedMotion();
   const [canWebgl, setCanWebgl] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -285,7 +288,7 @@ export default function ConstellationSphere() {
         frameloop="always"
       >
         <ambientLight intensity={0.2} />
-        <Constellation animated radius={radius} detail={detail} />
+        <Constellation animated radius={radius} detail={detail} theme={theme} />
         <AdaptiveDpr pixelated />
         <Preload all />
       </Canvas>

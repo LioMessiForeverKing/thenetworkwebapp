@@ -448,7 +448,7 @@ export default function LandingPage() {
       {/* Initial Landing Section - Full Screen */}
       <section className={`relative h-100svh overflow-hidden transition-colors duration-500 ${theme === 'dark' ? 'bg-black' : 'bg-white'}`}>
 
-        {theme === 'dark' && <ConstellationSphere />}
+        <ConstellationSphere theme={theme} />
 
         {/* Top Left - THE NETWORK. */}
         <div className="absolute top-8 left-8 z-20">
