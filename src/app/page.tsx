@@ -233,7 +233,7 @@ function FAQItem({ question, answer, isOpen, onClick }: {
 export default function LandingPage() {
   const { user, loading } = useAuth();
   const router = useRouter();
-  const [isInverted, setIsInverted] = useState(false);
+  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [mounted, setMounted] = useState(false);
   const transitionSectionRef = useRef<HTMLElement>(null);
   const gallerySectionRef = useRef<HTMLElement>(null);
@@ -299,26 +299,28 @@ export default function LandingPage() {
     setMounted(true);
     const saved = localStorage.getItem('theme_mode');
     if (saved === 'light') {
-      setIsInverted(true);
+      setTheme('light');
     }
   }, []);
 
   useEffect(() => {
     if (!mounted) return;
+    localStorage.setItem('theme_mode', theme);
 
-    localStorage.setItem('theme_mode', isInverted ? 'light' : 'dark');
-
-    if (isInverted) {
-      document.documentElement.style.filter = 'invert(1) hue-rotate(180deg)';
-      document.documentElement.classList.add('theme-inverted');
+    // Apply global theme class for other components if needed, though we handle main page specifically
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
     } else {
-      document.documentElement.style.filter = '';
-      document.documentElement.classList.remove('theme-inverted');
+      document.documentElement.classList.remove('dark');
     }
-  }, [isInverted, mounted]);
+
+    // Clean up any leftover style filters
+    document.documentElement.style.filter = '';
+    document.documentElement.classList.remove('theme-inverted');
+  }, [theme, mounted]);
 
   const toggleTheme = () => {
-    setIsInverted(!isInverted);
+    setTheme(prev => prev === 'dark' ? 'light' : 'dark');
   };
 
   // If already authenticated, redirect to home
@@ -440,19 +442,20 @@ export default function LandingPage() {
   );
 
   return (
-    <main style={{ backgroundColor: '#000000', paddingBottom: '80px' }}>
+    <main style={{ backgroundColor: theme === 'dark' ? '#ffffff' : '#000000', paddingBottom: '80px' }}>
       <InstagramFloat />
 
       {/* Initial Landing Section - Full Screen */}
-      <section className="relative h-100svh bg-black overflow-hidden">
-        <ConstellationSphere />
+      <section className={`relative h-100svh overflow-hidden transition-colors duration-500 ${theme === 'dark' ? 'bg-black' : 'bg-white'}`}>
+
+        {theme === 'dark' && <ConstellationSphere />}
 
         {/* Top Left - THE NETWORK. */}
         <div className="absolute top-8 left-8 z-20">
-          <h1 className="text-white font-brand text-4xl sm:text-5xl md:text-6xl font-bold" style={{ letterSpacing: '-0.02em' }}>
+          <h1 className={`font-brand text-4xl sm:text-5xl md:text-6xl font-bold transition-colors duration-500 ${theme === 'dark' ? 'text-white' : 'text-black'}`} style={{ letterSpacing: '-0.02em' }}>
             THE<br />NETWORK.
           </h1>
-          <div className="mt-2 flex gap-4 text-white text-xs sm:text-sm">
+          <div className={`mt-2 flex gap-4 text-xs sm:text-sm transition-colors duration-500 ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
             <Link href="/privacy-policy" className="hover:underline">
               Privacy Policy
             </Link>
@@ -466,23 +469,23 @@ export default function LandingPage() {
         <div className="absolute top-8 right-8 z-50">
           <button
             onClick={toggleTheme}
-            className="w-12 h-12 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 border border-white/20 transition-all duration-300 cursor-pointer text-xl"
-            title={isInverted ? "Switch to Dark Mode" : "Switch to Light Mode"}
+            className={`w-12 h-12 flex items-center justify-center rounded-full border transition-all duration-300 cursor-pointer text-xl ${theme === 'dark' ? 'bg-white/10 hover:bg-white/20 border-white/20 text-white' : 'bg-black/5 hover:bg-black/10 border-black/10 text-black'}`}
+            title={theme === 'dark' ? "Switch to Light Mode" : "Switch to Dark Mode"}
           >
-            {isInverted ? "🌙" : "☀️"}
+            {theme === 'dark' ? "☀️" : "🌙"}
           </button>
         </div>
 
         {/* Center Content */}
         <div className="absolute inset-0 flex flex-col items-center justify-center z-10 pointer-events-none">
           <div className="pointer-events-auto flex flex-col items-center gap-6 text-center px-4">
-            <AnimatedWord />
+            <AnimatedWord isDark={theme === 'light'} />
 
-            <p className="text-white/90 text-lg md:text-xl font-medium max-w-lg mx-auto leading-relaxed animate-fade-in-up opacity-0" style={{ animationDelay: '0.3s' }}>
+            <p className={`text-lg md:text-xl font-medium max-w-lg mx-auto leading-relaxed animate-fade-in-up opacity-0 transition-colors duration-500 ${theme === 'dark' ? 'text-white/90' : 'text-black/90'}`} style={{ animationDelay: '0.3s' }}>
               Turn your signals into people you'll actually want to meet.
               <button
                 onClick={() => setShowSignalsModal(true)}
-                className="ml-2 inline-flex items-center justify-center w-5 h-5 md:w-6 md:h-6 rounded-full border border-white/30 hover:border-white/60 text-white/50 hover:text-white/80 transition-all duration-200 cursor-pointer bg-transparent text-sm md:text-base font-normal hover:bg-white/10 -mt-10"
+                className={`ml-2 inline-flex items-center justify-center w-5 h-5 md:w-6 md:h-6 rounded-full border transition-all duration-200 cursor-pointer bg-transparent text-sm md:text-base font-normal -mt-10 ${theme === 'dark' ? 'border-white/30 hover:border-white/60 text-white/50 hover:text-white/80 hover:bg-white/10' : 'border-black/30 hover:border-black/60 text-black/50 hover:text-black/80 hover:bg-black/10'}`}
                 aria-label="What are signals?"
                 title="What are signals?"
               >
@@ -491,8 +494,16 @@ export default function LandingPage() {
             </p>
 
             <button
-              onClick={() => router.push('/consent')}
-              className="mt-4 px-10 py-5 bg-white text-black rounded-full text-xl font-semibold hover:bg-gray-100 transition-all duration-300 shadow-xl transform hover:scale-105 active:scale-95 cursor-pointer border-none"
+              onClick={() => {
+                // Check if user has seen YouTube account disclaimer
+                const hasSeenDisclaimer = typeof window !== 'undefined' && localStorage.getItem('youtube_account_disclaimer_acknowledged') === 'true';
+                if (hasSeenDisclaimer) {
+                  router.push('/consent');
+                } else {
+                  router.push('/youtube-account-disclaimer');
+                }
+              }}
+              className={`mt-4 px-10 py-5 rounded-full text-xl font-semibold transition-all duration-300 shadow-xl transform hover:scale-105 active:scale-95 cursor-pointer border-none ${theme === 'dark' ? 'bg-white text-black hover:bg-gray-100' : 'bg-black text-white hover:bg-gray-800'}`}
             >
               Discover My Network
             </button>
@@ -503,8 +514,8 @@ export default function LandingPage() {
             className="absolute bottom-32 pointer-events-auto flex flex-col items-center gap-2 animate-pulse cursor-pointer transition-opacity hover:opacity-70 bg-transparent border-none p-0"
             style={{ animationDuration: '3s' }}
           >
-            <span className="text-white/60 text-xs font-bold tracking-[0.2em] uppercase">Scroll to explore</span>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <span className={`text-xs font-bold tracking-[0.2em] uppercase transition-colors duration-500 ${theme === 'dark' ? 'text-white/60' : 'text-black/60'}`}>Scroll to explore</span>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={theme === 'dark' ? "rgba(255,255,255,0.6)" : "rgba(0,0,0,0.6)"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M7 13l5 5 5-5M7 6l5 5 5-5" />
             </svg>
           </button>
@@ -515,23 +526,23 @@ export default function LandingPage() {
       <nav className="fixed bottom-0 left-0 right-0 z-50 pointer-events-none mix-blend-normal md:mix-blend-difference">
         <div className="relative w-full h-28 pointer-events-auto">
           <Link href="/privacy-policy" className="absolute bottom-8 right-8 z-20 w-16 h-16 cursor-pointer">
-            <img src="/app_icon.svg" alt="Network Icon" className="w-full h-full text-black md:brightness-0 md:invert hover:opacity-70 transition-opacity" />
+            <img src="/app_icon.svg" alt="Network Icon" className={`w-full h-full md:brightness-0 md:invert hover:opacity-70 transition-opacity ${theme === 'dark' ? 'text-black' : 'text-white filter invert'}`} />
           </Link>
 
           <div className="absolute bottom-16 left-6 right-28 z-10">
-            <div className="h-[1px] bg-black md:bg-white opacity-70 md:opacity-30"></div>
+            <div className={`h-[1px] md:bg-white opacity-70 md:opacity-30 ${theme === 'dark' ? 'bg-black' : 'bg-white'}`}></div>
           </div>
 
           <div className="absolute bottom-4 left-6 z-20 flex gap-8">
             <Link
               href="/privacy-policy"
-              className="text-xs font-ui text-black md:text-white hover:opacity-70 transition-opacity"
+              className={`text-xs font-ui md:text-white hover:opacity-70 transition-opacity ${theme === 'dark' ? 'text-black' : 'text-white'}`}
             >
               Privacy Policy
             </Link>
             <Link
               href="/terms-of-service"
-              className="text-xs font-ui text-black md:text-white hover:opacity-70 transition-opacity"
+              className={`text-xs font-ui md:text-white hover:opacity-70 transition-opacity ${theme === 'dark' ? 'text-black' : 'text-white'}`}
             >
               Terms of Service
             </Link>
@@ -540,25 +551,25 @@ export default function LandingPage() {
           <div className="absolute bottom-4 right-8 z-20 flex gap-8">
             <button
               onClick={() => router.push('/consent')}
-              className="text-xs font-ui text-black md:text-white hover:opacity-70 transition-opacity cursor-pointer bg-transparent border-none p-0"
+              className={`text-xs font-ui md:text-white hover:opacity-70 transition-opacity cursor-pointer bg-transparent border-none p-0 ${theme === 'dark' ? 'text-black' : 'text-white'}`}
             >
               Join
             </button>
             <button
               onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-              className="text-xs font-ui text-black md:text-white hover:opacity-70 transition-opacity cursor-pointer bg-transparent border-none p-0"
+              className={`text-xs font-ui md:text-white hover:opacity-70 transition-opacity cursor-pointer bg-transparent border-none p-0 ${theme === 'dark' ? 'text-black' : 'text-white'}`}
             >
               Home
             </button>
             <button
               onClick={() => document.getElementById('signal-intelligence')?.scrollIntoView({ behavior: 'smooth' })}
-              className="text-xs font-ui text-black md:text-white hover:opacity-70 transition-opacity cursor-pointer bg-transparent border-none p-0"
+              className={`text-xs font-ui md:text-white hover:opacity-70 transition-opacity cursor-pointer bg-transparent border-none p-0 ${theme === 'dark' ? 'text-black' : 'text-white'}`}
             >
               What we do
             </button>
             <button
               onClick={() => document.getElementById('faq')?.scrollIntoView({ behavior: 'smooth' })}
-              className="text-xs font-ui text-black md:text-white hover:opacity-70 transition-opacity cursor-pointer bg-transparent border-none p-0"
+              className={`text-xs font-ui md:text-white hover:opacity-70 transition-opacity cursor-pointer bg-transparent border-none p-0 ${theme === 'dark' ? 'text-black' : 'text-white'}`}
             >
               FAQ
             </button>
@@ -566,28 +577,29 @@ export default function LandingPage() {
         </div>
       </nav>
 
+      {/* Transition Section - Only visible in Dark Mode */}
       {/* Transition Section */}
       <section
         ref={transitionSectionRef}
         className="relative min-h-screen overflow-hidden"
         id="checkerboard-transition"
-        style={{ background: 'black' }}
+        style={{ background: theme === 'dark' ? 'black' : 'white' }}
       >
-        <div className="absolute inset-0 transition-stage-1" style={{ backgroundImage: 'radial-gradient(circle, white 3px, transparent 3px)', backgroundSize: '40px 40px', opacity: 0 }} />
-        <div className="absolute inset-0 transition-stage-2" style={{ backgroundImage: 'radial-gradient(circle, white 8px, transparent 8px)', backgroundSize: '40px 40px', opacity: 0 }} />
-        <div className="absolute inset-0 transition-stage-3" style={{ backgroundImage: 'radial-gradient(circle, white 13px, transparent 13px)', backgroundSize: '40px 40px', opacity: 0 }} />
-        <div className="absolute inset-0 transition-stage-4" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'40\' height=\'40\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Crect x=\'8\' y=\'8\' width=\'24\' height=\'24\' rx=\'4\' fill=\'white\'/%3E%3C/svg%3E")', backgroundSize: '40px 40px', opacity: 0 }} />
-        <div className="absolute inset-0 transition-stage-5" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'40\' height=\'40\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Crect x=\'4\' y=\'4\' width=\'32\' height=\'32\' rx=\'2\' fill=\'white\'/%3E%3C/svg%3E")', backgroundSize: '40px 40px', opacity: 0 }} />
-        <div className="absolute inset-0 transition-stage-6" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'40\' height=\'40\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Crect x=\'0\' y=\'0\' width=\'40\' height=\'40\' rx=\'0\' fill=\'white\'/%3E%3C/svg%3E")', backgroundSize: '40px 40px', opacity: 0 }} />
-        <div className="absolute inset-0 transition-stage-7" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'40\' height=\'40\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Crect x=\'-2\' y=\'-2\' width=\'44\' height=\'44\' fill=\'white\'/%3E%3C/svg%3E")', backgroundSize: '40px 40px', opacity: 0 }} />
-        <div className="absolute inset-0 transition-stage-8" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'40\' height=\'40\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Crect x=\'-5\' y=\'-5\' width=\'50\' height=\'50\' fill=\'white\'/%3E%3C/svg%3E")', backgroundSize: '40px 40px', opacity: 0 }} />
+        <div className="absolute inset-0 transition-stage-1" style={{ backgroundImage: `radial-gradient(circle, ${theme === 'dark' ? 'white' : 'black'} 3px, transparent 3px)`, backgroundSize: '40px 40px', opacity: 0 }} />
+        <div className="absolute inset-0 transition-stage-2" style={{ backgroundImage: `radial-gradient(circle, ${theme === 'dark' ? 'white' : 'black'} 8px, transparent 8px)`, backgroundSize: '40px 40px', opacity: 0 }} />
+        <div className="absolute inset-0 transition-stage-3" style={{ backgroundImage: `radial-gradient(circle, ${theme === 'dark' ? 'white' : 'black'} 13px, transparent 13px)`, backgroundSize: '40px 40px', opacity: 0 }} />
+        <div className="absolute inset-0 transition-stage-4" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg width='40' height='40' xmlns='http://www.w3.org/2000/svg'%3E%3Crect x='8' y='8' width='24' height='24' rx='4' fill='${theme === 'dark' ? 'white' : 'black'}'/%3E%3C/svg%3E")`, backgroundSize: '40px 40px', opacity: 0 }} />
+        <div className="absolute inset-0 transition-stage-5" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg width='40' height='40' xmlns='http://www.w3.org/2000/svg'%3E%3Crect x='4' y='4' width='32' height='32' rx='2' fill='${theme === 'dark' ? 'white' : 'black'}'/%3E%3C/svg%3E")`, backgroundSize: '40px 40px', opacity: 0 }} />
+        <div className="absolute inset-0 transition-stage-6" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg width='40' height='40' xmlns='http://www.w3.org/2000/svg'%3E%3Crect x='0' y='0' width='40' height='40' rx='0' fill='${theme === 'dark' ? 'white' : 'black'}'/%3E%3C/svg%3E")`, backgroundSize: '40px 40px', opacity: 0 }} />
+        <div className="absolute inset-0 transition-stage-7" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg width='40' height='40' xmlns='http://www.w3.org/2000/svg'%3E%3Crect x='-2' y='-2' width='44' height='44' fill='${theme === 'dark' ? 'white' : 'black'}'/%3E%3C/svg%3E")`, backgroundSize: '40px 40px', opacity: 0 }} />
+        <div className="absolute inset-0 transition-stage-8" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg width='40' height='40' xmlns='http://www.w3.org/2000/svg'%3E%3Crect x='-5' y='-5' width='50' height='50' fill='${theme === 'dark' ? 'white' : 'black'}'/%3E%3C/svg%3E")`, backgroundSize: '40px 40px', opacity: 0 }} />
       </section>
 
       {/* Gallery Section */}
-      <section ref={gallerySectionRef} className="relative bg-black overflow-hidden hidden md:block" style={{ minHeight: '200vh' }}>
+      <section ref={gallerySectionRef} className={`relative overflow-hidden hidden md:block ${theme === 'dark' ? 'bg-white' : 'bg-black'}`} style={{ minHeight: '200vh' }}>
         <div className="sticky top-0 min-h-screen flex flex-col justify-between py-12 px-6 md:px-12 overflow-hidden" style={{ paddingTop: '80px', paddingBottom: '30px' }}>
           <div className="w-full mb-6">
-            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-white leading-tight text-left max-w-7xl">
+            <h2 className={`text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold leading-tight text-left max-w-7xl ${theme === 'dark' ? 'text-black' : 'text-white'}`}>
               We turn your feeds, starting with YouTube, into your Digital DNA; a personalized set of people, moments, and opportunities that feel just right.
             </h2>
           </div>
@@ -606,10 +618,10 @@ export default function LandingPage() {
 
           <div className="w-full overflow-hidden mt-8">
             <div className="gallery-text-container flex items-center gap-12" style={{ whiteSpace: 'nowrap' }}>
-              <h2 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-bold text-white leading-none tracking-tight inline-block" style={{ fontSize: 'clamp(3.2rem, 9.6vw, 9.6rem)' }}>
+              <h2 className={`text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-bold leading-none tracking-tight inline-block ${theme === 'dark' ? 'text-black' : 'text-white'}`} style={{ fontSize: 'clamp(3.2rem, 9.6vw, 9.6rem)' }}>
                 THIS COULD BE YOU!
               </h2>
-              <h2 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-bold text-white leading-none tracking-tight inline-block" style={{ fontSize: 'clamp(3.2rem, 9.6vw, 9.6rem)' }}>
+              <h2 className={`text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-bold leading-none tracking-tight inline-block ${theme === 'dark' ? 'text-black' : 'text-white'}`} style={{ fontSize: 'clamp(3.2rem, 9.6vw, 9.6rem)' }}>
                 THIS COULD BE YOU!
               </h2>
             </div>
@@ -618,8 +630,8 @@ export default function LandingPage() {
       </section>
 
       {/* Mobile Gallery */}
-      <section className="bg-black px-6 py-10 space-y-8 md:hidden">
-        <h2 className="text-2xl font-bold text-white leading-tight">
+      <section className={`px-6 py-10 space-y-8 md:hidden ${theme === 'dark' ? 'bg-white' : 'bg-black'}`}>
+        <h2 className={`text-2xl font-bold leading-tight ${theme === 'dark' ? 'text-black' : 'text-white'}`}>
           We turn your feeds, starting with YouTube, into your Digital DNA; a personalized set of people, moments, and opportunities that feel just right.
         </h2>
         <div className="overflow-x-auto flex gap-4 snap-x snap-mandatory pb-2">
@@ -629,50 +641,65 @@ export default function LandingPage() {
             </div>
           ))}
         </div>
-        <h2 className="text-4xl font-bold text-white">THIS COULD BE YOU!</h2>
+        <h2 className={`text-4xl font-bold ${theme === 'dark' ? 'text-black' : 'text-white'}`}>THIS COULD BE YOU!</h2>
       </section>
 
       {/* Signal Intelligence Section */}
-      <section id="signal-intelligence" className="relative bg-black overflow-hidden py-24 px-6 md:px-12">
+      <section id="signal-intelligence" className={`relative overflow-hidden py-24 px-6 md:px-12 ${theme === 'dark' ? 'bg-white' : 'bg-black'}`}>
         <div className="max-w-7xl mx-auto">
-          <h2 className="font-bold text-white mb-12 leading-none" style={{ fontSize: 'clamp(2rem, 8vw, 6rem)' }}>
+          <h2 className={`font-bold mb-12 leading-none ${theme === 'dark' ? 'text-black' : 'text-white'}`} style={{ fontSize: 'clamp(2rem, 8vw, 6rem)' }}>
             {signalHeading}
           </h2>
           <div className="max-w-2xl space-y-6">
-            <p className="text-xl md:text-2xl text-white leading-relaxed font-medium">The small signals you leave behind every day.</p>
-            <p className="text-xl md:text-2xl text-white leading-relaxed font-medium">You choose to connect YouTube, and we use your subscriptions and liked videos, read-only, to build your Digital DNA.</p>
-            <p className="text-xl md:text-2xl text-white leading-relaxed font-medium">That's how meeting people starts to feel intentional, not random.</p>
+            <p className={`text-xl md:text-2xl leading-relaxed font-medium ${theme === 'dark' ? 'text-black' : 'text-white'}`}>The small signals you leave behind every day.</p>
+            <p className={`text-xl md:text-2xl leading-relaxed font-medium ${theme === 'dark' ? 'text-black' : 'text-white'}`}>You choose to connect YouTube, and we use your subscriptions and liked videos, read-only, to build your Digital DNA.</p>
+            <p className={`text-xl md:text-2xl leading-relaxed font-medium ${theme === 'dark' ? 'text-black' : 'text-white'}`}>That's how meeting people starts to feel intentional, not random.</p>
           </div>
         </div>
       </section>
 
       {/* FAQ Section */}
-      <section id="faq" className="relative bg-black overflow-hidden pt-32 pb-24 px-6 md:px-12 mt-8">
+      <section id="faq" className={`relative overflow-hidden pt-32 pb-24 px-6 md:px-12 mt-8 ${theme === 'dark' ? 'bg-white' : 'bg-black'}`}>
         <div className="max-w-4xl mx-auto">
-          <h2 className="font-bold text-white mb-12 leading-none" style={{ fontSize: 'clamp(2rem, 8vw, 4rem)' }}>
-            QUESTIONS? <span className="border-b-[3px] border-white pb-2 inline-block sm:inline">ANSWERS.</span>
+          <h2 className={`font-bold mb-12 leading-none ${theme === 'dark' ? 'text-black' : 'text-white'}`} style={{ fontSize: 'clamp(2rem, 8vw, 4rem)' }}>
+            QUESTIONS? <span className={`border-b-[3px] pb-2 inline-block sm:inline ${theme === 'dark' ? 'border-black' : 'border-white'}`}>ANSWERS.</span>
           </h2>
-          <div className="bg-neutral-900 rounded-2xl p-6 md:p-10">
+          <div className={`${theme === 'dark' ? 'bg-neutral-100' : 'bg-neutral-900'} rounded-2xl p-6 md:p-10`}>
             {FAQ_DATA.map((faq, index) => (
-              <FAQItem
-                key={index}
-                question={faq.question}
-                answer={faq.answer}
-                isOpen={openFAQ === index}
-                onClick={() => setOpenFAQ(openFAQ === index ? null : index)}
-              />
+              <div key={index} className={`border-b last:border-b-0 ${theme === 'dark' ? 'border-gray-200' : 'border-gray-800'}`}>
+                <button
+                  onClick={() => setOpenFAQ(openFAQ === index ? null : index)}
+                  className="w-full py-6 flex items-center justify-between text-left bg-transparent border-none cursor-pointer group"
+                >
+                  <span className={`text-lg md:text-xl font-semibold pr-8 transition-colors ${theme === 'dark' ? 'text-black group-hover:text-gray-700' : 'text-white group-hover:text-gray-300'}`}>
+                    {faq.question}
+                  </span>
+                  <span
+                    className={`text-2xl transition-transform duration-300 flex-shrink-0 ${openFAQ === index ? 'rotate-45' : 'rotate-0'} ${theme === 'dark' ? 'text-black' : 'text-white'}`}
+                  >
+                    +
+                  </span>
+                </button>
+                <div
+                  className={`overflow-hidden transition-all duration-300 ease-in-out ${openFAQ === index ? 'max-h-96 opacity-100 pb-6' : 'max-h-0 opacity-0'}`}
+                >
+                  <div className={`text-base md:text-lg leading-relaxed ${theme === 'dark' ? 'text-gray-700' : 'text-gray-300'}`}>
+                    {faq.answer}
+                  </div>
+                </div>
+              </div>
             ))}
           </div>
         </div>
       </section>
 
       {/* Join Us Section */}
-      <section className="relative min-h-screen bg-black overflow-hidden flex items-center justify-center px-6">
+      <section className={`relative min-h-screen overflow-hidden flex items-center justify-center px-6 ${theme === 'dark' ? 'bg-white' : 'bg-black'}`}>
         <div className="text-center">
-          <h2 className="text-6xl sm:text-7xl md:text-8xl lg:text-9xl font-bold text-white mb-12 leading-none">JOIN US</h2>
+          <h2 className={`text-6xl sm:text-7xl md:text-8xl lg:text-9xl font-bold mb-12 leading-none ${theme === 'dark' ? 'text-black' : 'text-white'}`}>JOIN US</h2>
           <button
             onClick={() => router.push('/consent')}
-            className="px-10 py-5 bg-white text-black rounded-full text-xl font-semibold hover:bg-gray-100 transition-colors shadow-xl transform hover:scale-105 active:scale-95 cursor-pointer border-none"
+            className={`px-10 py-5 rounded-full text-xl font-semibold transition-colors shadow-xl transform hover:scale-105 active:scale-95 cursor-pointer border-none ${theme === 'dark' ? 'bg-black text-white hover:bg-gray-800' : 'bg-white text-black hover:bg-gray-200'}`}
           >
             Connect to TheNetwork
           </button>
@@ -680,40 +707,42 @@ export default function LandingPage() {
       </section>
 
       {/* Signals Explanation Modal */}
-      {showSignalsModal && (
-        <div
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[9999] animate-fade-in"
-          onClick={() => setShowSignalsModal(false)}
-        >
+      {
+        showSignalsModal && (
           <div
-            className="bg-white rounded-3xl p-8 max-w-lg w-[90%] relative animate-slide-up max-h-[85vh] overflow-y-auto"
-            onClick={(e) => e.stopPropagation()}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[9999] animate-fade-in"
+            onClick={() => setShowSignalsModal(false)}
           >
-            <button
-              onClick={() => setShowSignalsModal(false)}
-              className="absolute top-4 right-4 text-black/50 hover:text-black transition-colors cursor-pointer bg-transparent border-none text-2xl p-2"
-              aria-label="Close"
+            <div
+              className={`rounded-3xl p-8 max-w-lg w-[90%] relative animate-slide-up max-h-[85vh] overflow-y-auto ${theme === 'dark' ? 'bg-white' : 'bg-neutral-900'}`}
+              onClick={(e) => e.stopPropagation()}
             >
-              ×
-            </button>
-            <h3 className="text-2xl font-bold text-black mb-4">What are signals?</h3>
-            <div className="text-gray-700 text-lg leading-relaxed space-y-4">
-              <p>
-                Your signals are the digital breadcrumbs you leave behind: the YouTube channels you subscribe to, the videos you like, the content you engage with.
-              </p>
-              <p>
-                From a neuroscience perspective, what you watch is what you're genuinely interested in, and that's something you can't fake. In a world where connection can feel lonely and random, we wanted to create something that makes sense for you to use and feel confident using.
-              </p>
-              <p>
-                We started with a small experiment with 20 friends. The success rate of finding new people who were very similar to each other was remarkably high. That small scale experiment convinced us to make this a large scale experiment, and here we are.
-              </p>
-              <p>
-                We use your signals to connect you with people who share what you actually care about, based on what you genuinely watch, not just what you say you like.
-              </p>
+              <button
+                onClick={() => setShowSignalsModal(false)}
+                className={`absolute top-4 right-4 transition-colors cursor-pointer bg-transparent border-none text-2xl p-2 ${theme === 'dark' ? 'text-black/50 hover:text-black' : 'text-white/50 hover:text-white'}`}
+                aria-label="Close"
+              >
+                ×
+              </button>
+              <h3 className={`text-2xl font-bold mb-4 ${theme === 'dark' ? 'text-black' : 'text-white'}`}>What are signals?</h3>
+              <div className={`text-lg leading-relaxed space-y-4 ${theme === 'dark' ? 'text-gray-700' : 'text-gray-300'}`}>
+                <p>
+                  Your signals are the digital breadcrumbs you leave behind: the YouTube channels you subscribe to, the videos you like, the content you engage with.
+                </p>
+                <p>
+                  From a neuroscience perspective, what you watch is what you're genuinely interested in, and that's something you can't fake. In a world where connection can feel lonely and random, we wanted to create something that makes sense for you to use and feel confident using.
+                </p>
+                <p>
+                  We started with a small experiment with 20 friends. The success rate of finding new people who were very similar to each other was remarkably high. That small scale experiment convinced us to make this a large scale experiment, and here we are.
+                </p>
+                <p>
+                  We use your signals to connect you with people who share what you actually care about, based on what you genuinely watch, not just what you say you like.
+                </p>
+              </div>
             </div>
           </div>
-        </div>
-      )}
-    </main>
+        )
+      }
+    </main >
   );
 }

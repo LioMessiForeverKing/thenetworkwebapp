@@ -35,7 +35,13 @@ export default function ConsentPage() {
             // Store consent in localStorage or sessionStorage
             localStorage.setItem('consent_agreed', 'true');
             localStorage.setItem('consent_timestamp', new Date().toISOString());
-            router.push('/onboarding');
+            // Check if user has seen YouTube account disclaimer
+            const hasSeenDisclaimer = localStorage.getItem('youtube_account_disclaimer_acknowledged') === 'true';
+            if (hasSeenDisclaimer) {
+                router.push('/onboarding');
+            } else {
+                router.push('/youtube-account-disclaimer');
+            }
         }
     };
 

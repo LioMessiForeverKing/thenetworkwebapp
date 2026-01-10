@@ -327,6 +327,16 @@ export default function OnboardingPage() {
   });
   const [shake, setShake] = useState(false);
 
+  // Check if user has seen YouTube account disclaimer
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const hasSeenDisclaimer = localStorage.getItem('youtube_account_disclaimer_acknowledged') === 'true';
+      if (!hasSeenDisclaimer && !loading && !user) {
+        router.push('/youtube-account-disclaimer');
+      }
+    }
+  }, [loading, user, router]);
+
   const handleContinue = () => {
     if (!hasAgreed) {
       setShake(true);

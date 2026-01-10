@@ -404,12 +404,7 @@
   }
 }
 
-/* Fix for inverted theme images */
-.theme-inverted img,
-.theme-inverted video,
-.theme-inverted .invert-media {
-  filter: invert(1) hue-rotate(180deg);
-}
+
 
 /* Force Sigma.js labels to white on Digital DNA page */
 .sigma-container,
