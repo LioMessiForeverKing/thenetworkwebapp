@@ -29,28 +29,46 @@ const processConnections = (requests: any[], userId: string) => {
 }
 
 export const AriaService = {
-    // Send message to Aria Edge Function
+    // Send message to Aria Router (intelligent routing to agents)
     sendMessage: async (message: string, history: any[] = []): Promise<AriaResponse | null> => {
         const supabase = createClient();
 
         try {
-            const { data, error } = await supabase.functions.invoke('aria-chat', {
-                body: { message, conversation_history: history },
+            // Get current user for user_id
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+                return null;
+            }
+
+            const { data, error } = await supabase.functions.invoke('ari-router', {
+                body: { 
+                    message, 
+                    conversation_history: history,
+                    user_id: user.id
+                },
             });
 
             if (error) {
                 return null;
             }
 
-            let candidates = (data.candidates || []).map((c: any) => ({
-                id: c.id,
-                name: c.name,
-                username: c.username,
-                headline: c.headline,
-                matchScore: c.match_score || c.matchScore || 0,
-                matchReason: c.match_reason || c.reasoning,
-                avatarUrl: getFullAvatarUrl(c.avatar_url || c.avatarUrl),
-            })).filter((c: any) => c.matchScore > 0.1);
+            // Map people from ari-router response to candidates format
+            let candidates: any[] = [];
+            
+            // Handle people from PEOPLE_MATCHING or ACTIVITY_MULTI_AGENT
+            if (data.people && Array.isArray(data.people)) {
+                candidates = data.people.map((p: any) => ({
+                    id: p.user_id,
+                    name: p.name,
+                    username: '', // Will be hydrated
+                    matchScore: p.score || 0,
+                    matchReason: p.reason || '',
+                    avatarUrl: undefined, // Will be hydrated below
+                })).filter((c: any) => c.matchScore > 0.1);
+            }
+            
+            // Also handle venues if they're in the response (for display)
+            // Venues are separate from candidates - could be stored in metadata
 
             // Hydrate logic
             if (candidates.length > 0) {
