@@ -11,10 +11,11 @@ export default function ConsentPage() {
     const [agreedToPrivacy, setAgreedToPrivacy] = useState(false);
     const [agreedToTermsOfService, setAgreedToTermsOfService] = useState(false);
     const [agreedToTermsOfUse, setAgreedToTermsOfUse] = useState(false);
+    const [shake, setShake] = useState(false);
 
     const allAgreed = agreedToPrivacy && agreedToTermsOfService && agreedToTermsOfUse;
 
-    const { user, loading } = useAuth();
+    const { user, loading, signInWithGoogle } = useAuth();
 
     useEffect(() => {
         if (!loading && user) {
@@ -31,34 +32,27 @@ export default function ConsentPage() {
     };
 
     const handleContinue = () => {
-        if (allAgreed) {
-            // Store consent in localStorage or sessionStorage
-            localStorage.setItem('consent_agreed', 'true');
-            localStorage.setItem('consent_timestamp', new Date().toISOString());
-            // Redirect to onboarding (consent and sign-up are now merged)
-            router.push('/onboarding');
+        if (!allAgreed) {
+            setShake(true);
+            setTimeout(() => setShake(false), 500);
+            return;
         }
+        // Store consent in localStorage
+        localStorage.setItem('consent_agreed', 'true');
+        localStorage.setItem('consent_timestamp', new Date().toISOString());
+        // Trigger Google sign-in
+        signInWithGoogle();
     };
 
     return (
-        <div className={styles.container}>
+        <div className={`${styles.container} font-ui`}>
             <div className={styles.content}>
                 {/* Header */}
                 <div className={styles.header}>
-                    <h1 className={styles.title}>Agreement Required</h1>
+                    <h1 className={`${styles.title} font-brand`}>Agreement Required</h1>
                     <p className={styles.subtitle}>
                         To continue, please review and agree to our policies
                     </p>
-                </div>
-
-                {/* Accept All Button */}
-                <div className={styles.acceptAllContainer}>
-                    <button
-                        onClick={handleAcceptAll}
-                        className={styles.acceptAllButton}
-                    >
-                        Accept All
-                    </button>
                 </div>
 
                 {/* Agreement Items */}
@@ -118,6 +112,16 @@ export default function ConsentPage() {
                     </div>
                 </div>
 
+                {/* Accept All Button */}
+                <div className={styles.acceptAllContainer}>
+                    <button
+                        onClick={handleAcceptAll}
+                        className={styles.acceptAllButton}
+                    >
+                        Accept
+                    </button>
+                </div>
+
                 {/* Info Box */}
                 <div className={styles.infoBox}>
                     <p className={styles.infoText}>
@@ -137,9 +141,9 @@ export default function ConsentPage() {
                     <button
                         onClick={handleContinue}
                         disabled={!allAgreed}
-                        className={`${styles.continueButton} ${!allAgreed ? styles.disabled : ''}`}
+                        className={`${styles.continueButton} ${!allAgreed ? styles.disabled : ''} ${shake ? styles.shake : ''}`}
                     >
-                        Continue to Onboarding
+                        Continue with YouTube →
                     </button>
                 </div>
             </div>

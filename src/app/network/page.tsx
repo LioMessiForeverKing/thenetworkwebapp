@@ -1124,7 +1124,7 @@ export default function Home() {
 
         <h2 className={styles.sectionTitle}>
           {isEligibleForMondayDrop
-            ? (activeTab === 'drop' ? 'Your Weekly Drop' : 'Network Philosophy')
+            ? (activeTab === 'drop' ? 'Your Weekly Drop' : '')
             : "Ari's Suggestions"}
         </h2>
 

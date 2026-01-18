@@ -29,7 +29,7 @@ export default function InvitePage() {
         // User is not logged in, store the referral code and redirect to onboarding
         // Store in localStorage so we can retrieve it after signup
         localStorage.setItem('referral_code', code);
-        router.push('/onboarding');
+        router.push('/consent');
       }
     };
 

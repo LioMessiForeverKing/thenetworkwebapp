@@ -262,46 +262,55 @@ export default function ProfileModal({ person, onClose }: ProfileModalProps) {
             <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
                 {/* Close button */}
                 <button className={styles.closeButton} onClick={onClose}>
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <path d="M18 6L6 18M6 6l12 12" />
                     </svg>
                 </button>
 
-                {/* Avatar */}
-                <div className={styles.avatarContainer}>
-                    {person.imageUrl ? (
-                        <img
-                            src={person.imageUrl}
-                            alt={person.name}
-                            className={`${styles.avatar} invert-media`}
-                        />
-                    ) : (
-                        <div className={styles.avatarPlaceholder}>
-                            {person.name.charAt(0).toUpperCase()}
-                        </div>
-                    )}
-                </div>
-
-                {/* Name */}
-                <h2 className={styles.name}>{person.name}</h2>
-
-                {/* Compatibility Percentage */}
-                {compatibilityPercentage !== null && (
-                    <div className={styles.compatibilityPercentage}>
-                        <span className={styles.percentageValue}>{compatibilityPercentage}%</span>
-                        <span className={styles.percentageLabel}>Compatibility</span>
+                {/* Header: Avatar + Name + Compatibility Badge */}
+                <div className={styles.header}>
+                    <div className={styles.avatarContainer}>
+                        {person.imageUrl ? (
+                            <img
+                                src={person.imageUrl}
+                                alt={person.name}
+                                className={`${styles.avatar} invert-media`}
+                            />
+                        ) : (
+                            <div className={styles.avatarPlaceholder}>
+                                {person.name.charAt(0).toUpperCase()}
+                            </div>
+                        )}
                     </div>
-                )}
+                    <div className={styles.headerInfo}>
+                        <h2 className={styles.name}>{person.name}</h2>
+                        {compatibilityPercentage !== null && (
+                            <div className={styles.compatibilityBadge}>
+                                {compatibilityPercentage}% <span>match</span>
+                            </div>
+                        )}
+                    </div>
+                </div>
 
                 {/* Bio */}
                 {profileData?.bio && (
                     <p className={styles.bio}>{profileData.bio}</p>
                 )}
 
-                {/* Shared Interests */}
+                {/* Why You'd Connect - Now first and prominent */}
+                {isLoading ? (
+                    <div className={styles.loading}>Loading...</div>
+                ) : compatibilityDescription ? (
+                    <div className={styles.compatibilitySection}>
+                        <div className={styles.compatibilityTitle}>Why You'd Connect</div>
+                        <div className={styles.compatibilityDescription}>{compatibilityDescription}</div>
+                    </div>
+                ) : null}
+
+                {/* Shared Interests - Now after Why You'd Connect */}
                 {sharedInterests.length > 0 && (
                     <div className={styles.sharedInterests}>
-                        <div className={styles.sharedInterestsTitle}>Shared Interests:</div>
+                        <div className={styles.sharedInterestsTitle}>Shared Interests</div>
                         <div className={styles.interestsList}>
                             {sharedInterests.map((interest, i) => (
                                 <span key={i} className={styles.interestTag}>{interest}</span>
@@ -310,24 +319,14 @@ export default function ProfileModal({ person, onClose }: ProfileModalProps) {
                     </div>
                 )}
 
-                {/* Compatibility Description */}
-                {isLoading ? (
-                    <div className={styles.loading}>Loading compatibility...</div>
-                ) : compatibilityDescription ? (
-                    <div className={styles.compatibilitySection}>
-                        <div className={styles.compatibilityTitle}>Why You'd Connect:</div>
-                        <div className={styles.compatibilityDescription}>{compatibilityDescription}</div>
-                    </div>
-                ) : null}
-
-                {/* Connection info */}
+                {/* Connection info - hidden */}
                 <div className={styles.connectionInfo}>
                     <span className={styles.connectionCount}>
                         {person.connections.length} connections
                     </span>
                 </div>
 
-                {/* Actions */}
+                {/* Actions - hidden */}
                 <div className={styles.actions}>
                     <button className={styles.messageButton}>
                         Message

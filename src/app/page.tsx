@@ -239,7 +239,8 @@ export default function LandingPage() {
   const gallerySectionRef = useRef<HTMLElement>(null);
   const [galleryVisible, setGalleryVisible] = useState(false);
   const [openFAQ, setOpenFAQ] = useState<number | null>(null);
-  const [showSignalsModal, setShowSignalsModal] = useState(false);
+  // === SCROLL Y TRACKER (uncomment to debug scroll positions) ===
+  // const [scrollY, setScrollY] = useState(0);
 
   const FAQ_DATA = [
     {
@@ -319,9 +320,14 @@ export default function LandingPage() {
     document.documentElement.classList.remove('theme-inverted');
   }, [theme, mounted]);
 
-  const toggleTheme = () => {
-    setTheme(prev => prev === 'dark' ? 'light' : 'dark');
-  };
+  // === SCROLL Y TRACKER useEffect (uncomment along with state above to enable) ===
+  // useEffect(() => {
+  //   const handleScrollTracker = () => {
+  //     setScrollY(window.scrollY);
+  //   };
+  //   window.addEventListener('scroll', handleScrollTracker);
+  //   return () => window.removeEventListener('scroll', handleScrollTracker);
+  // }, []);
 
   // If already authenticated, redirect to home
   useEffect(() => {
@@ -402,7 +408,9 @@ export default function LandingPage() {
       const rect = section.getBoundingClientRect();
       const sectionHeight = section.offsetHeight;
       const windowHeight = window.innerHeight;
-      const scrollProgress = Math.max(0, Math.min(1, -rect.top / (sectionHeight - windowHeight)));
+      // Added offset of 300px to start animation earlier (around Y: 1400 instead of 1687)
+      const earlyStartOffset = 300;
+      const scrollProgress = Math.max(0, Math.min(1, (-rect.top + earlyStartOffset) / (sectionHeight - windowHeight)));
 
       const scrollContainer = section.querySelector('.gallery-scroll-container') as HTMLElement;
       const textContainer = section.querySelector('.gallery-text-container') as HTMLElement;
@@ -443,6 +451,12 @@ export default function LandingPage() {
 
   return (
     <main style={{ backgroundColor: theme === 'dark' ? '#ffffff' : '#000000', paddingBottom: '80px' }}>
+      {/* === SCROLL Y TRACKER UI (uncomment along with state + useEffect to enable) ===
+      <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[9999] bg-red-500 text-white px-4 py-2 rounded-full font-mono text-lg font-bold shadow-lg">
+        Y: {Math.round(scrollY)}
+      </div>
+      */}
+
       <InstagramFloat />
 
       {/* Initial Landing Section - Full Screen */}
@@ -455,26 +469,8 @@ export default function LandingPage() {
           <h1 className={`font-brand text-4xl sm:text-5xl md:text-6xl font-bold transition-colors duration-500 ${theme === 'dark' ? 'text-white' : 'text-black'}`} style={{ letterSpacing: '-0.02em' }}>
             THE<br />NETWORK.
           </h1>
-          <div className={`mt-2 flex gap-4 text-xs sm:text-sm transition-colors duration-500 ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
-            <Link href="/privacy-policy" className="hover:underline">
-              Privacy Policy
-            </Link>
-            <Link href="/terms-of-service" className="hover:underline">
-              Terms of Service
-            </Link>
-          </div>
         </div>
 
-        {/* Top Right - Theme Toggle */}
-        <div className="absolute top-8 right-8 z-50">
-          <button
-            onClick={toggleTheme}
-            className={`w-12 h-12 flex items-center justify-center rounded-full border transition-all duration-300 cursor-pointer text-xl ${theme === 'dark' ? 'bg-white/10 hover:bg-white/20 border-white/20 text-white' : 'bg-black/5 hover:bg-black/10 border-black/10 text-black'}`}
-            title={theme === 'dark' ? "Switch to Light Mode" : "Switch to Dark Mode"}
-          >
-            {theme === 'dark' ? "☀️" : "🌙"}
-          </button>
-        </div>
 
         {/* Center Content */}
         <div className="absolute inset-0 flex flex-col items-center justify-center z-10 pointer-events-none">
@@ -483,19 +479,11 @@ export default function LandingPage() {
 
             <p className={`text-lg md:text-xl font-medium max-w-lg mx-auto leading-relaxed animate-fade-in-up opacity-0 transition-colors duration-500 ${theme === 'dark' ? 'text-white/90' : 'text-black/90'}`} style={{ animationDelay: '0.3s' }}>
               Most social apps optimize for watching. We're building for doing: real plans, real places, real people, starting from the interests you already reveal every day.
-              <button
-                onClick={() => setShowSignalsModal(true)}
-                className={`ml-2 inline-flex items-center justify-center w-5 h-5 md:w-6 md:h-6 rounded-full border transition-all duration-200 cursor-pointer bg-transparent text-sm md:text-base font-normal -mt-10 ${theme === 'dark' ? 'border-white/30 hover:border-white/60 text-white/50 hover:text-white/80 hover:bg-white/10' : 'border-black/30 hover:border-black/60 text-black/50 hover:text-black/80 hover:bg-black/10'}`}
-                aria-label="What are signals?"
-                title="What are signals?"
-              >
-                ?
-              </button>
             </p>
 
             <button
               onClick={() => {
-                router.push('/onboarding');
+                router.push('/consent');
               }}
               className={`mt-4 px-10 py-5 rounded-full text-xl font-semibold transition-all duration-300 shadow-xl transform hover:scale-105 active:scale-95 cursor-pointer border-none ${theme === 'dark' ? 'bg-white text-black hover:bg-gray-100' : 'bg-black text-white hover:bg-gray-800'}`}
             >
@@ -503,40 +491,30 @@ export default function LandingPage() {
             </button>
           </div>
 
-          <button
-            onClick={() => document.getElementById('checkerboard-transition')?.scrollIntoView({ behavior: 'smooth' })}
-            className="absolute bottom-32 pointer-events-auto flex flex-col items-center gap-2 animate-pulse cursor-pointer transition-opacity hover:opacity-70 bg-transparent border-none p-0"
-            style={{ animationDuration: '3s' }}
-          >
-            <span className={`text-xs font-bold tracking-[0.2em] uppercase transition-colors duration-500 ${theme === 'dark' ? 'text-white/60' : 'text-black/60'}`}>Scroll to explore</span>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={theme === 'dark' ? "rgba(255,255,255,0.6)" : "rgba(0,0,0,0.6)"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M7 13l5 5 5-5M7 6l5 5 5-5" />
-            </svg>
-          </button>
         </div>
       </section>
 
-      {/* Fixed Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 pointer-events-none mix-blend-normal md:mix-blend-difference">
+      {/* Fixed Bottom Navigation - Desktop */}
+      <nav className="hidden md:block fixed bottom-0 left-0 right-0 z-50 pointer-events-none mix-blend-difference">
         <div className="relative w-full h-28 pointer-events-auto">
           <Link href="/privacy-policy" className="absolute bottom-8 right-8 z-20 w-16 h-16 cursor-pointer">
-            <img src="/app_icon.svg" alt="Network Icon" className={`w-full h-full md:brightness-0 md:invert hover:opacity-70 transition-opacity ${theme === 'dark' ? 'text-black' : 'text-white filter invert'}`} />
+            <img src="/app_icon.svg" alt="Network Icon" className="w-full h-full brightness-0 invert hover:opacity-70 transition-opacity" />
           </Link>
 
           <div className="absolute bottom-16 left-6 right-28 z-10">
-            <div className={`h-[1px] md:bg-white opacity-70 md:opacity-30 ${theme === 'dark' ? 'bg-black' : 'bg-white'}`}></div>
+            <div className="h-[1px] bg-white opacity-30"></div>
           </div>
 
           <div className="absolute bottom-4 left-6 z-20 flex gap-8">
             <Link
               href="/privacy-policy"
-              className={`text-xs font-ui md:text-white hover:opacity-70 transition-opacity ${theme === 'dark' ? 'text-black' : 'text-white'}`}
+              className="text-xs font-ui text-white hover:opacity-70 transition-opacity"
             >
               Privacy Policy
             </Link>
             <Link
               href="/terms-of-service"
-              className={`text-xs font-ui md:text-white hover:opacity-70 transition-opacity ${theme === 'dark' ? 'text-black' : 'text-white'}`}
+              className="text-xs font-ui text-white hover:opacity-70 transition-opacity"
             >
               Terms of Service
             </Link>
@@ -544,26 +522,63 @@ export default function LandingPage() {
 
           <div className="absolute bottom-4 right-8 z-20 flex gap-8">
             <button
-              onClick={() => router.push('/onboarding')}
-              className={`text-xs font-ui md:text-white hover:opacity-70 transition-opacity cursor-pointer bg-transparent border-none p-0 ${theme === 'dark' ? 'text-black' : 'text-white'}`}
+              onClick={() => router.push('/consent')}
+              className="text-xs font-ui text-white hover:opacity-70 transition-opacity cursor-pointer bg-transparent border-none p-0"
             >
               Join
             </button>
             <button
               onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-              className={`text-xs font-ui md:text-white hover:opacity-70 transition-opacity cursor-pointer bg-transparent border-none p-0 ${theme === 'dark' ? 'text-black' : 'text-white'}`}
+              className="text-xs font-ui text-white hover:opacity-70 transition-opacity cursor-pointer bg-transparent border-none p-0"
             >
               Home
             </button>
             <button
               onClick={() => document.getElementById('signal-intelligence')?.scrollIntoView({ behavior: 'smooth' })}
-              className={`text-xs font-ui md:text-white hover:opacity-70 transition-opacity cursor-pointer bg-transparent border-none p-0 ${theme === 'dark' ? 'text-black' : 'text-white'}`}
+              className="text-xs font-ui text-white hover:opacity-70 transition-opacity cursor-pointer bg-transparent border-none p-0"
             >
               What we do
             </button>
             <button
               onClick={() => document.getElementById('faq')?.scrollIntoView({ behavior: 'smooth' })}
-              className={`text-xs font-ui md:text-white hover:opacity-70 transition-opacity cursor-pointer bg-transparent border-none p-0 ${theme === 'dark' ? 'text-black' : 'text-white'}`}
+              className="text-xs font-ui text-white hover:opacity-70 transition-opacity cursor-pointer bg-transparent border-none p-0"
+            >
+              FAQ
+            </button>
+          </div>
+        </div>
+      </nav>
+
+      {/* Fixed Bottom Navigation - Mobile */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 pointer-events-none mix-blend-difference">
+        <div className="relative w-full pointer-events-auto px-4 pb-4">
+          {/* App Icon - Bigger, on the right */}
+          <Link href="/" className="absolute bottom-2 right-4 w-12 h-12 cursor-pointer z-20">
+            <img src="/app_icon.svg" alt="Network Icon" className="w-full h-full brightness-0 invert hover:opacity-70 transition-opacity" />
+          </Link>
+
+          {/* Horizontal Line - Cut off early for logo */}
+          <div className="absolute bottom-8 left-4 right-20 z-10">
+            <div className="h-[1px] bg-white opacity-30"></div>
+          </div>
+
+          {/* Nav Links */}
+          <div className="absolute bottom-2 left-4 z-20 flex items-center gap-6">
+            <button
+              onClick={() => router.push('/consent')}
+              className="text-[10px] font-ui text-white hover:opacity-70 transition-opacity cursor-pointer bg-transparent border-none p-0"
+            >
+              Join
+            </button>
+            <button
+              onClick={() => document.getElementById('signal-intelligence')?.scrollIntoView({ behavior: 'smooth' })}
+              className="text-[10px] font-ui text-white hover:opacity-70 transition-opacity cursor-pointer bg-transparent border-none p-0"
+            >
+              About
+            </button>
+            <button
+              onClick={() => document.getElementById('faq')?.scrollIntoView({ behavior: 'smooth' })}
+              className="text-[10px] font-ui text-white hover:opacity-70 transition-opacity cursor-pointer bg-transparent border-none p-0"
             >
               FAQ
             </button>
@@ -700,43 +715,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Signals Explanation Modal */}
-      {
-        showSignalsModal && (
-          <div
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[9999] animate-fade-in"
-            onClick={() => setShowSignalsModal(false)}
-          >
-            <div
-              className={`rounded-3xl p-8 max-w-lg w-[90%] relative animate-slide-up max-h-[85vh] overflow-y-auto ${theme === 'dark' ? 'bg-white' : 'bg-neutral-900'}`}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <button
-                onClick={() => setShowSignalsModal(false)}
-                className={`absolute top-4 right-4 transition-colors cursor-pointer bg-transparent border-none text-2xl p-2 ${theme === 'dark' ? 'text-black/50 hover:text-black' : 'text-white/50 hover:text-white'}`}
-                aria-label="Close"
-              >
-                ×
-              </button>
-              <h3 className={`text-2xl font-bold mb-4 ${theme === 'dark' ? 'text-black' : 'text-white'}`}>What are signals?</h3>
-              <div className={`text-lg leading-relaxed space-y-4 ${theme === 'dark' ? 'text-gray-700' : 'text-gray-300'}`}>
-                <p>
-                  Your signals are the digital breadcrumbs you leave behind: the YouTube channels you subscribe to, the videos you like, the content you engage with.
-                </p>
-                <p>
-                  From a neuroscience perspective, what you watch is what you're genuinely interested in, and that's something you can't fake. In a world where connection can feel lonely and random, we wanted to create something that makes sense for you to use and feel confident using.
-                </p>
-                <p>
-                  We started with a small experiment with 20 friends. The success rate of finding new people who were very similar to each other was remarkably high. That small scale experiment convinced us to make this a large scale experiment, and here we are.
-                </p>
-                <p>
-                  We use your signals to connect you with people who share what you actually care about, based on what you genuinely watch, not just what you say you like.
-                </p>
-              </div>
-            </div>
-          </div>
-        )
-      }
     </main >
   );
 }

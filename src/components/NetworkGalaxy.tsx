@@ -30,7 +30,8 @@ export default React.memo(function NetworkGalaxy({
     const containerGroupRef = useRef<SVGGElement | null>(null);
     
     // Helper function to get viewbox scale based on current mobile state
-    const getViewboxScale = () => isMobileRef.current ? 2.2 : 1.8;
+    // Higher value = more zoomed out (can see more of the network)
+    const getViewboxScale = () => isMobileRef.current ? 3.2 : 1.8;
     // Helper function to get viewbox offset based on current mobile state
     const getViewboxOffsetX = () => isMobileRef.current ? 0 : 180;
 
@@ -90,7 +91,8 @@ export default React.memo(function NetworkGalaxy({
                 const idx = Math.max(0, i - 1);
                 const count = Math.max(1, ordered.length - 1);
                 const angle = (idx / count) * Math.PI * 2;
-                const radius = 940; // ~33% closer than 1400
+                // Reduced radius for tighter initial layout (was 940)
+                const radius = isMobileRef.current ? 500 : 700;
                 x = Math.cos(angle) * radius;
                 y = Math.sin(angle) * radius;
             }
@@ -141,13 +143,14 @@ export default React.memo(function NetworkGalaxy({
         const vbH = height * viewboxScale;
         const vbOffsetX = viewboxOffsetX * viewboxScale;
 
-        // Reduce spacing by ~33% (closer nodes + shorter links)
+        // Tighter layout for better initial view, especially on mobile
+        const linkDist = isMobileRef.current ? 350 : 450;
         const simulation = d3.forceSimulation<any>()
-            .force('charge', d3.forceManyBody().strength(-1740).distanceMax(6000))
-            .force('link', d3.forceLink<any, any>().id((d: any) => d.id).distance(600).strength(0.03))
-            .force('x', d3.forceX(0).strength(0.02))
-            .force('y', d3.forceY(0).strength(0.02))
-            .force('collide', d3.forceCollide<any>().radius((d: any) => (d?.r ?? 30) + 16).iterations(2));
+            .force('charge', d3.forceManyBody().strength(-1200).distanceMax(4000))
+            .force('link', d3.forceLink<any, any>().id((d: any) => d.id).distance(linkDist).strength(0.05))
+            .force('x', d3.forceX(0).strength(0.03))
+            .force('y', d3.forceY(0).strength(0.03))
+            .force('collide', d3.forceCollide<any>().radius((d: any) => (d?.r ?? 30) + 12).iterations(2));
 
         const svg = d3.create('svg')
             .attr('viewBox', [-vbW / 2 + vbOffsetX, -vbH / 2, vbW, vbH])

@@ -115,7 +115,7 @@
     letter-spacing: 2px;
 }
 
-/* Tab Navigation */
+/* Tab Navigation - Desktop */
 .tabNavigation {
     position: fixed;
     top: 24px;
@@ -124,7 +124,6 @@
     display: flex;
     gap: 8px;
     z-index: 15;
-    /* Below menu (z-index: 19) */
     background: var(--background);
     backdrop-filter: blur(12px);
     padding: 6px;
@@ -154,6 +153,37 @@
 .tabButton.activeTab {
     background: var(--foreground);
     color: var(--background);
+}
+
+/* Tab Navigation - Mobile Override */
+@media screen and (max-width: 768px) {
+    .tabNavigation {
+        top: auto !important;
+        bottom: 8px !important;
+        background: rgba(0, 0, 0, 0.9) !important;
+        border: 1px solid rgba(255, 255, 255, 0.15) !important;
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        padding: 6px;
+        gap: 4px;
+    }
+
+    .tabButton {
+        padding: 10px 16px;
+        font-size: 13px;
+        color: rgba(255, 255, 255, 0.7) !important;
+        background: transparent !important;
+    }
+
+    .tabButton:hover {
+        color: #ffffff !important;
+        background: rgba(255, 255, 255, 0.1) !important;
+    }
+
+    .tabButton.activeTab {
+        background: #ffffff !important;
+        color: #000000 !important;
+    }
 }
 
 /* Content Container for Archetypes */
@@ -482,17 +512,6 @@
 
 /* Mobile Responsive */
 @media (max-width: 768px) {
-    .tabNavigation {
-        top: 16px;
-        padding: 4px;
-        gap: 4px;
-    }
-
-    .tabButton {
-        padding: 8px 14px;
-        font-size: 12px;
-    }
-
     .contentContainer {
         padding: 90px 20px 32px;
         justify-content: flex-start;

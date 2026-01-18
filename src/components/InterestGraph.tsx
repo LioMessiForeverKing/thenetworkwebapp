@@ -21,11 +21,15 @@ const GraphController: React.FC<{
     setIsReady: (ready: boolean) => void;
     showLabels: boolean;
     onInterestClick?: (interest: string) => void;
-}> = ({ interests, userFullName, onGraphLoaded, setIsReady, showLabels, onInterestClick }) => {
+    isMobile: boolean;
+}> = ({ interests, userFullName, onGraphLoaded, setIsReady, showLabels, onInterestClick, isMobile }) => {
     const loadGraph = useLoadGraph();
     const sigma = useSigma();
     const registerEvents = useRegisterEvents();
     const hasInitialized = React.useRef(false);
+    
+    // Store isMobile in a ref so it doesn't cause hook recreation
+    const isMobileRef = React.useRef(isMobile);
 
     // Handle Label Toggle without re-mounting
     useEffect(() => {
@@ -39,16 +43,20 @@ const GraphController: React.FC<{
         // Also force refresh to apply change immediately
         sigma.refresh();
     }, [showLabels, sigma]);
-    const { assign: assignForceAtlas2 } = useLayoutForceAtlas2({
+    
+    // Memoize ForceAtlas2 settings to prevent hook recreation
+    const forceAtlasSettings = useMemo(() => ({
         iterations: 150,
         settings: {
-            gravity: 0.05,
-            scalingRatio: 50,
+            gravity: isMobileRef.current ? 0.02 : 0.05,
+            scalingRatio: isMobileRef.current ? 80 : 50,
             adjustSizes: true,
             barnesHutOptimize: true,
             linLogMode: false,
         },
-    });
+    }), []);
+    
+    const { assign: assignForceAtlas2 } = useLayoutForceAtlas2(forceAtlasSettings);
 
     useEffect(() => {
         if (!sigma) return;
@@ -99,9 +107,13 @@ const GraphController: React.FC<{
         };
 
         // Custom Collision-Aware Random Placement
+        // On mobile: use elliptical distribution (taller than wide) to use vertical space
+        const mobile = isMobileRef.current;
         const placedCenters: { x: number, y: number }[] = [];
-        const MIN_DIST = 550;
-        const CLOUD_RADIUS = 2000;
+        const MIN_DIST = mobile ? 600 : 550; // Larger on mobile to prevent collisions
+        const CLOUD_RADIUS_X = mobile ? 600 : 2000; // Narrower horizontally on mobile
+        const CLOUD_RADIUS_Y = mobile ? 3000 : 2000; // Much taller vertically on mobile
+        const particleSpread = mobile ? 30 : 50; // Tighter particle clouds on mobile
 
         interests.forEach((interest, i) => {
             const color = palette[i % palette.length];
@@ -114,9 +126,10 @@ const GraphController: React.FC<{
 
             while (!valid && attempts < 200) {
                 const angle = Math.random() * Math.PI * 2;
-                const r = Math.sqrt(Math.random()) * CLOUD_RADIUS;
-                const candidateX = r * Math.cos(angle);
-                const candidateY = r * Math.sin(angle);
+                const r = Math.sqrt(Math.random());
+                // Elliptical distribution: different radii for X and Y
+                const candidateX = r * CLOUD_RADIUS_X * Math.cos(angle);
+                const candidateY = r * CLOUD_RADIUS_Y * Math.sin(angle);
 
                 let collision = false;
                 for (const other of placedCenters) {
@@ -139,9 +152,8 @@ const GraphController: React.FC<{
 
             if (!valid) {
                 const angle = Math.random() * Math.PI * 2;
-                const r = CLOUD_RADIUS + 500;
-                cx = r * Math.cos(angle);
-                cy = r * Math.sin(angle);
+                cx = (CLOUD_RADIUS_X + 300) * Math.cos(angle);
+                cy = (CLOUD_RADIUS_Y + 300) * Math.sin(angle);
             }
 
             placedCenters.push({ x: cx, y: cy });
@@ -151,7 +163,7 @@ const GraphController: React.FC<{
                 label: interest,
                 x: cx,
                 y: cy,
-                size: 10,
+                size: mobile ? 8 : 10, // Slightly smaller centers on mobile
                 color: color,
                 isClusterCenter: true,
                 sectionIndex: i,
@@ -159,15 +171,15 @@ const GraphController: React.FC<{
                 fixed: true,
             });
 
-            const particleCount = 100;
+            const particleCount = mobile ? 70 : 100; // Fewer particles on mobile for cleaner look
             const particleIds: string[] = [];
 
             for (let j = 0; j < particleCount; j++) {
                 const particleId = `p-${i}-${j}`;
                 particleIds.push(particleId);
 
-                const px = cx + gaussianRandom(0, 50);
-                const py = cy + gaussianRandom(0, 50);
+                const px = cx + gaussianRandom(0, particleSpread);
+                const py = cy + gaussianRandom(0, particleSpread);
 
                 graph.addNode(particleId, {
                     // label: null,
@@ -253,8 +265,8 @@ export default function InterestGraph({
             labelRenderedSizeThreshold: 0,
             defaultDrawNodeHover: () => { },
             // Fine-tune collision grid to allow tight packing
-            labelDensity: 1,
-            labelGridCellSize: mobile ? 40 : 60, // Smaller on mobile to show more labels
+            labelDensity: mobile ? 0.5 : 1, // Lower density on mobile to reduce overlaps
+            labelGridCellSize: mobile ? 80 : 60, // Larger on mobile to reduce label collisions
             zIndex: true
         };
     }, []); // Empty deps - settings are fixed after mount
@@ -307,12 +319,12 @@ export default function InterestGraph({
                 @media (max-width: 768px) {
                     .interest-graph-toggle-btn {
                         right: 16px;
-                        top: auto;
-                        bottom: 24px;
-                        transform: none;
-                        width: 48px;
-                        height: 48px;
-                        font-size: 22px;
+                        top: 30%;
+                        bottom: auto;
+                        transform: translateY(-50%);
+                        width: 40px;
+                        height: 40px;
+                        font-size: 20px;
                     }
                 }
             `}</style>
@@ -333,6 +345,7 @@ export default function InterestGraph({
                         setIsReady={setIsReady}
                         showLabels={showLabels}
                         onInterestClick={onInterestClick}
+                        isMobile={isMobileRef.current}
                     />
                 </SigmaContainer>
             </div>

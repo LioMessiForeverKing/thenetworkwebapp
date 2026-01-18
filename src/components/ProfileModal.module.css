@@ -1,15 +1,16 @@
 .overlay {
     position: fixed;
     inset: 0;
-    /* Use a very light transparent background that inverts to dark transparent */
-    background: rgba(255, 255, 255, 0.1); 
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
+    background: transparent;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     display: flex;
     align-items: center;
     justify-content: center;
     z-index: 1000;
     animation: fadeIn 0.2s ease;
+    padding: 20px;
+    overflow: hidden;
 }
 
 @keyframes fadeIn {
@@ -24,26 +25,21 @@
 
 .modal {
     position: relative;
-    /* 
-       Glassmorphism Strategy for Inversion:
-       Light Mode (Raw CSS): White/Light background with transparency.
-       Dark Mode (Inverted): Inverts to Black/Dark background with transparency.
-    */
-    background: rgba(255, 255, 255, 0.95); /* Inverts to rgba(0, 0, 0, 0.95) - Less transparent */
+    background: rgba(255, 255, 255, 0.98);
     backdrop-filter: blur(40px);
     -webkit-backdrop-filter: blur(40px);
-    border: 1px solid rgba(0, 0, 0, 0.1); /* Inverts to rgba(255, 255, 255, 0.1) */
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1); /* Inverts to light shadow, might need tweaking but usually okay */
-    
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
     border-radius: 24px;
-    padding: 30px;
-    max-width: 500px; /* Increased from 360px */
-    width: 90%;
+    padding: 24px;
+    max-width: 400px;
+    width: 100%;
     text-align: center;
     animation: slideUp 0.3s ease;
-    color: #000; /* Inverts to #fff */
-    max-height: 85vh;
+    color: #000;
+    max-height: calc(100vh - 80px);
     overflow-y: auto;
+    overscroll-behavior: contain;
 }
 
 @keyframes slideUp {
@@ -60,100 +56,121 @@
 
 .closeButton {
     position: absolute;
-    top: 16px;
-    right: 16px;
+    top: 12px;
+    right: 12px;
     background: none;
     border: none;
-    color: rgba(0, 0, 0, 0.5); /* Inverts to rgba(255, 255, 255, 0.5) */
+    color: rgba(0, 0, 0, 0.5);
     cursor: pointer;
     padding: 8px;
     border-radius: 8px;
     transition: all 0.2s ease;
+    z-index: 10;
 }
 
 .closeButton:hover {
-    color: #000; /* Inverts to #fff */
-    background: rgba(0, 0, 0, 0.05); /* Inverts to white tint */
+    color: #000;
+    background: rgba(0, 0, 0, 0.05);
 }
 
-.avatarContainer {
+.header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
     margin-bottom: 20px;
 }
 
+.avatarContainer {
+    flex-shrink: 0;
+}
+
 .avatar {
-    width: 100px;
-    height: 100px;
+    width: 56px;
+    height: 56px;
     border-radius: 50%;
     object-fit: cover;
-    border: 3px solid rgba(0, 0, 0, 0.1); /* Inverts to White border */
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    border: 2px solid rgba(0, 0, 0, 0.1);
 }
 
 .avatarPlaceholder {
-    width: 100px;
-    height: 100px;
+    width: 56px;
+    height: 56px;
     border-radius: 50%;
-    background: rgba(0, 0, 0, 0.05); /* Inverts to Light Grey */
-    border: 3px solid rgba(0, 0, 0, 0.1);
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: 2px solid rgba(0, 0, 0, 0.1);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 40px;
+    font-size: 22px;
     font-weight: 600;
-    color: rgba(0, 0, 0, 0.5); /* Inverts to White Text */
-    margin: 0 auto;
+    color: #fff;
+}
+
+.headerInfo {
+    text-align: left;
+    flex: 1;
 }
 
 .name {
-    font-size: 24px;
+    font-size: 20px;
     font-weight: 600;
-    color: #000; /* Inverts to #fff */
-    margin: 0 0 8px;
+    color: #000;
+    margin: 0 0 4px;
 }
 
-.compatibilityPercentage {
-    display: flex;
-    flex-direction: column;
+.compatibilityBadge {
+    display: inline-flex;
     align-items: center;
-    justify-content: center;
     gap: 4px;
-    margin-bottom: 16px;
+    padding: 4px 10px;
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #000;
+}
+
+.compatibilityBadge span {
+    font-size: 11px;
+    font-weight: 500;
+    color: rgba(0, 0, 0, 0.6);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Legacy compatibility percentage - hidden, using badge instead */
+.compatibilityPercentage {
+    display: none;
 }
 
 .percentageValue {
-    font-size: 32px;
-    font-weight: 700;
-    color: #000; /* Inverts to #fff */
-    line-height: 1;
+    display: none;
 }
 
 .percentageLabel {
-    font-size: 12px;
-    color: rgba(0, 0, 0, 0.6); /* Inverts to White 0.6 */
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    font-weight: 500;
+    display: none;
 }
 
 .bio {
     font-size: 14px;
-    color: rgba(0, 0, 0, 0.7); /* Inverts to White 0.7 */
+    color: rgba(0, 0, 0, 0.7);
     line-height: 1.5;
     margin: 0 0 20px;
+    text-align: left;
 }
 
 .connectionInfo {
-    display: none; /* Hide connection count */
+    display: none;
     margin-bottom: 24px;
 }
 
 .connectionCount {
     font-size: 14px;
-    color: rgba(0, 0, 0, 0.5); /* Inverts to White 0.5 */
+    color: rgba(0, 0, 0, 0.5);
 }
 
 .actions {
-    display: none; /* Hide message button section */
+    display: none;
     gap: 12px;
     justify-content: center;
 }
@@ -162,8 +179,8 @@
     padding: 12px 32px;
     font-size: 14px;
     font-weight: 600;
-    color: #fff; /* Inverts to #000 */
-    background: #000; /* Inverts to #fff */
+    color: #fff;
+    background: #000;
     border: none;
     border-radius: 12px;
     cursor: pointer;
@@ -175,17 +192,43 @@
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
 }
 
-.sharedInterests {
+/* Why You'd Connect - now more prominent and first */
+.compatibilitySection {
     margin-bottom: 20px;
+    text-align: left;
+    padding: 16px;
+    background: rgba(0, 0, 0, 0.03);
+    border-radius: 16px;
+}
+
+.compatibilityTitle {
+    font-size: 13px;
+    color: rgba(0, 0, 0, 0.6);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 10px;
+    font-weight: 600;
+}
+
+.compatibilityDescription {
+    font-size: 15px;
+    color: rgba(0, 0, 0, 0.85);
+    line-height: 1.65;
+}
+
+/* Shared Interests - now after Why You'd Connect */
+.sharedInterests {
+    margin-bottom: 16px;
     text-align: left;
 }
 
 .sharedInterestsTitle {
-    font-size: 12px;
-    color: rgba(0, 0, 0, 0.5); /* Inverts to White 0.5 */
+    font-size: 11px;
+    color: rgba(0, 0, 0, 0.5);
     text-transform: uppercase;
-    letter-spacing: 1px;
+    letter-spacing: 0.5px;
     margin-bottom: 8px;
+    font-weight: 500;
 }
 
 .interestsList {
@@ -195,38 +238,50 @@
 }
 
 .interestTag {
-    padding: 4px 12px;
-    background: rgba(0, 0, 0, 0.05); /* Inverts to White 0.05 */
-    border: 1px solid rgba(0, 0, 0, 0.1); /* Inverts to White 0.1 */
-    border-radius: 12px;
+    padding: 4px 10px;
+    background: rgba(0, 0, 0, 0.05);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 20px;
     font-size: 12px;
-    color: rgba(0, 0, 0, 0.8); /* Inverts to White 0.8 */
-}
-
-.compatibilitySection {
-    margin-bottom: 20px;
-    text-align: left;
-    max-height: 120px; /* Reduced from 200px to reduce vertical height */
-    overflow-y: auto;
-}
-
-.compatibilityTitle {
-    font-size: 12px;
-    color: rgba(0, 0, 0, 0.5); /* Inverts to White 0.5 */
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    margin-bottom: 8px;
-}
-
-.compatibilityDescription {
-    font-size: 14px;
-    color: rgba(0, 0, 0, 0.8); /* Inverts to White 0.8 */
-    line-height: 1.6;
-    white-space: pre-line;
+    color: rgba(0, 0, 0, 0.7);
 }
 
 .loading {
     font-size: 14px;
     color: rgba(0, 0, 0, 0.5);
     margin-bottom: 20px;
+    text-align: center;
+    padding: 20px;
+}
+
+/* Mobile adjustments */
+@media (max-width: 480px) {
+    .modal {
+        padding: 20px;
+        border-radius: 20px;
+        max-height: calc(100vh - 40px);
+    }
+    
+    .header {
+        gap: 12px;
+    }
+    
+    .avatar,
+    .avatarPlaceholder {
+        width: 48px;
+        height: 48px;
+        font-size: 18px;
+    }
+    
+    .name {
+        font-size: 18px;
+    }
+    
+    .compatibilitySection {
+        padding: 14px;
+    }
+    
+    .compatibilityDescription {
+        font-size: 14px;
+    }
 }

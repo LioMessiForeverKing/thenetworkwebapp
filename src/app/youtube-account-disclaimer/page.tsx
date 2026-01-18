@@ -53,7 +53,7 @@ export default function YouTubeAccountDisclaimerPage() {
     // Store acknowledgment
     localStorage.setItem('youtube_account_disclaimer_acknowledged', 'true');
     // Navigate to onboarding
-    router.push('/onboarding');
+    router.push('/consent');
   };
 
   return (
