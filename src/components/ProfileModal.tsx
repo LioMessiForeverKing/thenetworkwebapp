@@ -72,6 +72,8 @@ function calculateStars(similarity: number): number {
     return 1;
 }
 
+type RequestStatus = 'none' | 'pending' | 'accepted' | 'checking';
+
 export default function ProfileModal({ person, onClose }: ProfileModalProps) {
     const { user } = useAuth();
     const [compatibilityDescription, setCompatibilityDescription] = useState<string>('');
@@ -79,6 +81,9 @@ export default function ProfileModal({ person, onClose }: ProfileModalProps) {
     const [sharedInterests, setSharedInterests] = useState<string[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [profileData, setProfileData] = useState<any>(null);
+    const [isConnected, setIsConnected] = useState<boolean>(false);
+    const [requestStatus, setRequestStatus] = useState<RequestStatus>('checking');
+    const [isSending, setIsSending] = useState(false);
 
     useEffect(() => {
         if (!user || !person) return;
@@ -88,6 +93,72 @@ export default function ProfileModal({ person, onClose }: ProfileModalProps) {
             const supabase = createClient();
 
             try {
+                // First, check connection status
+                const { data: { user: authUser } } = await supabase.auth.getUser();
+                if (!authUser) {
+                    setIsLoading(false);
+                    return;
+                }
+
+                // Check for existing friend requests between these two users
+                const { data: existingRequests } = await supabase
+                    .from('friend_requests')
+                    .select('sender_id, receiver_id, status')
+                    .or(`and(sender_id.eq.${authUser.id},receiver_id.eq.${person.id}),and(sender_id.eq.${person.id},receiver_id.eq.${authUser.id})`);
+
+                // Check for existing connections between these two users
+                const { data: existingConnections } = await supabase
+                    .from('user_connections')
+                    .select('sender_id, receiver_id, status')
+                    .or(`and(sender_id.eq.${authUser.id},receiver_id.eq.${person.id}),and(sender_id.eq.${person.id},receiver_id.eq.${authUser.id})`);
+
+                // Check if already connected
+                const connected = (existingConnections || []).some(conn =>
+                    ((conn.sender_id === authUser.id && conn.receiver_id === person.id) ||
+                     (conn.receiver_id === authUser.id && conn.sender_id === person.id)) &&
+                    conn.status === 'accepted'
+                );
+
+                // Also check friend_requests for accepted status
+                const friendRequestAccepted = (existingRequests || []).some(req =>
+                    ((req.sender_id === authUser.id && req.receiver_id === person.id) ||
+                     (req.receiver_id === authUser.id && req.sender_id === person.id)) &&
+                    req.status === 'accepted'
+                );
+
+                const isAlreadyConnected = connected || friendRequestAccepted;
+                setIsConnected(isAlreadyConnected);
+
+                // Set request status
+                if (isAlreadyConnected) {
+                    setRequestStatus('accepted');
+                } else {
+                    const foundRequest = (existingRequests || []).find(req =>
+                        ((req.sender_id === authUser.id && req.receiver_id === person.id) ||
+                         (req.receiver_id === authUser.id && req.sender_id === person.id))
+                    );
+                    if (foundRequest) {
+                        setRequestStatus(foundRequest.status === 'pending' ? 'pending' : 'accepted');
+                    } else {
+                        setRequestStatus('none');
+                    }
+                }
+
+                // Only load compatibility data if NOT connected
+                if (isAlreadyConnected) {
+                    setIsLoading(false);
+                    // Still load profile data
+                    const { data: otherProfile } = await supabase
+                        .from('profiles')
+                        .select('id, full_name, interests, bio, avatar_url')
+                        .eq('id', person.id)
+                        .single();
+                    if (otherProfile) {
+                        setProfileData(otherProfile);
+                    }
+                    return;
+                }
+
                 // Get current user's profile
                 const { data: currentUserProfile } = await supabase
                     .from('profiles')
@@ -257,6 +328,60 @@ export default function ProfileModal({ person, onClose }: ProfileModalProps) {
         loadCompatibility();
     }, [user, person]);
 
+    const handleSendRequest = async () => {
+        if (!person || isSending || requestStatus !== 'none') return;
+
+        setIsSending(true);
+        const supabase = createClient();
+
+        try {
+            const { data: { user: authUser } } = await supabase.auth.getUser();
+            if (!authUser) return;
+
+            // Check if request already exists (race condition protection)
+            const { data: existing } = await supabase
+                .from('friend_requests')
+                .select('id, status')
+                .eq('sender_id', authUser.id)
+                .eq('receiver_id', person.id)
+                .maybeSingle();
+
+            if (existing) {
+                setRequestStatus(existing.status === 'pending' ? 'pending' : 'accepted');
+                setIsSending(false);
+                return;
+            }
+
+            // Send friend request
+            const { error } = await supabase
+                .from('friend_requests')
+                .insert({
+                    sender_id: authUser.id,
+                    receiver_id: person.id,
+                    status: 'pending'
+                });
+
+            if (error) {
+                console.error('Error sending friend request:', error);
+            } else {
+                setRequestStatus('pending');
+            }
+        } catch (error) {
+            console.error('Error sending friend request:', error);
+        } finally {
+            setIsSending(false);
+        }
+    };
+
+    const getButtonText = () => {
+        if (requestStatus === 'checking') return 'Checking...';
+        if (requestStatus === 'pending') return 'Request Sent';
+        if (requestStatus === 'accepted') return 'Connected';
+        return 'Add Friend';
+    };
+
+    const isButtonDisabled = requestStatus !== 'none' || isSending;
+
     return (
         <div className={styles.overlay} onClick={onClose}>
             <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
@@ -284,7 +409,7 @@ export default function ProfileModal({ person, onClose }: ProfileModalProps) {
                     </div>
                     <div className={styles.headerInfo}>
                         <h2 className={styles.name}>{person.name}</h2>
-                        {compatibilityPercentage !== null && (
+                        {!isConnected && compatibilityPercentage !== null && (
                             <div className={styles.compatibilityBadge}>
                                 {compatibilityPercentage}% <span>match</span>
                             </div>
@@ -297,41 +422,44 @@ export default function ProfileModal({ person, onClose }: ProfileModalProps) {
                     <p className={styles.bio}>{profileData.bio}</p>
                 )}
 
-                {/* Why You'd Connect - Now first and prominent */}
-                {isLoading ? (
-                    <div className={styles.loading}>Loading...</div>
-                ) : compatibilityDescription ? (
-                    <div className={styles.compatibilitySection}>
-                        <div className={styles.compatibilityTitle}>Why You'd Connect</div>
-                        <div className={styles.compatibilityDescription}>{compatibilityDescription}</div>
-                    </div>
-                ) : null}
+                {/* Why You'd Connect - Only show if NOT connected */}
+                {!isConnected && (
+                    <>
+                        {isLoading ? (
+                            <div className={styles.loading}>Loading...</div>
+                        ) : compatibilityDescription ? (
+                            <div className={styles.compatibilitySection}>
+                                <div className={styles.compatibilityTitle}>Why You'd Connect</div>
+                                <div className={styles.compatibilityDescription}>{compatibilityDescription}</div>
+                            </div>
+                        ) : null}
 
-                {/* Shared Interests - Now after Why You'd Connect */}
-                {sharedInterests.length > 0 && (
-                    <div className={styles.sharedInterests}>
-                        <div className={styles.sharedInterestsTitle}>Shared Interests</div>
-                        <div className={styles.interestsList}>
-                            {sharedInterests.map((interest, i) => (
-                                <span key={i} className={styles.interestTag}>{interest}</span>
-                            ))}
-                        </div>
-                    </div>
+                        {/* Shared Interests - Only show if NOT connected */}
+                        {sharedInterests.length > 0 && (
+                            <div className={styles.sharedInterests}>
+                                <div className={styles.sharedInterestsTitle}>Shared Interests</div>
+                                <div className={styles.interestsList}>
+                                    {sharedInterests.map((interest, i) => (
+                                        <span key={i} className={styles.interestTag}>{interest}</span>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </>
                 )}
 
-                {/* Connection info - hidden */}
-                <div className={styles.connectionInfo}>
-                    <span className={styles.connectionCount}>
-                        {person.connections.length} connections
-                    </span>
-                </div>
-
-                {/* Actions - hidden */}
-                <div className={styles.actions}>
-                    <button className={styles.messageButton}>
-                        Message
-                    </button>
-                </div>
+                {/* Add Friend Button - Only show if NOT connected */}
+                {!isConnected && (
+                    <div className={styles.actions}>
+                        <button
+                            className={styles.addFriendButton}
+                            onClick={handleSendRequest}
+                            disabled={isButtonDisabled}
+                        >
+                            {isSending ? 'Sending...' : getButtonText()}
+                        </button>
+                    </div>
+                )}
             </div>
         </div>
     );

@@ -170,9 +170,10 @@
 }
 
 .actions {
-    display: none;
+    display: flex;
     gap: 12px;
     justify-content: center;
+    margin-top: 24px;
 }
 
 .messageButton {
@@ -190,6 +191,29 @@
 .messageButton:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+
+.addFriendButton {
+    padding: 12px 32px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #fff;
+    background: #000;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    width: 100%;
+}
+
+.addFriendButton:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+
+.addFriendButton:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
 }
 
 /* Why You'd Connect - now more prominent and first */
