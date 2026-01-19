@@ -9,13 +9,13 @@ import styles from './Menu.module.css';
 
 const menuItems = [
   { label: 'THENETWORK', href: '/', authHref: '/network' },
-  { label: 'DIGITAL DNA', href: '/digital-dna' },
   { label: 'ARI', href: '/msg-aria' },
 ];
 
 export default function Menu() {
   const [isOpen, setIsOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isDigitalDnaOpen, setIsDigitalDnaOpen] = useState(false);
   const [isInverted, setIsInverted] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -94,6 +94,33 @@ export default function Menu() {
                 {item.label}
               </Link>
             ))}
+
+            {/* Digital DNA Toggle */}
+            <div className={styles.settingsSection}>
+              <button
+                className={styles.settingsToggle}
+                onClick={() => setIsDigitalDnaOpen(!isDigitalDnaOpen)}
+              >
+                DIGITAL DNA
+              </button>
+
+              <div className={`${styles.subMenu} ${isDigitalDnaOpen ? styles.show : ''}`}>
+                <Link
+                  href="/network-profile"
+                  onClick={() => setIsOpen(false)}
+                  className={styles.subMenuItem}
+                >
+                  YOUR NETWORK PROFILE
+                </Link>
+                <Link
+                  href="/digital-dna"
+                  onClick={() => setIsOpen(false)}
+                  className={styles.subMenuItem}
+                >
+                  DNA VISUALIZATION
+                </Link>
+              </div>
+            </div>
 
             {/* Settings Toggle */}
             <div className={styles.settingsSection}>

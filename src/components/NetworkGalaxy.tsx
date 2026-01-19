@@ -152,6 +152,9 @@ export default React.memo(function NetworkGalaxy({
                     : directionAngle; // Single branch goes straight out
                 const radius = 180; // Distance from the friend node
 
+                // Check if this branch node is a mutual connection
+                const isMutual = mutualConnectionIds.has(fof.id);
+
                 nodes.push({
                     id: fof.id,
                     name: fof.name,
@@ -160,7 +163,7 @@ export default React.memo(function NetworkGalaxy({
                     imgUrl: fof.imageUrl,
                     x: friendX + Math.cos(angle) * radius,
                     y: friendY + Math.sin(angle) * radius,
-                    isGreyedOut: false,
+                    isGreyedOut: !isMutual, // Grey out if not a mutual connection
                     isBranchNode: true,
                     isExpandedFriend: false
                 });
@@ -171,28 +174,61 @@ export default React.memo(function NetworkGalaxy({
         const linkSet = new Set<string>();
         const nodeIds = new Set(nodes.map(n => n.id));
 
-        // Add main network links
+        // Get all connections of the expanded friend
+        const expandedFriendConnections = new Set<string>();
+        if (expandedFriendId) {
+            // Add branch nodes (friend-of-friend - not in main network)
+            friendOfFriendData.forEach(fof => expandedFriendConnections.add(fof.id));
+            
+            // Add mutual connections (people in both main network and friend's network)
+            mutualConnectionIds.forEach(mutualId => {
+                if (mutualId !== currentUserId && mutualId !== expandedFriendId && nodeIds.has(mutualId)) {
+                    expandedFriendConnections.add(mutualId);
+                }
+            });
+        }
+
+        // Add main network links (excluding links from expanded friend - those will be added separately)
         people.forEach(p => {
+            // Skip links from expanded friend - we'll add those separately
+            if (p.id === expandedFriendId) return;
+            
             if (p.connections) {
                 p.connections.forEach(targetId => {
+                    // Skip links to expanded friend - those will be added separately
+                    if (targetId === expandedFriendId) return;
+                    
                     if (nodeIds.has(targetId)) {
                         const linkKey = [p.id, targetId].sort().join('-');
                         if (!linkSet.has(linkKey)) {
                             linkSet.add(linkKey);
-                            links.push({ source: p.id, target: targetId, isBranchLink: false });
+                            links.push({ 
+                                source: p.id, 
+                                target: targetId, 
+                                isBranchLink: false 
+                            });
                         }
                     }
                 });
             }
         });
 
-        // Add branch links (from expanded friend to their connections)
-        if (expandedFriendId && friendOfFriendData.length > 0) {
-            friendOfFriendData.forEach(fof => {
-                const linkKey = [expandedFriendId, fof.id].sort().join('-');
-                if (!linkSet.has(linkKey)) {
-                    linkSet.add(linkKey);
-                    links.push({ source: expandedFriendId, target: fof.id, isBranchLink: true });
+        // Add links from expanded friend
+        // Purple dashed lines ONLY to mutual connections, grey lines to non-mutuals
+        if (expandedFriendId) {
+            expandedFriendConnections.forEach(connId => {
+                if (nodeIds.has(connId)) {
+                    const linkKey = [expandedFriendId, connId].sort().join('-');
+                    if (!linkSet.has(linkKey)) {
+                        linkSet.add(linkKey);
+                        // Only make it purple if it's a mutual connection
+                        const isMutual = mutualConnectionIds.has(connId);
+                        links.push({ 
+                            source: expandedFriendId, 
+                            target: connId, 
+                            isBranchLink: isMutual // Purple only for mutuals
+                        });
+                    }
                 }
             });
         }
@@ -399,12 +435,12 @@ export default React.memo(function NetworkGalaxy({
                 .data(nextLinks, (d: any) => `${d.source.id || d.source}-${d.target.id || d.target}`)
                 .join(
                     (enter: any) => enter.append('line')
-                        .attr('stroke', (d: any) => d.isBranchLink ? '#a855f7' : '#e5e7eb')
+                        .attr('stroke', (d: any) => d.isBranchLink ? '#3b82f6' : '#e5e7eb')
                         .attr('stroke-opacity', (d: any) => d.isBranchLink ? 0.7 : 0.85)
                         .attr('stroke-width', (d: any) => d.isBranchLink ? 2 : 1)
                         .attr('stroke-dasharray', (d: any) => d.isBranchLink ? '5,5' : 'none'),
                     (update: any) => update
-                        .attr('stroke', (d: any) => d.isBranchLink ? '#a855f7' : '#e5e7eb')
+                        .attr('stroke', (d: any) => d.isBranchLink ? '#3b82f6' : '#e5e7eb')
                         .attr('stroke-opacity', (d: any) => d.isBranchLink ? 0.7 : 0.85)
                         .attr('stroke-width', (d: any) => d.isBranchLink ? 2 : 1)
                         .attr('stroke-dasharray', (d: any) => d.isBranchLink ? '5,5' : 'none')
