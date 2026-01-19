@@ -151,6 +151,28 @@
     display: none;
 }
 
+/* Profile Details - School & Location */
+.profileDetails {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 16px;
+    text-align: left;
+}
+
+.detailItem {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: rgba(0, 0, 0, 0.6);
+}
+
+.detailItem svg {
+    color: rgba(0, 0, 0, 0.4);
+    flex-shrink: 0;
+}
+
 .bio {
     font-size: 14px;
     color: rgba(0, 0, 0, 0.7);

@@ -144,18 +144,115 @@ export default function ProfileModal({ person, onClose }: ProfileModalProps) {
                     }
                 }
 
-                // Only load compatibility data if NOT connected
+                // Load profile data for connected users (still generate AI description)
                 if (isAlreadyConnected) {
-                    setIsLoading(false);
-                    // Still load profile data
+                    // Get current user's profile
+                    const { data: currentUserProfile } = await supabase
+                        .from('profiles')
+                        .select('id, full_name, interests, bio')
+                        .eq('id', user.id)
+                        .single();
+
+                    // Load profile data with more fields
                     const { data: otherProfile } = await supabase
                         .from('profiles')
-                        .select('id, full_name, interests, bio, avatar_url')
+                        .select('id, full_name, interests, bio, avatar_url, school, location')
                         .eq('id', person.id)
                         .single();
+                    
                     if (otherProfile) {
                         setProfileData(otherProfile);
+                        
+                        // Calculate shared interests between users
+                        const otherInterests = (otherProfile.interests || []) as string[];
+                        
+                        // Generate AI description for connected users too
+                        if (currentUserProfile) {
+                            const userInterests = (currentUserProfile.interests || []) as string[];
+                            // Find common interests
+                            const shared = userInterests.filter(i => 
+                                otherInterests.some(oi => oi.toLowerCase() === i.toLowerCase())
+                            );
+                            setSharedInterests(shared.length > 0 ? shared : otherInterests.slice(0, 5));
+
+                            // Get compatibility score for connected users
+                            const { data: matchData } = await supabase
+                                .from('user_matches')
+                                .select('compatibility_percentage, similarity_score')
+                                .eq('user_id', user.id)
+                                .eq('match_user_id', person.id)
+                                .maybeSingle();
+
+                            if (matchData?.compatibility_percentage != null) {
+                                setCompatibilityPercentage(matchData.compatibility_percentage);
+                            } else if (matchData?.similarity_score != null) {
+                                setCompatibilityPercentage(Math.round(matchData.similarity_score * 100));
+                            } else {
+                                // Calculate on-the-fly from DNA
+                                const { data: userDnaV2 } = await supabase
+                                    .from('digital_dna_v2')
+                                    .select('composite_vector')
+                                    .eq('user_id', user.id)
+                                    .single();
+
+                                const { data: otherDnaV2 } = await supabase
+                                    .from('digital_dna_v2')
+                                    .select('composite_vector')
+                                    .eq('user_id', person.id)
+                                    .single();
+
+                                if (userDnaV2?.composite_vector && otherDnaV2?.composite_vector) {
+                                    const userVec = parseVector(userDnaV2.composite_vector);
+                                    const otherVec = parseVector(otherDnaV2.composite_vector);
+                                    if (userVec && otherVec && userVec.length > 0 && otherVec.length > 0) {
+                                        const rawSimilarity = cosineSimilarity(userVec, otherVec);
+                                        const scaledSimilarity = scaleCompatibilityScore(rawSimilarity);
+                                        setCompatibilityPercentage(Math.round(scaledSimilarity * 100));
+                                    }
+                                }
+                            }
+                            
+                            // Check for cached compatibility description
+                            const userAId = user.id < person.id ? user.id : person.id;
+                            const userBId = user.id < person.id ? person.id : user.id;
+
+                            const { data: cached } = await supabase
+                                .from('user_compatibility_descriptions')
+                                .select('description')
+                                .eq('user_a_id', userAId)
+                                .eq('user_b_id', userBId)
+                                .maybeSingle();
+
+                            if (cached && cached.description) {
+                                setCompatibilityDescription(cached.description);
+                            } else {
+                                // Generate new description
+                                const { data: reasonData, error: reasonError } = await supabase.functions.invoke(
+                                    'generate-suggestion-reason',
+                                    {
+                                        body: {
+                                            userAId: user.id,
+                                            userBId: person.id,
+                                            userProfile: {
+                                                interests: userInterests,
+                                                bio: currentUserProfile.bio || ''
+                                            },
+                                            candidateProfile: {
+                                                interests: otherInterests,
+                                                bio: otherProfile.bio || ''
+                                            },
+                                            similarity: 0.5 // Default similarity for connected users
+                                        }
+                                    }
+                                );
+
+                                if (!reasonError && reasonData?.reason) {
+                                    setCompatibilityDescription(reasonData.reason);
+                                }
+                            }
+                        }
                     }
+                    setIsLoading(false);
                     return;
                 }
 
@@ -409,43 +506,65 @@ export default function ProfileModal({ person, onClose }: ProfileModalProps) {
                     </div>
                     <div className={styles.headerInfo}>
                         <h2 className={styles.name}>{person.name}</h2>
-                        {!isConnected && compatibilityPercentage !== null && (
+                        {compatibilityPercentage !== null && (
                             <div className={styles.compatibilityBadge}>
-                                {compatibilityPercentage}% <span>match</span>
+                                {compatibilityPercentage}% <span>{isConnected ? 'compatible' : 'match'}</span>
                             </div>
                         )}
                     </div>
                 </div>
+
+                {/* School & Location */}
+                {(profileData?.school || profileData?.location) && (
+                    <div className={styles.profileDetails}>
+                        {profileData?.school && (
+                            <span className={styles.detailItem}>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
+                                    <path d="M6 12v5c3 3 9 3 12 0v-5"/>
+                                </svg>
+                                {profileData.school}
+                            </span>
+                        )}
+                        {profileData?.location && (
+                            <span className={styles.detailItem}>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                                    <circle cx="12" cy="10" r="3"/>
+                                </svg>
+                                {profileData.location}
+                            </span>
+                        )}
+                    </div>
+                )}
 
                 {/* Bio */}
                 {profileData?.bio && (
                     <p className={styles.bio}>{profileData.bio}</p>
                 )}
 
-                {/* Why You'd Connect - Only show if NOT connected */}
-                {!isConnected && (
-                    <>
-                        {isLoading ? (
-                            <div className={styles.loading}>Loading...</div>
-                        ) : compatibilityDescription ? (
-                            <div className={styles.compatibilitySection}>
-                                <div className={styles.compatibilityTitle}>Why You'd Connect</div>
-                                <div className={styles.compatibilityDescription}>{compatibilityDescription}</div>
-                            </div>
-                        ) : null}
+                {/* Why You're Connected / Why You'd Connect */}
+                {isLoading ? (
+                    <div className={styles.loading}>Loading...</div>
+                ) : compatibilityDescription ? (
+                    <div className={styles.compatibilitySection}>
+                        <div className={styles.compatibilityTitle}>
+                            {isConnected ? "Why You're Connected" : "Why You'd Connect"}
+                        </div>
+                        <div className={styles.compatibilityDescription}>{compatibilityDescription}</div>
+                    </div>
+                ) : null}
 
-                        {/* Shared Interests - Only show if NOT connected */}
-                        {sharedInterests.length > 0 && (
-                            <div className={styles.sharedInterests}>
-                                <div className={styles.sharedInterestsTitle}>Shared Interests</div>
-                                <div className={styles.interestsList}>
-                                    {sharedInterests.map((interest, i) => (
-                                        <span key={i} className={styles.interestTag}>{interest}</span>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-                    </>
+                {/* Shared Interests - Show for everyone */}
+                {sharedInterests.length > 0 && (
+                    <div className={styles.sharedInterests}>
+                        <div className={styles.sharedInterestsTitle}>Shared Interests</div>
+                        <div className={styles.interestsList}>
+                            {sharedInterests.map((interest, i) => (
+                                <span key={i} className={styles.interestTag}>{interest}</span>
+                            ))}
+                        </div>
+                    </div>
                 )}
 
                 {/* Add Friend Button - Only show if NOT connected */}

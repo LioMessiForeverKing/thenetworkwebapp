@@ -1,11 +1,9 @@
 .wrapper {
     position: relative;
-    width: 100vw;
+    width: 100%;
     min-height: 100vh;
-    background: var(--background);
-    color: var(--foreground);
-    display: flex;
-    flex-direction: column;
+    background: #ffffff;
+    color: #000000;
 }
 
 .loadingContainer {
@@ -13,14 +11,14 @@
     align-items: center;
     justify-content: center;
     min-height: 100vh;
-    background: var(--background);
+    background: #ffffff;
 }
 
 .loader {
     width: 48px;
     height: 48px;
-    border: 3px solid var(--muted);
-    border-top-color: var(--foreground);
+    border: 3px solid rgba(0, 0, 0, 0.1);
+    border-top-color: #000;
     border-radius: 50%;
     animation: spin 1s linear infinite;
 }
@@ -31,40 +29,584 @@
     }
 }
 
-.content {
+/* ============================================
+   Three Column Layout
+   ============================================ */
+.threeColumnLayout {
+    display: grid;
+    grid-template-columns: 280px 1fr 320px;
+    gap: 0;
+    min-height: 100vh;
+    padding-top: 60px;
+}
+
+/* Tablet: Two columns */
+@media (max-width: 1200px) {
+    .threeColumnLayout {
+        grid-template-columns: 250px 1fr 280px;
+    }
+}
+
+/* Mobile: Single column stack */
+@media (max-width: 900px) {
+    .threeColumnLayout {
+        grid-template-columns: 1fr;
+        padding-top: 60px;
+    }
+}
+
+/* ============================================
+   LEFT COLUMN: Profile Overview
+   ============================================ */
+.leftColumn {
+    padding: 24px 20px;
+    border-right: 1px solid rgba(0, 0, 0, 0.08);
+    position: sticky;
+    top: 60px;
+    height: calc(100vh - 60px);
+    overflow-y: auto;
+}
+
+/* Mobile: Not sticky */
+@media (max-width: 900px) {
+    .leftColumn {
+        position: relative;
+        top: 0;
+        height: auto;
+        border-right: none;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+        padding: 20px 16px;
+    }
+}
+
+.profileImage {
+    width: 100%;
+    aspect-ratio: 1;
+    border-radius: 0;
+    object-fit: cover;
+    background: #f0f0f0;
+    margin-bottom: 20px;
+}
+
+.profileImagePlaceholder {
+    width: 100%;
+    aspect-ratio: 1;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 72px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 20px;
+}
+
+/* Mobile: Smaller image */
+@media (max-width: 900px) {
+    .profileImage,
+    .profileImagePlaceholder {
+        max-width: 200px;
+        margin: 0 auto 20px;
+    }
+
+    .profileImagePlaceholder {
+        font-size: 56px;
+    }
+}
+
+/* Status Section */
+.statusSection {
+    background: #000;
+    padding: 16px;
+    margin-bottom: 12px;
+}
+
+.statusLabel {
+    font-size: 14px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 8px;
+}
+
+.statusText {
+    font-size: 14px;
+    color: #fff;
+    line-height: 1.5;
+}
+
+.statusInput {
+    width: 100%;
+    background: transparent;
+    border: none;
+    font-size: 14px;
+    color: #fff;
+    line-height: 1.5;
+    outline: none;
+    resize: none;
+    font-family: inherit;
+}
+
+.statusInput::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+}
+
+/* Network Score Display */
+.networkScoreDisplay {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+    margin-bottom: 8px;
+}
+
+.scoreNumber {
+    font-size: 48px;
+    font-weight: 800;
+    color: #fff;
+    line-height: 1;
+}
+
+.scoreOutOf {
+    font-size: 18px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.scoreBreakdown {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.breakdownItem {
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+/* Currently Working On Section */
+.workingOnSection {
+    background: #000;
+    padding: 16px;
+    margin-bottom: 20px;
+}
+
+.workingOnLabel {
+    font-size: 14px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 8px;
+}
+
+.workingOnText {
+    font-size: 14px;
+    color: #fff;
+    line-height: 1.5;
+}
+
+/* Action Links */
+.actionLinks {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.actionLink {
+    font-size: 13px;
+    color: #1877f2;
+    text-decoration: none;
+    cursor: pointer;
+    background: none;
+    border: none;
+    text-align: left;
+    padding: 0;
+    font-family: inherit;
+}
+
+.actionLink:hover {
+    text-decoration: underline;
+}
+
+/* ============================================
+   CENTER COLUMN: Information
+   ============================================ */
+.centerColumn {
+    padding: 0;
+    min-height: calc(100vh - 60px);
+}
+
+/* Mobile: Adjust padding */
+@media (max-width: 900px) {
+    .centerColumn {
+        min-height: auto;
+    }
+}
+
+.infoHeader {
+    background: #f97316;
+    padding: 8px 16px;
+    font-size: 14px;
+    font-weight: 700;
+    color: #fff;
+}
+
+.infoSection {
+    padding: 16px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.infoSectionTitle {
+    font-size: 14px;
+    font-weight: 700;
+    color: #000;
+    margin-bottom: 12px;
+}
+
+.infoRow {
+    display: flex;
+    margin-bottom: 8px;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.infoLabel {
+    width: 140px;
+    flex-shrink: 0;
+    color: rgba(0, 0, 0, 0.6);
+}
+
+.infoValue {
+    color: #000;
+    font-weight: 500;
+}
+
+.infoValueLink {
+    color: #1877f2;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.infoValueLink:hover {
+    text-decoration: underline;
+}
+
+/* Mobile: Smaller labels */
+@media (max-width: 900px) {
+    .infoLabel {
+        width: 110px;
+    }
+}
+
+/* ============================================
+   RIGHT COLUMN: Interest Clusters
+   ============================================ */
+.rightColumn {
+    padding: 0;
+    border-left: 1px solid rgba(0, 0, 0, 0.08);
+    background: #f5f5f5;
+}
+
+/* Mobile: No border */
+@media (max-width: 900px) {
+    .rightColumn {
+        border-left: none;
+        border-top: 1px solid rgba(0, 0, 0, 0.08);
+    }
+}
+
+/* Cluster Card */
+.clusterCard {
+    background: #fff;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+    padding: 16px;
+}
+
+.clusterCard:last-child {
+    border-bottom: none;
+}
+
+.clusterHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+
+.clusterName {
+    font-size: 16px;
+    font-weight: 700;
+    color: #000;
+    margin: 0;
+}
+
+.clusterFriendCount {
+    font-size: 13px;
+    color: rgba(0, 0, 0, 0.5);
+}
+
+.clusterSubtitle {
+    font-size: 13px;
+    color: rgba(0, 0, 0, 0.5);
+    margin-bottom: 12px;
+}
+
+.clusterAvatars {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+}
+
+.clusterAvatar {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    object-fit: cover;
+    background: #f0f0f0;
+    border: 2px solid #fff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.clusterAvatarPlaceholder {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: #1877f2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    font-weight: 600;
+    color: #fff;
+    border: 2px solid #fff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.moreAvatars {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 600;
+    color: rgba(0, 0, 0, 0.6);
+    border: 2px solid #fff;
+}
+
+/* Avatar name labels */
+.avatarWithName {
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
-    min-height: 100vh;
-    padding: 80px 20px 40px;
+    gap: 4px;
+}
+
+.avatarName {
+    font-size: 11px;
+    color: rgba(0, 0, 0, 0.6);
     text-align: center;
+    max-width: 50px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
-.title {
-    font-size: 42px;
-    font-weight: 800;
-    color: var(--foreground);
-    margin: 0 0 24px 0;
-    letter-spacing: -0.03em;
-    line-height: 1.1;
-    text-transform: uppercase;
+/* Cluster Actions - More compact */
+.clusterActions {
+    display: flex;
+    gap: 8px;
 }
 
-.comingSoon {
-    font-size: 18px;
-    color: var(--muted-foreground);
+.viewAllLink {
+    font-size: 13px;
+    color: #1877f2;
+    text-decoration: none;
+    cursor: pointer;
+    background: none;
+    border: none;
+    padding: 0;
+    font-family: inherit;
+}
+
+.viewAllLink:hover {
+    text-decoration: underline;
+}
+
+/* ============================================
+   Footer Bar
+   ============================================ */
+.footerBar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: #000;
+    padding: 12px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    z-index: 100;
+}
+
+.footerLeft {
+    font-size: 14px;
+    font-weight: 600;
+    color: #fff;
+}
+
+.footerRight {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+/* Mobile: Smaller footer */
+@media (max-width: 900px) {
+    .footerBar {
+        padding: 10px 16px;
+    }
+
+    .footerLeft,
+    .footerRight {
+        font-size: 13px;
+    }
+}
+
+/* ============================================
+   Modal Styles
+   ============================================ */
+.modalOverlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 20px;
+    animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.modalContent {
+    background: #fff;
+    border-radius: 12px;
+    max-width: 400px;
+    width: 100%;
+    max-height: 80vh;
+    overflow-y: auto;
+    animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Mobile: Full width modal from bottom */
+@media (max-width: 900px) {
+    .modalOverlay {
+        padding: 0;
+        align-items: flex-end;
+    }
+
+    .modalContent {
+        max-width: 100%;
+        max-height: 85vh;
+        border-radius: 12px 12px 0 0;
+    }
+}
+
+.modalHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.modalTitle {
+    font-size: 16px;
+    font-weight: 700;
+    color: #000;
     margin: 0;
-    font-weight: 400;
 }
 
-/* Mobile Responsive */
-@media (max-width: 768px) {
-    .title {
-        font-size: 28px;
-    }
+.modalCloseButton {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.05);
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
 
-    .comingSoon {
-        font-size: 16px;
-    }
+.modalCloseButton:hover {
+    background: rgba(0, 0, 0, 0.1);
+}
+
+.modalBody {
+    padding: 16px 20px;
+}
+
+.friendsList {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.friendItem {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px;
+    background: rgba(0, 0, 0, 0.02);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.friendItem:hover {
+    background: rgba(0, 0, 0, 0.05);
+}
+
+.friendAvatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    object-fit: cover;
+    background: #f0f0f0;
+}
+
+.friendInfo {
+    flex: 1;
+}
+
+.friendName {
+    font-size: 14px;
+    font-weight: 600;
+    color: #000;
+    margin: 0;
+}
+
+/* ============================================
+   Invite Modal Trigger
+   ============================================ */
+.inviteButton {
+    display: none;
 }
