@@ -362,7 +362,7 @@ export default function Home() {
   const debugForceEligible = false; // Hardcoded to false
 
   // Expandable pill panel state
-  const [expandedPanel, setExpandedPanel] = useState<'friendRequests' | 'searchUsers' | 'weeklyDrop' | 'inviteFriends' | null>(null);
+  const [expandedPanel, setExpandedPanel] = useState<'friendRequests' | 'searchUsers' | 'weeklyDrop' | 'inviteFriends' | 'suggestions' | null>(null);
   const [pendingRequestCount, setPendingRequestCount] = useState(0);
   
   // Legacy modal states (kept for backwards compatibility, but we'll use expandedPanel)
@@ -1717,56 +1717,38 @@ export default function Home() {
             <div style={{ textAlign: 'center', padding: '40px', color: 'rgba(0, 0, 0, 0.6)' }}>
               {isLoadingMondayDrop ? 'Curating your Weekly Drop...' : 'Loading suggestions...'}
             </div>
-          ) : isEligibleForMondayDrop ? (
-            mondayDrop?.status === 'shown' && mondayDrop.candidate ? (
-              <div key={mondayDrop.candidate.id} className={styles.suggestionCard}>
-                <img src={mondayDrop.candidate.avatar} alt={mondayDrop.candidate.name} className={styles.cardAvatar} />
-                <div className={styles.cardInfo}>
-                  <div className={styles.cardName}>{mondayDrop.candidate.name}</div>
-                  <div className={styles.cardReason}>
-                    {mondayDrop.candidate.reason || "One high-fit person this week."}
-                  </div>
-                  <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
-                    <button
-                      className={styles.readMoreButton}
-                      style={{ backgroundColor: '#000', color: '#fff', padding: '6px 16px', borderRadius: '20px' }}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedSuggestion(mondayDrop.candidate);
-                      }}
-                    >
-                      View Profile
-                    </button>
-                    <button
-                      className={styles.readMoreButton}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleMondayDropInteraction('skipped');
-                      }}
-                    >
-                      Skip
-                    </button>
-                  </div>
+          ) : isEligibleForMondayDrop && mondayDrop?.status === 'shown' && mondayDrop.candidate ? (
+            // Only show the weekly drop card if there's an active candidate to show
+            <div key={mondayDrop.candidate.id} className={styles.suggestionCard}>
+              <img src={mondayDrop.candidate.avatar} alt={mondayDrop.candidate.name} className={styles.cardAvatar} />
+              <div className={styles.cardInfo}>
+                <div className={styles.cardName}>{mondayDrop.candidate.name}</div>
+                <div className={styles.cardReason}>
+                  {mondayDrop.candidate.reason || "One high-fit person this week."}
+                </div>
+                <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
+                  <button
+                    className={styles.readMoreButton}
+                    style={{ backgroundColor: '#000', color: '#fff', padding: '6px 16px', borderRadius: '20px' }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedSuggestion(mondayDrop.candidate);
+                    }}
+                  >
+                    View Profile
+                  </button>
+                  <button
+                    className={styles.readMoreButton}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleMondayDropInteraction('skipped');
+                    }}
+                  >
+                    Skip
+                  </button>
                 </div>
               </div>
-            ) : mondayDrop?.status === 'no_match' ? (
-              <div style={{ textAlign: 'center', padding: '40px', color: 'rgba(0, 0, 0, 0.6)' }}>
-                <p style={{ fontWeight: 500 }}>None this week — we're keeping quality high.</p>
-                <p style={{ fontSize: '0.85em', marginTop: '12px', opacity: 0.8 }}>Check back next week.</p>
-              </div>
-            ) : mondayDrop?.status === 'connected' || mondayDrop?.status === 'skipped' ? (
-              <div className={styles.statusMessageCard}>
-                <h3 className={styles.statusMessageTitle}>
-                  {mondayDrop.status === 'connected' ? 'Request sent!' : 'Drop skipped.'}
-                </h3>
-                <p className={styles.statusMessageSub}>See you next week! ✨</p>
-              </div>
-            ) : (
-              // Fallback for unexpected states while in dropdown tab
-              <div style={{ textAlign: 'center', padding: '40px', color: 'rgba(0, 0, 0, 0.6)' }}>
-                <p style={{ fontWeight: 500 }}>Looking for your next drop...</p>
-              </div>
-            )
+            </div>
           ) : shouldShowMessage ? (
             <div style={{ textAlign: 'center', padding: '40px', color: 'rgba(0, 0, 0, 0.6)' }}>
               <p style={{ fontWeight: 500 }}>You've reviewed all suggestions!</p>

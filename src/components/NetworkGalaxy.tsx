@@ -380,7 +380,7 @@ export default React.memo(function NetworkGalaxy({
         // Store update() behavior (mirrors the Observable update({nodes, links}) { ... })
         (svgRef.current as any).__update = ({ nodes, links }: { nodes: any[]; links: any[] }) => {
             // Recycle old nodes to preserve position & velocity
-            const old = new Map((node as any).data().map((d: any) => [d.id, d]));
+            const old = new Map<string, any>((node as any).data().map((d: any) => [d.id, d]));
             
             // For existing nodes, preserve their EXACT current position (x, y, vx, vy)
             // Only new nodes get their initial positions from the input
