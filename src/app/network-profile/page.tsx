@@ -2,11 +2,15 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import dynamic from 'next/dynamic';
 import Menu from '@/components/Menu';
 import InviteModal from '@/components/InviteModal';
 import { useAuth } from '@/contexts/AuthContext';
 import { createClient } from '@/lib/supabase';
 import styles from './page.module.css';
+
+// Dynamically import InterestGraph to avoid SSR issues with Sigma.js
+const InterestGraph = dynamic(() => import('@/components/InterestGraph'), { ssr: false });
 
 // Types
 interface ProfileData {
@@ -56,6 +60,7 @@ interface NetworkDistribution {
     myConnections: number;
     totalInNetwork: number;
     percentage: number;
+    friends: ClusterFriend[]; // Friends who share this network
 }
 
 // Looking for options
@@ -171,6 +176,7 @@ export default function NetworkProfilePage() {
     const [isLoading, setIsLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('about');
     const [selectedCluster, setSelectedCluster] = useState<InterestCluster | null>(null);
+    const [selectedNetworkCluster, setSelectedNetworkCluster] = useState<NetworkDistribution | null>(null);
     const [networkScore, setNetworkScore] = useState(0);
     const [connectionsCount, setConnectionsCount] = useState(0);
     const [networkDistribution, setNetworkDistribution] = useState<NetworkDistribution[]>([]);
@@ -209,6 +215,15 @@ export default function NetworkProfilePage() {
     // Edit Your Quote Modal
     const [showWorkingOnModal, setShowWorkingOnModal] = useState(false);
     const [editWorkingOn, setEditWorkingOn] = useState('');
+    
+    // Interests Tab State
+    const [interests, setInterests] = useState<string[]>([]);
+    const [hierarchicalInterests, setHierarchicalInterests] = useState<any[]>([]);
+    const [selectedInterest, setSelectedInterest] = useState<string | null>(null);
+    const [interestExplanation, setInterestExplanation] = useState<string | null>(null);
+    const [isExplanationLoading, setIsExplanationLoading] = useState(false);
+    const [isInterestGraphReady, setIsInterestGraphReady] = useState(false);
+    const [friendsWithSelectedInterest, setFriendsWithSelectedInterest] = useState<ClusterFriend[]>([]);
 
     // Auth Redirect
     useEffect(() => {
@@ -228,12 +243,15 @@ export default function NetworkProfilePage() {
             // 1. Fetch profile
             const { data: profile } = await supabase
                 .from('profiles')
-                .select('id, full_name, avatar_url, bio, school, location, interests')
+                .select('id, full_name, avatar_url, bio, school, location, interests, hierarchical_interests')
                 .eq('id', user.id)
                 .single();
             
             if (profile) {
                 setProfileData(profile);
+                // Set interests for the InterestGraph
+                setInterests((profile.interests as string[]) || []);
+                setHierarchicalInterests((profile.hierarchical_interests as any[]) || []);
             }
             
             // 2. Fetch profile extras
@@ -335,10 +353,20 @@ export default function NetworkProfilePage() {
                     .select('networks');
                 
                 const distribution: NetworkDistribution[] = userNetworks.map(network => {
-                    // Count friends who have this network
-                    const myConnections = (friendExtras || []).filter(fe => 
+                    // Find friends who have this network
+                    const friendsWithNetwork = (friendExtras || []).filter(fe => 
                         fe.networks && fe.networks.includes(network)
-                    ).length;
+                    );
+                    
+                    // Get friend profile details for those who share this network
+                    const friendsInNetwork: ClusterFriend[] = friendsWithNetwork.map(fe => {
+                        const friendProfile = friendProfiles.find(fp => fp.id === fe.user_id);
+                        return {
+                            id: fe.user_id,
+                            name: friendProfile?.full_name?.split(' ')[0] || 'Friend',
+                            avatar_url: friendProfile?.avatar_url
+                        };
+                    });
                     
                     // Count total users who have this network
                     const totalInNetwork = (allUserExtras || []).filter(ue => 
@@ -346,14 +374,15 @@ export default function NetworkProfilePage() {
                     ).length;
                     
                     const percentage = totalInNetwork > 0 
-                        ? Math.round((myConnections / totalInNetwork) * 100) 
+                        ? Math.round((friendsInNetwork.length / totalInNetwork) * 100) 
                         : 0;
                     
                     return {
                         network,
-                        myConnections,
+                        myConnections: friendsInNetwork.length,
                         totalInNetwork,
-                        percentage
+                        percentage,
+                        friends: friendsInNetwork
                     };
                 });
                 
@@ -713,6 +742,49 @@ export default function NetworkProfilePage() {
         }
     };
 
+    // Handle interest click from the graph
+    const handleInterestClick = useCallback(async (interest: string) => {
+        setSelectedInterest(interest);
+        setIsExplanationLoading(true);
+        setInterestExplanation(null);
+        
+        // Find friends who share this interest from clusters
+        const matchingCluster = interestClusters.find(c => 
+            c.tag.toLowerCase() === interest.toLowerCase()
+        );
+        setFriendsWithSelectedInterest(matchingCluster?.friends || []);
+        
+        try {
+            const supabase = createClient();
+            
+            // Find relevant tags for this interest
+            const categoryData = hierarchicalInterests.find((h: any) => 
+                h.category.toLowerCase() === interest.toLowerCase()
+            );
+            const tags = categoryData?.tags || [];
+            
+            const { data, error } = await supabase.functions.invoke('generate-interest-explanation', {
+                body: { interest, tags }
+            });
+            
+            if (error) throw error;
+            if (data?.success) {
+                setInterestExplanation(data.explanation);
+            } else {
+                throw new Error(data?.error || 'Failed to fetch explanation');
+            }
+        } catch (err: any) {
+            setInterestExplanation('Unable to load insight for this interest.');
+        } finally {
+            setIsExplanationLoading(false);
+        }
+    }, [hierarchicalInterests, interestClusters]);
+    
+    // Handle graph loaded
+    const handleGraphLoaded = useCallback(() => {
+        setIsInterestGraphReady(true);
+    }, []);
+
     // Load data on mount
     useEffect(() => {
         loadProfileData();
@@ -813,7 +885,8 @@ export default function NetworkProfilePage() {
                 </div>
             </div>
 
-            {/* Main Content Grid */}
+            {/* Main Content Grid - About Tab */}
+            {activeTab === 'about' && (
             <div className={styles.mainContent}>
                 {/* Left Column */}
                 <div className={styles.leftColumn}>
@@ -1226,53 +1299,237 @@ export default function NetworkProfilePage() {
                     </div>
                 </div>
 
-                {/* Right Column - Interest Clusters */}
+                {/* Right Column - Network Friends */}
                 <div className={styles.rightColumn}>
-                    {interestClusters.length === 0 ? (
+                    {(profileExtras.networks || []).length === 0 ? (
                         <div className={styles.clusterCard}>
-                            <h3 className={styles.clusterTitle}>No clusters yet</h3>
-                            <p style={{ fontSize: 14, color: 'rgba(0,0,0,0.5)' }}>
-                                Add more friends to see your interest clusters!
+                            <h3 className={styles.clusterTitle}>No networks yet</h3>
+                            <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)' }}>
+                                Add networks to see friends from your communities!
                             </p>
+                            <button 
+                                className={styles.seeAllButton}
+                                onClick={openNetworksModal}
+                                style={{ marginTop: 12 }}
+                            >
+                                Add Networks
+                            </button>
                         </div>
                     ) : (
-                        interestClusters.slice(0, 4).map((cluster) => (
-                            <div key={cluster.tag} className={styles.clusterCard}>
-                                <h3 className={styles.clusterTitle}>
-                                    Friends interested in<br />
-                                    {cluster.tag.toLowerCase()} <span className={styles.clusterCount}>({cluster.friendCount})</span>
-                                </h3>
-                                
-                                <div className={styles.clusterAvatars}>
-                                    {cluster.friends.slice(0, 6).map((friend) => (
-                                        <div key={friend.id} className={styles.avatarWithName}>
-                                            {friend.avatar_url ? (
-                                                <img
-                                                    src={getAvatarUrl(friend.avatar_url)}
-                                                    alt={friend.name}
-                                                    className={`${styles.clusterAvatar} invert-media`}
-                                                />
-                                            ) : (
-                                                <div className={styles.clusterAvatarPlaceholder}>
-                                                    {friend.name.charAt(0).toUpperCase()}
-                                                </div>
+                        (profileExtras.networks || []).map((network, index) => {
+                            const networkData = networkDistribution.find(nd => nd.network === network);
+                            const friends = networkData?.friends || [];
+                            return (
+                                <div key={network || index} className={styles.clusterCard}>
+                                    <h3 className={styles.clusterTitle}>
+                                        Friends from<br />
+                                        {network || `Network ${index + 1}`} <span className={styles.clusterCount}>({friends.length})</span>
+                                    </h3>
+                                    
+                                    {friends.length > 0 ? (
+                                        <>
+                                            <div className={styles.clusterAvatars}>
+                                                {friends.slice(0, 6).map((friend) => (
+                                                    <div key={friend.id} className={styles.avatarWithName}>
+                                                        {friend.avatar_url ? (
+                                                            <img
+                                                                src={getAvatarUrl(friend.avatar_url)}
+                                                                alt={friend.name}
+                                                                className={`${styles.clusterAvatar} invert-media`}
+                                                            />
+                                                        ) : (
+                                                            <div className={styles.clusterAvatarPlaceholder}>
+                                                                {friend.name.charAt(0).toUpperCase()}
+                                                            </div>
+                                                        )}
+                                                        <span className={styles.avatarName}>{friend.name}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                            
+                                            {friends.length > 6 && (
+                                                <button 
+                                                    className={styles.seeAllButton}
+                                                    onClick={() => setSelectedNetworkCluster(networkData || null)}
+                                                >
+                                                    See All
+                                                </button>
                                             )}
-                                            <span className={styles.avatarName}>{friend.name}</span>
+                                        </>
+                                    ) : (
+                                        <div className={styles.emptyNetworkCard}>
+                                            <p>No connections yet</p>
                                         </div>
-                                    ))}
+                                    )}
                                 </div>
-                                
-                                <button 
-                                    className={styles.seeAllButton}
-                                    onClick={() => setSelectedCluster(cluster)}
-                                >
-                                    See All
-                                </button>
-                            </div>
-                        ))
+                            );
+                        })
                     )}
                 </div>
             </div>
+            )}
+
+            {/* Interests Tab Content */}
+            {activeTab === 'interests' && (
+                <div className={styles.interestsTabContent}>
+                    {/* Left Sidebar - Same as About tab */}
+                    <div className={styles.interestsLeftColumn}>
+                        {/* Network Score Card */}
+                        <div className={styles.scoreCard}>
+                            <h3 className={styles.scoreTitle}>Network Score</h3>
+                            <div className={styles.scoreNumber}>{networkScore}</div>
+                            <p className={styles.scoreBadge}>Prestige/Badge/Etc Nickname</p>
+                            <p className={styles.scoreStats}>{connectionsCount} connections  {interestClusters.length} clusters</p>
+                        </div>
+
+                        {/* Your Quote Card */}
+                        <div className={styles.updateCard}>
+                            <div className={styles.updateHeader}>
+                                <h3 className={styles.updateTitle}>Your Quote</h3>
+                            </div>
+                            <p className={styles.updateText}>
+                                {profileExtras.working_on || 'Building something that increases interactions between humans.'}
+                            </p>
+                            <p className={styles.updateDate}>
+                                Updated {profileExtras.working_on_updated_at 
+                                    ? new Date(profileExtras.working_on_updated_at).toLocaleDateString('en-GB')
+                                    : new Date().toLocaleDateString('en-GB')}
+                            </p>
+                        </div>
+
+                        {/* Network Visualization Card */}
+                        <div className={styles.vizCard}>
+                            <h3 className={styles.vizTitle}>Network Connections</h3>
+                            {networkDistribution.length > 0 ? (
+                                <div className={styles.radarChart}>
+                                    {/* Simplified radar - reuse existing logic */}
+                                    <svg className={styles.radarSvg} viewBox="0 0 280 220" preserveAspectRatio="xMidYMid meet">
+                                        {networkDistribution.map((d, i) => {
+                                            const n = networkDistribution.length;
+                                            const centerX = 140;
+                                            const centerY = 110;
+                                            const maxRadius = 50;
+                                            const angle = (i * 2 * Math.PI / n) - Math.PI / 2;
+                                            const labelRadius = maxRadius + 45;
+                                            const labelX = centerX + labelRadius * Math.cos(angle);
+                                            const labelY = centerY + labelRadius * Math.sin(angle);
+                                            let textAnchor: 'start' | 'middle' | 'end' = 'middle';
+                                            if (labelX < centerX - 10) textAnchor = 'end';
+                                            else if (labelX > centerX + 10) textAnchor = 'start';
+                                            return (
+                                                <text
+                                                    key={i}
+                                                    x={labelX}
+                                                    y={labelY}
+                                                    textAnchor={textAnchor}
+                                                    fontSize="10"
+                                                    fill="rgba(255,255,255,0.6)"
+                                                >
+                                                    {d.network}
+                                                </text>
+                                            );
+                                        })}
+                                    </svg>
+                                </div>
+                            ) : (
+                                <div className={styles.radarEmpty}>
+                                    <p>Add networks to see your connection distribution</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Center - Interest Graph */}
+                    <div className={styles.interestsGraphContainer}>
+                        {!isInterestGraphReady && interests.length > 0 && (
+                            <div className={styles.graphLoadingOverlay}>
+                                <div className={styles.loader}></div>
+                            </div>
+                        )}
+                        {interests.length > 0 ? (
+                            <InterestGraph
+                                interests={interests}
+                                userFullName={profileData?.full_name || 'Me'}
+                                onInterestClick={handleInterestClick}
+                                onGraphLoaded={handleGraphLoaded}
+                            />
+                        ) : (
+                            <div className={styles.noInterestsMessage}>
+                                <p>No interests found yet. Complete your profile to see your interest map.</p>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Right Panel - Interest Details */}
+                    <div className={styles.interestsRightPanel}>
+                        {selectedInterest ? (
+                            <>
+                                {/* Interest Explanation Card */}
+                                <div className={styles.interestDetailCard}>
+                                    <button 
+                                        className={styles.interestDetailClose}
+                                        onClick={() => setSelectedInterest(null)}
+                                    >
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <path d="M18 6L6 18M6 6l12 12"/>
+                                        </svg>
+                                    </button>
+                                    <h3 className={styles.interestDetailTitle}>{selectedInterest}</h3>
+                                    <div className={styles.interestDetailContent}>
+                                        {isExplanationLoading ? (
+                                            <div className={styles.explanationLoading}>
+                                                <div className={styles.loaderSmall}></div>
+                                                <p>Analyzing your interest...</p>
+                                            </div>
+                                        ) : (
+                                            <p className={styles.interestDetailText}>{interestExplanation}</p>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Friends with this interest */}
+                                {friendsWithSelectedInterest.length > 0 && (
+                                    <div className={styles.friendsInterestCard}>
+                                        <h4 className={styles.friendsInterestTitle}>
+                                            Friends interested in {selectedInterest.toLowerCase()}
+                                            <span className={styles.friendsCount}>({friendsWithSelectedInterest.length})</span>
+                                        </h4>
+                                        <div className={styles.friendsHorizontalScroll}>
+                                            {friendsWithSelectedInterest.map((friend) => (
+                                                <div key={friend.id} className={styles.friendScrollItem}>
+                                                    {friend.avatar_url ? (
+                                                        <img
+                                                            src={getAvatarUrl(friend.avatar_url)}
+                                                            alt={friend.name}
+                                                            className={`${styles.friendScrollAvatar} invert-media`}
+                                                        />
+                                                    ) : (
+                                                        <div className={styles.friendScrollAvatarPlaceholder}>
+                                                            {friend.name.charAt(0).toUpperCase()}
+                                                        </div>
+                                                    )}
+                                                    <span className={styles.friendScrollName}>{friend.name}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </>
+                        ) : (
+                            <div className={styles.selectInterestPrompt}>
+                                <div className={styles.promptIcon}>
+                                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                                        <circle cx="12" cy="12" r="10"/>
+                                        <path d="M12 16v-4M12 8h.01"/>
+                                    </svg>
+                                </div>
+                                <h4>Select an Interest</h4>
+                                <p>Click on any interest in the map to see details and friends who share it.</p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
 
             {/* Footer Bar */}
             <div className={styles.footerBar}>
@@ -1298,6 +1555,47 @@ export default function NetworkProfilePage() {
                         <div className={styles.modalBody}>
                             <div className={styles.friendsList}>
                                 {selectedCluster.friends.map((friend) => (
+                                    <div key={friend.id} className={styles.friendItem}>
+                                        {friend.avatar_url ? (
+                                            <img
+                                                src={getAvatarUrl(friend.avatar_url)}
+                                                alt={friend.name}
+                                                className={`${styles.friendAvatar} invert-media`}
+                                            />
+                                        ) : (
+                                            <div className={styles.clusterAvatarPlaceholder}>
+                                                {friend.name.charAt(0).toUpperCase()}
+                                            </div>
+                                        )}
+                                        <div className={styles.friendInfo}>
+                                            <p className={styles.friendName}>{friend.name}</p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Network Friends Modal */}
+            {selectedNetworkCluster && (
+                <div className={styles.modalOverlay} onClick={() => setSelectedNetworkCluster(null)}>
+                    <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+                        <div className={styles.modalHeader}>
+                            <h3 className={styles.modalTitle}>Friends from {selectedNetworkCluster.network}</h3>
+                            <button 
+                                className={styles.modalCloseButton}
+                                onClick={() => setSelectedNetworkCluster(null)}
+                            >
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <path d="M18 6L6 18M6 6l12 12"/>
+                                </svg>
+                            </button>
+                        </div>
+                        <div className={styles.modalBody}>
+                            <div className={styles.friendsList}>
+                                {selectedNetworkCluster.friends.map((friend) => (
                                     <div key={friend.id} className={styles.friendItem}>
                                         {friend.avatar_url ? (
                                             <img
