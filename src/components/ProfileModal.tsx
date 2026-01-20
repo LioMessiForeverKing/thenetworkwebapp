@@ -149,22 +149,37 @@ export default function ProfileModal({ person, onClose }: ProfileModalProps) {
                     // Get current user's profile
                     const { data: currentUserProfile } = await supabase
                         .from('profiles')
-                        .select('id, full_name, interests, bio')
+                        .select('id, full_name, interests')
                         .eq('id', user.id)
                         .single();
 
                     // Load profile data with more fields
                     const { data: otherProfile } = await supabase
                         .from('profiles')
-                        .select('id, full_name, interests, bio, avatar_url, school, location')
+                        .select('id, full_name, avatar_url')
                         .eq('id', person.id)
                         .single();
                     
+                    // Get college, network_handle, and networks from user_profile_extras
+                    const { data: otherExtras } = await supabase
+                        .from('user_profile_extras')
+                        .select('college, network_handle, networks')
+                        .eq('user_id', person.id)
+                        .maybeSingle();
+                    
                     if (otherProfile) {
-                        setProfileData(otherProfile);
+                        setProfileData({
+                            ...otherProfile,
+                            school: otherExtras?.college || null,
+                            networkHandle: otherExtras?.network_handle || null,
+                            networks: otherExtras?.networks || [],
+                            interests: [],
+                            location: null
+                        });
                         
                         // Calculate shared interests between users
-                        const otherInterests = (otherProfile.interests || []) as string[];
+                        // Note: interests column removed from profiles table
+                        const otherInterests: string[] = [];
                         
                         // Generate AI description for connected users too
                         if (currentUserProfile) {
@@ -244,11 +259,11 @@ export default function ProfileModal({ person, onClose }: ProfileModalProps) {
                                             userBId: person.id,
                                             userProfile: {
                                                 interests: userInterests,
-                                                bio: currentUserProfile.bio || ''
+                                                bio: ''
                                             },
                                             candidateProfile: {
                                                 interests: otherInterests,
-                                                bio: otherProfile.bio || ''
+                                                bio: ''
                                             },
                                             similarity: 0.5 // Default similarity for connected users
                                         }
@@ -268,23 +283,35 @@ export default function ProfileModal({ person, onClose }: ProfileModalProps) {
                 // Get current user's profile
                 const { data: currentUserProfile } = await supabase
                     .from('profiles')
-                    .select('id, full_name, interests, bio')
+                    .select('id, full_name, interests')
                     .eq('id', user.id)
                     .single();
 
                 // Get other person's profile
                 const { data: otherProfile } = await supabase
                     .from('profiles')
-                    .select('id, full_name, interests, bio, avatar_url')
+                    .select('id, full_name, interests, avatar_url')
                     .eq('id', person.id)
                     .single();
+
+                // Get college, network_handle, and networks from user_profile_extras
+                const { data: otherExtras } = await supabase
+                    .from('user_profile_extras')
+                    .select('college, network_handle, networks')
+                    .eq('user_id', person.id)
+                    .maybeSingle();
 
                 if (!currentUserProfile || !otherProfile) {
                     setIsLoading(false);
                     return;
                 }
 
-                setProfileData(otherProfile);
+                setProfileData({
+                    ...otherProfile,
+                    school: otherExtras?.college || null,
+                    networkHandle: otherExtras?.network_handle || null,
+                    networks: otherExtras?.networks || []
+                });
 
                 // Calculate shared interests
                 const userInterests = (currentUserProfile.interests || []) as string[];
@@ -419,11 +446,11 @@ export default function ProfileModal({ person, onClose }: ProfileModalProps) {
                                 userBId: person.id,
                                 userProfile: {
                                     interests: userInterests,
-                                    bio: currentUserProfile.bio || ''
+                                    bio: ''
                                 },
                                 candidateProfile: {
                                     interests: otherInterests,
-                                    bio: otherProfile.bio || ''
+                                    bio: ''
                                 },
                                 similarity: similarity
                             }
@@ -533,8 +560,8 @@ export default function ProfileModal({ person, onClose }: ProfileModalProps) {
                     </div>
                 </div>
 
-                {/* School & Location */}
-                {(profileData?.school || profileData?.location) && (
+                {/* School, Network Handle & Networks */}
+                {(profileData?.school || profileData?.networkHandle || (profileData?.networks && profileData.networks.length > 0)) && (
                     <div className={styles.profileDetails}>
                         {profileData?.school && (
                             <span className={styles.detailItem}>
@@ -545,13 +572,23 @@ export default function ProfileModal({ person, onClose }: ProfileModalProps) {
                                 {profileData.school}
                             </span>
                         )}
-                        {profileData?.location && (
+                        {profileData?.networkHandle && (
+                            <span className={styles.detailItem}>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                                    <circle cx="9" cy="7" r="4"/>
+                                    <path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
+                                </svg>
+                                @{profileData.networkHandle}
+                            </span>
+                        )}
+                        {profileData?.networks && profileData.networks.length > 0 && (
                             <span className={styles.detailItem}>
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                     <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
                                     <circle cx="12" cy="10" r="3"/>
                                 </svg>
-                                {profileData.location}
+                                {profileData.networks.join(', ')}
                             </span>
                         )}
                     </div>

@@ -158,21 +158,44 @@ export async function getRankedConnections(
   connectionIds: string[],
   userProfile: any
 ): Promise<ConnectionWithScore[]> {
-  const userInterests = (userProfile?.interests || []) as string[];
-  const userSchool = userProfile?.school;
+  // Note: interests column removed from profiles table
+  const userInterests: string[] = [];
+  
+  // Get user's college from user_profile_extras
+  const { data: userExtras } = await supabase
+    .from('user_profile_extras')
+    .select('college')
+    .eq('user_id', userId)
+    .maybeSingle();
+  const userCollege = userExtras?.college || null;
   
   // Get all connection profiles (include full_name for titles)
   const { data: profiles, error } = await supabase
     .from('profiles')
-    .select('id, location, interests, school, school_id, full_name')
+    .select('id, school_id, full_name')
     .in('id', connectionIds);
   
   if (error || !profiles || profiles.length === 0) return [];
   
+  // Get college information for all connections
+  const { data: connectionExtras } = await supabase
+    .from('user_profile_extras')
+    .select('user_id, college')
+    .in('user_id', connectionIds);
+  
+  // Create map of user_id -> college
+  const collegeMap = new Map<string, string | null>();
+  if (connectionExtras) {
+    connectionExtras.forEach((extra: any) => {
+      collegeMap.set(extra.user_id, extra.college || null);
+    });
+  }
+  
   // Calculate compatibility for each connection
   const connectionsWithScores: ConnectionWithScore[] = await Promise.all(
     profiles.map(async (profile: any) => {
-      const connectionInterests = (profile.interests || []) as string[];
+      // Note: interests column removed from profiles table
+      const connectionInterests: string[] = [];
       const { similarity, sharedInterests } = await calculateCompatibility(
         supabase,
         userId,
@@ -181,10 +204,13 @@ export async function getRankedConnections(
         connectionInterests
       );
       
-      // Boost score for same school
+      // Get connection's college
+      const connectionCollege = collegeMap.get(profile.id) || null;
+      
+      // Boost score for same college
       let adjustedSimilarity = similarity;
-      if (profile.school === userSchool && userSchool) {
-        adjustedSimilarity += 0.1; // Small boost for same school
+      if (connectionCollege && connectionCollege === userCollege && userCollege) {
+        adjustedSimilarity += 0.1; // Small boost for same college
       }
       
       return {
@@ -192,8 +218,8 @@ export async function getRankedConnections(
         profile,
         similarity: adjustedSimilarity,
         sharedInterests,
-        school: profile.school,
-        location: profile.location
+        school: connectionCollege,
+        location: null // Note: location column removed from profiles table
       };
     })
   );
@@ -281,7 +307,7 @@ export async function getRecentPlansWithInvitee(
  * Generate smart time windows considering availability and school schedules
  */
 export function generateSmartTimeWindows(
-  userSchool: string | null,
+  userCollege: string | null,
   availabilityBlocks?: Array<{ start_time: string; end_time: string }>
 ): Array<{ start: string; end: string; proposedTime: string; score: number }> {
   const windows: Array<{ start: string; end: string; proposedTime: string; score: number }> = [];
@@ -331,9 +357,10 @@ export function generateSmartTimeWindows(
   }
   
   // Fallback: Generate default windows if no availability blocks
-  // Check if it's finals week (rough heuristic: December or May)
-  const month = now.getMonth();
-  const isFinalsWeek = month === 11 || month === 4; // December or May
+      // Check if it's finals week (rough heuristic: December or May)
+      // This is only relevant if user has a college
+      const month = now.getMonth();
+      const isFinalsWeek = userCollege && (month === 11 || month === 4); // December or May
   
   // Generate windows for next 10 days (more options)
   for (let day = 0; day < 10; day++) {

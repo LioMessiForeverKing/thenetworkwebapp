@@ -62,7 +62,7 @@ export default function SearchUserModal({ isOpen, onClose, onRequestSent }: Sear
       // Try the or() query first
       const { data: orResults, error: orError } = await supabase
         .from('profiles')
-        .select('id, full_name, username, avatar_url, bio')
+        .select('id, full_name, username, avatar_url')
         .neq('id', user.id)
         .or(`full_name.ilike.${searchPattern},username.ilike.${searchPattern}`)
         .limit(10);
@@ -72,13 +72,13 @@ export default function SearchUserModal({ isOpen, onClose, onRequestSent }: Sear
         const [nameResults, usernameResults] = await Promise.all([
           supabase
             .from('profiles')
-            .select('id, full_name, username, avatar_url, bio')
+            .select('id, full_name, username, avatar_url')
             .neq('id', user.id)
             .ilike('full_name', searchPattern)
             .limit(10),
           supabase
             .from('profiles')
-            .select('id, full_name, username, avatar_url, bio')
+            .select('id, full_name, username, avatar_url')
             .neq('id', user.id)
             .not('username', 'is', null)
             .ilike('username', searchPattern)

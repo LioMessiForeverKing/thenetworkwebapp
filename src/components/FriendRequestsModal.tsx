@@ -69,7 +69,7 @@ export default function FriendRequestsModal({ isOpen, onClose, onRequestAccepted
         const senderIds = friendRequests.map(req => req.sender_id);
         const { data: profiles } = await supabase
           .from('profiles')
-          .select('id, full_name, avatar_url, bio')
+          .select('id, full_name, avatar_url')
           .in('id', senderIds);
 
         // Map profiles to requests

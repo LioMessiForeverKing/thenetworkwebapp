@@ -46,9 +46,16 @@ export default function EditProfile() {
       // 1. Fetch Profile Data
       const { data: profile } = await supabase
         .from('profiles')
-        .select('full_name, school, location, avatar_url')
+        .select('full_name, location, avatar_url')
         .eq('id', user.id)
         .single();
+      
+      // Fetch college from user_profile_extras
+      const { data: profileExtras } = await supabase
+        .from('user_profile_extras')
+        .select('college')
+        .eq('user_id', user.id)
+        .maybeSingle();
 
       // Fetch Agent Handle
       const { data: handleData } = await supabase
@@ -59,7 +66,7 @@ export default function EditProfile() {
 
       if (profile) {
         setFullName(profile.full_name || '');
-        setSchool(profile.school || '');
+        setSchool(profileExtras?.college || '');
         setLocation(profile.location || '');
 
         // Avatar Logic
@@ -223,7 +230,6 @@ export default function EditProfile() {
       // Update Profile
       const profileUpdates = {
         full_name: fullName,
-        school: school,
         location: location,
         updated_at: new Date().toISOString(),
       };
@@ -234,6 +240,17 @@ export default function EditProfile() {
         .eq('id', user.id);
 
       if (profileError) throw profileError;
+
+      // Update college in user_profile_extras
+      const { error: extrasError } = await supabase
+        .from('user_profile_extras')
+        .upsert({
+          user_id: user.id,
+          college: school.trim() || null,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'user_id' });
+
+      if (extrasError) throw extrasError;
 
       // Upsert Agent Handle
       // We need to know if it exists or insert new. 
@@ -370,7 +387,7 @@ export default function EditProfile() {
       <div className={styles.container}>
         <div className={styles.window}>
         <div className={styles.header}>
-          <h1 className={styles.title}>Edit Profile</h1>
+          <h1 className={styles.title}>Edit Account</h1>
           <button 
             className={styles.closeButton} 
             onClick={() => router.push('/')}
@@ -380,90 +397,8 @@ export default function EditProfile() {
           </button>
         </div>
 
-          <div className={styles.avatarBlock} onClick={handleAvatarClick} style={{ cursor: 'pointer' }}>
-            <div className={`${styles.avatar} invert-media`} style={avatarUrl ? { backgroundImage: `url(${avatarUrl})` } : {}}></div>
-            <div className={styles.avatarHint}>
-              {uploading ? 'Uploading...' : 'Tap to change photo'}
-            </div>
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handleFileChange}
-              style={{ display: 'none' }}
-              accept="image/*"
-            />
-          </div>
-
-          <form className={styles.form}>
+          <div className={styles.form}>
             <div className={styles.fieldRow}>
-              <div className={styles.label}>Name</div>
-              <input
-                className={styles.input}
-                type="text"
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                placeholder="Check your name"
-                aria-label="Name"
-              />
-            </div>
-
-            <div className={styles.fieldRow}>
-              <div className={styles.label}>School</div>
-              <input
-                className={styles.input}
-                type="text"
-                value={school}
-                onChange={(e) => setSchool(e.target.value)}
-                placeholder="What school do you attend? (e.g., Columbia University)"
-                aria-label="School"
-              />
-            </div>
-
-            <div className={styles.fieldRow}>
-              <div className={styles.label}>Location</div>
-              <input
-                className={styles.input}
-                type="text"
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                placeholder="City, State (e.g., New York, NY)"
-                aria-label="Location"
-              />
-            </div>
-
-            <div className={styles.fieldRow}>
-              <div className={styles.label}>Handle</div>
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <span style={{ color: 'var(--muted-foreground)' }}>@</span>
-                  <input
-                    className={styles.input}
-                    type="text"
-                    value={handleName}
-                    onChange={(e) => {
-                      const name = e.target.value.slice(0, 10); // Max 10 characters
-                      setHandleName(name);
-                      // Auto-update bio with full handle format
-                      if (name.trim()) {
-                        setBio(`@${name}.thenetwork`);
-                      } else {
-                        setBio('');
-                      }
-                    }}
-                    placeholder="yourname"
-                    aria-label="Handle name"
-                    maxLength={10}
-                    style={{ flex: 1 }}
-                  />
-                  <span style={{ color: 'var(--muted-foreground)' }}>.thenetwork</span>
-                </div>
-                <p style={{ fontSize: '12px', color: 'var(--muted-foreground)', marginTop: '4px' }}>
-                  Your handle will be: @{handleName || 'yourname'}.thenetwork
-                </p>
-              </div>
-            </div>
-
-            <div className={styles.fieldRow} style={{ marginTop: '20px' }}>
               <div className={styles.label}>Connections</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%' }}>
 
@@ -531,22 +466,6 @@ export default function EditProfile() {
                 </div>
               </div>
             </div>
-
-          </form>
-
-          <div className={styles.footer}>
-            <div className={styles.progress}>
-              <strong className={styles.progressStrong}>Profile Status</strong>
-              <span className={styles.progressSpan}>Up to date</span>
-            </div>
-            <button
-              className={styles.saveBtn}
-              type="button"
-              onClick={handleSave}
-              disabled={saving}
-            >
-              {saving ? 'Saving...' : 'Save Changes'}
-            </button>
           </div>
 
           <div className={styles.deleteSection}>

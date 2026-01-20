@@ -52,18 +52,40 @@ export async function POST(request: Request) {
             c.sender_id === user.id ? c.receiver_id : c.sender_id
         );
 
-        // Get user's profile to check school
+        // Get user's profile
         const { data: userProfileFull } = await supabase
             .from('profiles')
-            .select('id, location, interests, school, school_id')
+            .select('id, school_id')
             .eq('id', user.id)
             .single();
 
-        // Get profiles of connections to check their locations and schools
+        // Get user's college from user_profile_extras
+        const { data: userExtras } = await supabase
+            .from('user_profile_extras')
+            .select('college')
+            .eq('user_id', user.id)
+            .maybeSingle();
+        const userCollege = userExtras?.college || null;
+
+        // Get profiles of connections
         const { data: profiles, error: profilesError } = await supabase
             .from('profiles')
-            .select('id, location, interests, school, school_id')
+            .select('id, school_id')
             .in('id', connectionIds);
+        
+        // Get college information for all connections
+        const { data: connectionExtras } = await supabase
+            .from('user_profile_extras')
+            .select('user_id, college')
+            .in('user_id', connectionIds);
+        
+        // Create map of user_id -> college
+        const collegeMap = new Map<string, string | null>();
+        if (connectionExtras) {
+            connectionExtras.forEach((extra: any) => {
+                collegeMap.set(extra.user_id, extra.college || null);
+            });
+        }
 
         if (profilesError) {
             console.error('Error fetching profiles:', profilesError);
@@ -71,9 +93,8 @@ export async function POST(request: Request) {
         }
 
         // Filter to connections in the same city (case-insensitive match)
-        const cityConnectionIds = profiles?.filter(p => 
-            p.location && p.location.toLowerCase().includes(city.toLowerCase())
-        ).map(p => p.id) || [];
+        // Note: location column removed from profiles table
+        const cityConnectionIds: string[] = [];
 
         if (cityConnectionIds.length < 3) {
             return NextResponse.json({
@@ -118,9 +139,9 @@ export async function POST(request: Request) {
             })));
         }
 
-        // Generate smart time windows (considers availability blocks, school schedules, finals week, etc.)
+        // Generate smart time windows (considers availability blocks, college schedules, finals week, etc.)
         const timeWindows = generateSmartTimeWindows(
-            userProfileFull?.school || null,
+            userCollege,
             availabilityBlocks || []
         );
 
@@ -335,7 +356,7 @@ export async function POST(request: Request) {
                 sharedInterests,
                 venueName: selectedVenue.name,
                 inviteeName,
-                inviteeSchool: selectedConnection.school || undefined, // Convert null to undefined
+                inviteeSchool: collegeMap.get(selectedConnection.id) || undefined, // Get college from map
                 city
             });
             

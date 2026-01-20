@@ -99,8 +99,6 @@ export default function ProfileSetupPage() {
                 .upsert({
                     id: user.id,
                     full_name: name.trim(),
-                    age: parseInt(age),
-                    school: school.trim() || null,
                     one_liner: oneLiner.trim() || null,
                     avatar_url: avatarUrl,
                     star_color: '#8E5BFF', // Default
@@ -108,6 +106,20 @@ export default function ProfileSetupPage() {
 
             if (updateError) {
                 throw updateError;
+            }
+
+            // Update user_profile_extras with age and college
+            const { error: extrasError } = await supabase
+                .from('user_profile_extras')
+                .upsert({
+                    user_id: user.id,
+                    age: parseInt(age),
+                    college: school.trim() || null,
+                    updated_at: new Date().toISOString(),
+                }, { onConflict: 'user_id' });
+
+            if (extrasError) {
+                throw extrasError;
             }
 
             // Navigate to signals page

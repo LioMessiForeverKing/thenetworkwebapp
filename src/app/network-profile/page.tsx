@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import Menu from '@/components/Menu';
@@ -21,6 +21,7 @@ interface ProfileData {
     school?: string;
     location?: string;
     interests?: string[];
+    hierarchical_interests?: any[];
 }
 
 interface ProfileExtras {
@@ -224,6 +225,8 @@ export default function NetworkProfilePage() {
     const [isExplanationLoading, setIsExplanationLoading] = useState(false);
     const [isInterestGraphReady, setIsInterestGraphReady] = useState(false);
     const [friendsWithSelectedInterest, setFriendsWithSelectedInterest] = useState<ClusterFriend[]>([]);
+    const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     // Auth Redirect
     useEffect(() => {
@@ -243,14 +246,42 @@ export default function NetworkProfilePage() {
             // 1. Fetch profile
             const { data: profile } = await supabase
                 .from('profiles')
-                .select('id, full_name, avatar_url, bio, school, location, interests, hierarchical_interests')
+                .select('id, full_name, avatar_url, interests, hierarchical_interests')
                 .eq('id', user.id)
                 .single();
             
+            // Fetch interests and location separately if they exist
+            // Note: These columns may have been moved or deleted from profiles
+            
             if (profile) {
-                setProfileData(profile);
+                // Extract interests from either interests column or hierarchical_interests
+                const extractInterests = (interests: string[] | null | undefined, hierarchical: any[] | null | undefined): string[] => {
+                    // First try to use flat interests array
+                    if (interests && Array.isArray(interests) && interests.length > 0) {
+                        return interests;
+                    }
+                    // Fall back to extracting from hierarchical_interests
+                    if (hierarchical && Array.isArray(hierarchical)) {
+                        const flatInterests: string[] = [];
+                        hierarchical.forEach((item: any) => {
+                            if (item.tags && Array.isArray(item.tags)) {
+                                flatInterests.push(...item.tags);
+                            }
+                        });
+                        return flatInterests;
+                    }
+                    return [];
+                };
+                
+                const userInterests = extractInterests(profile.interests, profile.hierarchical_interests);
+                
+                setProfileData({
+                    ...profile,
+                    interests: userInterests,
+                    location: undefined
+                });
                 // Set interests for the InterestGraph
-                setInterests((profile.interests as string[]) || []);
+                setInterests(userInterests);
                 setHierarchicalInterests((profile.hierarchical_interests as any[]) || []);
             }
             
@@ -333,7 +364,7 @@ export default function NetworkProfilePage() {
             if (friendIds.length > 0) {
                 const { data: profiles } = await supabase
                     .from('profiles')
-                    .select('id, full_name, avatar_url, interests')
+                    .select('id, full_name, avatar_url, interests, hierarchical_interests')
                     .in('id', friendIds);
                 friendProfiles = profiles || [];
             }
@@ -394,13 +425,35 @@ export default function NetworkProfilePage() {
             // Calculate clusters
             const clusterMap = new Map<string, ClusterFriend[]>();
             
+            // Helper function to extract flat interests from hierarchical_interests
+            const extractInterests = (interests: string[] | null | undefined, hierarchical: any[] | null | undefined): string[] => {
+                // First try to use flat interests array
+                if (interests && Array.isArray(interests) && interests.length > 0) {
+                    return interests;
+                }
+                // Fall back to extracting from hierarchical_interests
+                if (hierarchical && Array.isArray(hierarchical)) {
+                    const flatInterests: string[] = [];
+                    hierarchical.forEach((item: any) => {
+                        if (item.tags && Array.isArray(item.tags)) {
+                            flatInterests.push(...item.tags);
+                        }
+                    });
+                    return flatInterests;
+                }
+                return [];
+            };
+            
+            // Get user's interests (from profile or hierarchical_interests)
+            const userInterests = extractInterests(profile.interests, profile.hierarchical_interests);
             const userCanonicalTags = new Set<string>();
-            (profile.interests || []).forEach(interest => {
+            userInterests.forEach(interest => {
                 userCanonicalTags.add(normalizeToCanonicalTag(interest));
             });
             
+            // Process each friend's interests
             friendProfiles.forEach(friend => {
-                const friendInterests = friend.interests || [];
+                const friendInterests = extractInterests(friend.interests, friend.hierarchical_interests);
                 friendInterests.forEach((interest: string) => {
                     const canonicalTag = normalizeToCanonicalTag(interest);
                     
@@ -436,7 +489,7 @@ export default function NetworkProfilePage() {
             let completeness = 0;
             if (profile.full_name) completeness += 20;
             if (profile.avatar_url) completeness += 20;
-            if (profile.bio) completeness += 20;
+            // Bio removed from profiles table
             if (extras.status_text) completeness += 20;
             if (extras.working_on) completeness += 20;
             
@@ -784,6 +837,67 @@ export default function NetworkProfilePage() {
     const handleGraphLoaded = useCallback(() => {
         setIsInterestGraphReady(true);
     }, []);
+    
+    // Handle avatar upload
+    const handleAvatarClick = () => {
+        fileInputRef.current?.click();
+    };
+    
+    const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        if (!event.target.files || event.target.files.length === 0) {
+            return;
+        }
+        const file = event.target.files[0];
+        await uploadAvatar(file);
+    };
+    
+    const uploadAvatar = async (file: File) => {
+        setIsUploadingAvatar(true);
+        const supabase = createClient();
+        const { data: { user: authUser } } = await supabase.auth.getUser();
+        
+        if (!authUser) {
+            setIsUploadingAvatar(false);
+            return;
+        }
+        
+        try {
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${authUser.id}/${Date.now()}.${fileExt}`;
+            const filePath = `${fileName}`;
+            
+            const { error: uploadError } = await supabase.storage
+                .from('profile-images')
+                .upload(filePath, file, { upsert: true });
+            
+            if (uploadError) throw uploadError;
+            
+            // Update profile
+            const { error: updateError } = await supabase
+                .from('profiles')
+                .update({ avatar_url: filePath, updated_at: new Date().toISOString() })
+                .eq('id', authUser.id);
+            
+            if (updateError) throw updateError;
+            
+            // Update local state
+            if (profileData) {
+                setProfileData({
+                    ...profileData,
+                    avatar_url: filePath
+                });
+            }
+            
+            // Reload profile data to get updated avatar
+            await loadProfileData();
+            
+        } catch (error: any) {
+            console.error('Error uploading avatar:', error);
+            alert(`Error uploading image: ${error.message}`);
+        } finally {
+            setIsUploadingAvatar(false);
+        }
+    };
 
     // Load data on mount
     useEffect(() => {
@@ -816,18 +930,42 @@ export default function NetworkProfilePage() {
             {/* Header Section */}
             <div className={styles.headerSection}>
                 <div className={styles.headerContent}>
-                    {/* Profile Image */}
-                    {avatarUrl ? (
-                        <img 
-                            src={avatarUrl} 
-                            alt={displayName} 
-                            className={`${styles.profileImageLarge} invert-media`}
-                        />
-                    ) : (
-                        <div className={styles.profileImagePlaceholder}>
-                            {displayName.charAt(0).toUpperCase()}
+                    {/* Profile Image - Clickable to upload */}
+                    <div 
+                        className={styles.profileImageContainer}
+                        onClick={handleAvatarClick}
+                        style={{ cursor: 'pointer', position: 'relative' }}
+                    >
+                        {isUploadingAvatar && (
+                            <div className={styles.uploadingOverlay}>
+                                <div className={styles.uploadingSpinner}></div>
+                            </div>
+                        )}
+                        {avatarUrl ? (
+                            <img 
+                                src={avatarUrl} 
+                                alt={displayName} 
+                                className={`${styles.profileImageLarge} invert-media`}
+                            />
+                        ) : (
+                            <div className={styles.profileImagePlaceholder}>
+                                {displayName.charAt(0).toUpperCase()}
+                            </div>
+                        )}
+                        <div className={styles.avatarEditOverlay}>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                            </svg>
                         </div>
-                    )}
+                        <input
+                            ref={fileInputRef}
+                            type="file"
+                            accept="image/*"
+                            onChange={handleFileChange}
+                            style={{ display: 'none' }}
+                        />
+                    </div>
                     
                     {/* Header Info */}
                     <div className={styles.headerInfo}>
@@ -845,9 +983,11 @@ export default function NetworkProfilePage() {
                         )}
                         
                         {/* Location */}
-                        <div className={styles.locationRow}>
-                            <span className={styles.profileLocation}>{profileData.location || 'San Francisco'}</span>
-                        </div>
+                        {profileData.location && (
+                            <div className={styles.locationRow}>
+                                <span className={styles.profileLocation}>{profileData.location}</span>
+                            </div>
+                        )}
                         
                         <div className={styles.networkTags}>
                             {networkTagsList.map((tag, i) => (
@@ -1264,7 +1404,7 @@ export default function NetworkProfilePage() {
                             </div>
                             <div className={styles.infoRow}>
                                 <span className={styles.infoLabel}>College:</span>
-                                <span className={styles.infoValue}>{profileExtras.college || profileData.school || 'Not set'}</span>
+                                <span className={styles.infoValue}>{profileExtras.college || 'Not set'}</span>
                             </div>
                             <div className={styles.infoRow}>
                                 <span className={styles.infoLabel}>High School:</span>
@@ -1402,34 +1542,129 @@ export default function NetworkProfilePage() {
                             <h3 className={styles.vizTitle}>Network Connections</h3>
                             {networkDistribution.length > 0 ? (
                                 <div className={styles.radarChart}>
-                                    {/* Simplified radar - reuse existing logic */}
-                                    <svg className={styles.radarSvg} viewBox="0 0 280 220" preserveAspectRatio="xMidYMid meet">
-                                        {networkDistribution.map((d, i) => {
-                                            const n = networkDistribution.length;
-                                            const centerX = 140;
-                                            const centerY = 110;
-                                            const maxRadius = 50;
-                                            const angle = (i * 2 * Math.PI / n) - Math.PI / 2;
-                                            const labelRadius = maxRadius + 45;
-                                            const labelX = centerX + labelRadius * Math.cos(angle);
-                                            const labelY = centerY + labelRadius * Math.sin(angle);
-                                            let textAnchor: 'start' | 'middle' | 'end' = 'middle';
-                                            if (labelX < centerX - 10) textAnchor = 'end';
-                                            else if (labelX > centerX + 10) textAnchor = 'start';
-                                            return (
-                                                <text
-                                                    key={i}
-                                                    x={labelX}
-                                                    y={labelY}
-                                                    textAnchor={textAnchor}
-                                                    fontSize="10"
-                                                    fill="rgba(255,255,255,0.6)"
-                                                >
-                                                    {d.network}
-                                                </text>
-                                            );
-                                        })}
-                                    </svg>
+                                    {(() => {
+                                        const n = networkDistribution.length;
+                                        const centerX = 140;
+                                        const centerY = 110;
+                                        const maxRadius = 50;
+                                        const maxConnections = Math.max(...networkDistribution.map(d => d.myConnections), 1);
+                                        
+                                        // Calculate points for each network
+                                        const getPoint = (index: number, value: number) => {
+                                            const angle = (index * 2 * Math.PI / n) - Math.PI / 2;
+                                            const radius = (value / maxConnections) * maxRadius;
+                                            return {
+                                                x: centerX + radius * Math.cos(angle),
+                                                y: centerY + radius * Math.sin(angle)
+                                            };
+                                        };
+                                        
+                                        // Get outer label positions
+                                        const getLabelPoint = (index: number) => {
+                                            const angle = (index * 2 * Math.PI / n) - Math.PI / 2;
+                                            const radius = maxRadius + 45;
+                                            return {
+                                                x: centerX + radius * Math.cos(angle),
+                                                y: centerY + radius * Math.sin(angle)
+                                            };
+                                        };
+                                        
+                                        // Create background grid polygons
+                                        const gridLevels = [0.33, 0.66, 1];
+                                        const gridPolygons = gridLevels.map(level => {
+                                            const points = Array.from({ length: n }, (_, i) => {
+                                                const angle = (i * 2 * Math.PI / n) - Math.PI / 2;
+                                                const radius = level * maxRadius;
+                                                return `${centerX + radius * Math.cos(angle)},${centerY + radius * Math.sin(angle)}`;
+                                            }).join(' ');
+                                            return points;
+                                        });
+                                        
+                                        // Create data polygon
+                                        const dataPoints = networkDistribution.map((d, i) => {
+                                            const point = getPoint(i, d.myConnections);
+                                            return `${point.x},${point.y}`;
+                                        }).join(' ');
+                                        
+                                        return (
+                                            <svg className={styles.radarSvg} viewBox="0 0 280 220" preserveAspectRatio="xMidYMid meet">
+                                                {/* Grid lines from center */}
+                                                {networkDistribution.map((_, i) => {
+                                                    const angle = (i * 2 * Math.PI / n) - Math.PI / 2;
+                                                    const endX = centerX + maxRadius * Math.cos(angle);
+                                                    const endY = centerY + maxRadius * Math.sin(angle);
+                                                    return (
+                                                        <line
+                                                            key={`grid-line-${i}`}
+                                                            x1={centerX}
+                                                            y1={centerY}
+                                                            x2={endX}
+                                                            y2={endY}
+                                                            stroke="rgba(255,255,255,0.1)"
+                                                            strokeWidth="1"
+                                                        />
+                                                    );
+                                                })}
+                                                
+                                                {/* Background grid polygons */}
+                                                {gridPolygons.map((points, i) => (
+                                                    <polygon
+                                                        key={`grid-${i}`}
+                                                        points={points}
+                                                        fill="none"
+                                                        stroke="rgba(255,255,255,0.15)"
+                                                        strokeWidth="1"
+                                                    />
+                                                ))}
+                                                
+                                                {/* Data polygon */}
+                                                <polygon
+                                                    points={dataPoints}
+                                                    fill="rgba(103, 126, 234, 0.3)"
+                                                    stroke="rgba(103, 126, 234, 0.8)"
+                                                    strokeWidth="2"
+                                                />
+                                                
+                                                {/* Data points */}
+                                                {networkDistribution.map((d, i) => {
+                                                    const point = getPoint(i, d.myConnections);
+                                                    return (
+                                                        <circle
+                                                            key={`point-${i}`}
+                                                            cx={point.x}
+                                                            cy={point.y}
+                                                            r={4}
+                                                            fill="rgba(103, 126, 234, 1)"
+                                                            stroke="#fff"
+                                                            strokeWidth="2"
+                                                        />
+                                                    );
+                                                })}
+                                                
+                                                {/* Labels */}
+                                                {networkDistribution.map((d, i) => {
+                                                    const labelPoint = getLabelPoint(i);
+                                                    let textAnchor: 'start' | 'middle' | 'end' = 'middle';
+                                                    if (labelPoint.x < centerX - 10) textAnchor = 'end';
+                                                    else if (labelPoint.x > centerX + 10) textAnchor = 'start';
+                                                    
+                                                    return (
+                                                        <text
+                                                            key={`label-${i}`}
+                                                            x={labelPoint.x}
+                                                            y={labelPoint.y}
+                                                            textAnchor={textAnchor}
+                                                            fontSize="11"
+                                                            fontWeight="500"
+                                                            fill="rgba(255,255,255,0.75)"
+                                                        >
+                                                            {d.network}
+                                                        </text>
+                                                    );
+                                                })}
+                                            </svg>
+                                        );
+                                    })()}
                                 </div>
                             ) : (
                                 <div className={styles.radarEmpty}>
@@ -1534,7 +1769,7 @@ export default function NetworkProfilePage() {
             {/* Footer Bar */}
             <div className={styles.footerBar}>
                 <div className={styles.footerLeft}>{displayName}'s Profile</div>
-                <div className={styles.footerRight}>{profileData.location || 'New York, NY'}</div>
+                <div className={styles.footerRight}>{profileData.location || ''}</div>
             </div>
 
             {/* Cluster Friends Modal */}

@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import ConstellationSphere from '@/components/ConstellationSphere';
 import InstagramFloat from '@/components/InstagramFloat';
+import WaitlistModal from '@/components/WaitlistModal';
 import { createClient } from '@/utils/supabase/client';
 
 // --- Helper Components from Waitlist ---
@@ -239,6 +240,7 @@ export default function LandingPage() {
   const gallerySectionRef = useRef<HTMLElement>(null);
   const [galleryVisible, setGalleryVisible] = useState(false);
   const [openFAQ, setOpenFAQ] = useState<number | null>(null);
+  const [isWaitlistModalOpen, setIsWaitlistModalOpen] = useState(false);
   // === SCROLL Y TRACKER (uncomment to debug scroll positions) ===
   // const [scrollY, setScrollY] = useState(0);
 
@@ -471,14 +473,14 @@ export default function LandingPage() {
           </h1>
         </div>
 
-        {/* Top Right - Login */}
+        {/* Top Right - Sign up to waitlist */}
         <div className="absolute top-6 right-4 md:top-8 md:right-8 z-20">
           <button
-            onClick={() => signInWithGoogle()}
-            className={`font-brand text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold transition-all duration-300 cursor-pointer bg-transparent border-none hover:opacity-70 ${theme === 'dark' ? 'text-white' : 'text-black'}`}
+            onClick={() => setIsWaitlistModalOpen(true)}
+            className={`font-brand text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold transition-all duration-300 cursor-pointer bg-transparent border-none hover:opacity-70 ${theme === 'dark' ? 'text-white' : 'text-black'}`}
             style={{ letterSpacing: '-0.02em' }}
           >
-            LOGIN
+            Sign up to waitlist
           </button>
         </div>
 
@@ -492,14 +494,19 @@ export default function LandingPage() {
               Most social apps optimize for watching. We're building for doing: real plans, real places, real people, starting from the interests you already reveal every day.
             </p>
 
-            <button
-              onClick={() => {
-                router.push('/consent');
-              }}
-              className={`mt-4 px-10 py-5 rounded-full text-xl font-semibold transition-all duration-300 shadow-xl transform hover:scale-105 active:scale-95 cursor-pointer border-none ${theme === 'dark' ? 'bg-white text-black hover:bg-gray-100' : 'bg-black text-white hover:bg-gray-800'}`}
-            >
-              Discover My Network
-            </button>
+            <div className="flex flex-col items-center gap-2">
+              <button
+                onClick={() => {
+                  router.push('/consent');
+                }}
+                className={`mt-4 px-10 py-5 rounded-full text-xl font-semibold transition-all duration-300 shadow-xl transform hover:scale-105 active:scale-95 cursor-pointer border-none ${theme === 'dark' ? 'bg-white text-black hover:bg-gray-100' : 'bg-black text-white hover:bg-gray-800'}`}
+              >
+                Discover My Network
+              </button>
+              <span className={`text-xs font-medium opacity-60 ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+                (demo)
+              </span>
+            </div>
           </div>
 
         </div>
@@ -725,6 +732,13 @@ export default function LandingPage() {
           </button>
         </div>
       </section>
+
+      {/* Waitlist Modal */}
+      <WaitlistModal 
+        isOpen={isWaitlistModalOpen} 
+        onClose={() => setIsWaitlistModalOpen(false)}
+        theme={theme}
+      />
 
     </main >
   );

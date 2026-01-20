@@ -117,11 +117,29 @@ export async function GET(request: Request) {
     }
 
     // Get all profiles with school information
-    // Try both 'school' text field and 'school_id' foreign key
+    // Try both 'college' from user_profile_extras, 'school_id' foreign key, and legacy 'school' field
     const { data: profiles, error: profilesError } = await supabase
       .from('profiles')
-      .select('school, school_id')
-      .or('school.not.is.null,school_id.not.is.null');
+      .select('id, school_id, school')
+      .or('school_id.not.is.null,school.not.is.null');
+    
+    // Get user_profile_extras for college information
+    const profileIds = profiles?.map(p => p.id) || [];
+    const { data: profileExtras } = profileIds.length > 0 ? await supabase
+      .from('user_profile_extras')
+      .select('user_id, college')
+      .in('user_id', profileIds)
+      .not('college', 'is', null) : { data: null };
+    
+    // Create a map of user_id -> college
+    const collegeMap = new Map<string, string>();
+    if (profileExtras) {
+      profileExtras.forEach((extra: any) => {
+        if (extra.college) {
+          collegeMap.set(extra.user_id, extra.college);
+        }
+      });
+    }
 
     // If we have school_id references, fetch school details
     const schoolIds = [...new Set((profiles || [])
@@ -166,7 +184,15 @@ export async function GET(request: Request) {
         }
       }
       
-      // Fall back to school text field
+      // Fall back to college from user_profile_extras
+      if (!schoolName) {
+        const college = collegeMap.get(profile.id);
+        if (college) {
+          schoolName = normalizeSchoolName(college);
+        }
+      }
+      
+      // Last fallback to legacy school text field
       if (!schoolName && profile.school) {
         schoolName = normalizeSchoolName(profile.school);
       }

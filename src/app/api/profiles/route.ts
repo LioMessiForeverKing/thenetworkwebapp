@@ -24,10 +24,10 @@ export async function GET(request: Request) {
             return NextResponse.json({ profiles: [] });
         }
 
-        // Fetch profiles - only return basic info (name, avatar, school)
+        // Fetch profiles - only return basic info (name, avatar, location)
         const { data: profiles, error } = await supabase
             .from('profiles')
-            .select('id, full_name, avatar_url, school, location')
+            .select('id, full_name, avatar_url, location')
             .in('id', ids);
 
         if (error) {
@@ -35,7 +35,27 @@ export async function GET(request: Request) {
             return NextResponse.json({ error: error.message }, { status: 500 });
         }
 
-        return NextResponse.json({ profiles: profiles || [] });
+        // Fetch college information from user_profile_extras
+        const { data: profileExtras } = await supabase
+            .from('user_profile_extras')
+            .select('user_id, college')
+            .in('user_id', ids);
+
+        // Create map of user_id -> college
+        const collegeMap = new Map<string, string | null>();
+        if (profileExtras) {
+            profileExtras.forEach((extra: any) => {
+                collegeMap.set(extra.user_id, extra.college || null);
+            });
+        }
+
+        // Add college to each profile
+        const profilesWithCollege = (profiles || []).map((profile: any) => ({
+            ...profile,
+            school: collegeMap.get(profile.id) || null
+        }));
+
+        return NextResponse.json({ profiles: profilesWithCollege });
     } catch (error: any) {
         console.error('Error in GET /api/profiles:', error);
         return NextResponse.json({ error: error.message }, { status: 500 });

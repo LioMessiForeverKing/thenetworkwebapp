@@ -169,7 +169,7 @@ export default function Home() {
           y,
           compatibilityPercentage,
           connections: [userId],
-          bio: profile.bio,
+          bio: undefined,
           imageUrl: getAvatarUrl(profile.avatar_url)
         });
 
@@ -325,8 +325,14 @@ export default function Home() {
       // Fetch profiles for branch nodes
       const { data: branchProfiles } = await supabase
         .from('profiles')
-        .select('id, full_name, avatar_url, star_color, bio')
+        .select('id, full_name, avatar_url')
         .in('id', branchNodeIds);
+      
+      // Fetch extras for bio if needed
+      const branchExtras = branchNodeIds.length > 0 ? await supabase
+        .from('user_profile_extras')
+        .select('user_id')
+        .in('user_id', branchNodeIds) : { data: [] };
 
       if (!branchProfiles || branchProfiles.length === 0) {
         setFriendOfFriendData([]);
@@ -369,7 +375,7 @@ export default function Home() {
           x,
           y,
           connections: [friendId], // Connected to the friend
-          bio: profile.bio,
+          bio: undefined,
           imageUrl: getAvatarUrl(profile.avatar_url),
           isBranchNode: true,
           parentFriendId: friendId,
@@ -468,7 +474,7 @@ export default function Home() {
       // 2. Get user's profile and DNA v2
       const { data: userProfile, error: profileError } = await supabase
         .from('profiles')
-        .select('id, full_name, interests, bio')
+        .select('id, full_name')
         .eq('id', user.id)
         .single();
 
@@ -502,7 +508,10 @@ export default function Home() {
           userDnaV1 = dnaV1;
         } else {
           // Fallback: find users with similar interests (not in network)
-          if (userProfile.interests && userProfile.interests.length > 0) {
+          // Note: interests column removed from profiles table
+          // Disabled: interests column no longer exists
+          /*
+          if (user) {
             // Get connected user IDs first
             const { data: existingConnections } = await supabase
               .from('user_connections')
@@ -552,91 +561,97 @@ export default function Home() {
                 }
               });
             }
-
-            const { data: similarProfiles } = await supabase
-              .from('profiles')
-              .select('id, full_name, avatar_url, interests, bio')
-              .neq('id', user.id)
-              .overlaps('interests', userProfile.interests)
-              .limit(10);
-
-            // Filter out users already in network
-            // Only show remaining slots (3 minus interactions)
-            const remainingSlots = Math.max(0, 3 - interactedIds.size);
-            const notInNetworkProfiles = (similarProfiles || []).filter((p: any) => !connectedUserIds.has(p.id) && !interactedIds.has(p.id)).slice(0, remainingSlots);
-
-            if (notInNetworkProfiles && notInNetworkProfiles.length > 0) {
-              const formattedPromises = notInNetworkProfiles.map(async (profile: any) => {
-                let reason = '';
-                try {
-                  // Normalize IDs (user_a_id < user_b_id) for cache lookup
-                  const userAId = user.id < profile.id ? user.id : profile.id;
-                  const userBId = user.id < profile.id ? profile.id : user.id;
-
-                  // Check cache first
-                  const { data: cached } = await supabase
-                    .from('user_compatibility_descriptions')
-                    .select('description')
-                    .eq('user_a_id', userAId)
-                    .eq('user_b_id', userBId)
-                    .maybeSingle();
-
-                  if (cached && cached.description) {
-                    reason = cached.description;
-                  } else {
-                    // No cache found, call edge function to generate and store
-                    const { data: reasonData, error: reasonError } = await supabase.functions.invoke(
-                      'generate-suggestion-reason',
-                      {
-                        body: {
-                          userAId: user.id,
-                          userBId: profile.id,
-                          userProfile: {
-                            interests: userProfile.interests || [],
-                            bio: userProfile.bio || ''
-                          },
-                          candidateProfile: {
-                            interests: profile.interests || [],
-                            bio: profile.bio || ''
-                          },
-                          similarity: 0.6 // Default similarity for interest-based matches
-                        }
-                      }
-                    );
-
-                    if (reasonError) {
-                      return null; // Don't show suggestion if we can't generate reason
-                    }
-
-                    if (reasonData?.reason) {
-                      reason = reasonData.reason;
-                    } else if (reasonData?.error) {
-                      return null; // Don't show suggestion if error
-                    } else {
-                      return null; // Don't show suggestion if no reason
-                    }
-                  }
-                } catch (error) {
-                  return null; // Don't show suggestion on error
-                }
-
-                return {
-                  id: profile.id,
-                  name: profile.full_name?.split(' ')[0] || 'User',
-                  reason,
-                  avatar: getAvatarUrl(profile.avatar_url) || '/assets/onboarding/tn_logo_black.png'
-                };
-              });
-
-              const formatted = await Promise.all(formattedPromises);
-              setSuggestions(formatted);
-              setIsLoadingSuggestions(false);
-              return;
-            }
           }
-          setSuggestions([]);
-          setIsLoadingSuggestions(false);
-          return;
+          */
+
+          /*
+            // Note: interests column removed, cannot query by interests overlap
+            if (user) {
+              const { data: similarProfiles } = await supabase
+                .from('profiles')
+                .select('id, full_name, avatar_url')
+                .neq('id', user.id)
+                .limit(10);
+
+              // Filter out users already in network
+              // Only show remaining slots (3 minus interactions)
+              const remainingSlots = Math.max(0, 3 - interactedIds.size);
+              const notInNetworkProfiles = (similarProfiles || []).filter((p: any) => !connectedUserIds.has(p.id) && !interactedIds.has(p.id)).slice(0, remainingSlots);
+
+              if (notInNetworkProfiles && notInNetworkProfiles.length > 0) {
+                const formattedPromises = notInNetworkProfiles.map(async (profile: any) => {
+                  let reason = '';
+                  try {
+                    // Normalize IDs (user_a_id < user_b_id) for cache lookup
+                    const userAId = user.id < profile.id ? user.id : profile.id;
+                    const userBId = user.id < profile.id ? profile.id : user.id;
+
+                    // Check cache first
+                    const { data: cached } = await supabase
+                      .from('user_compatibility_descriptions')
+                      .select('description')
+                      .eq('user_a_id', userAId)
+                      .eq('user_b_id', userBId)
+                      .maybeSingle();
+
+                    if (cached && cached.description) {
+                      reason = cached.description;
+                    } else {
+                      // No cache found, call edge function to generate and store
+                      const { data: reasonData, error: reasonError } = await supabase.functions.invoke(
+                        'generate-suggestion-reason',
+                        {
+                          body: {
+                            userAId: user.id,
+                            userBId: profile.id,
+                            userProfile: {
+                              interests: [],
+                              bio: ''
+                            },
+                            candidateProfile: {
+                              interests: [],
+                              bio: ''
+                            },
+                            similarity: 0.6 // Default similarity for interest-based matches
+                          }
+                        }
+                      );
+
+                      if (reasonError) {
+                        return null; // Don't show suggestion if we can't generate reason
+                      }
+
+                      if (reasonData?.reason) {
+                        reason = reasonData.reason;
+                      } else if (reasonData?.error) {
+                        return null; // Don't show suggestion if error
+                      } else {
+                        return null; // Don't show suggestion if no reason
+                      }
+                    }
+                  } catch (error) {
+                    return null; // Don't show suggestion on error
+                  }
+
+                  return {
+                    id: profile.id,
+                    name: profile.full_name?.split(' ')[0] || 'User',
+                    reason,
+                    avatar: getAvatarUrl(profile.avatar_url) || '/assets/onboarding/tn_logo_black.png'
+                  };
+                });
+
+                const formatted = await Promise.all(formattedPromises);
+                setSuggestions(formatted);
+                setIsLoadingSuggestions(false);
+                return;
+              }
+            }
+            setSuggestions([]);
+            setIsLoadingSuggestions(false);
+            return;
+          }
+          */
         }
       }
 
@@ -730,8 +745,8 @@ export default function Home() {
       const topMatchIds = notInNetworkMatches.slice(0, 10).map((m: any) => m.id);
       const { data: fullProfiles } = await supabase
         .from('profiles')
-        .select('id, full_name, avatar_url, interests, bio')
-        .in('id', topMatchIds);
+              .select('id, full_name, avatar_url')
+              .in('id', topMatchIds);
 
       if (!fullProfiles || fullProfiles.length === 0) {
         setSuggestions([]);
@@ -774,12 +789,12 @@ export default function Home() {
                     userAId: user.id,
                     userBId: profile.id,
                     userProfile: {
-                      interests: userProfile.interests || [],
-                      bio: userProfile.bio || ''
+                      interests: [],
+                      bio: ''
                     },
                     candidateProfile: {
-                      interests: profile.interests || [],
-                      bio: profile.bio || ''
+                      interests: [],
+                      bio: ''
                     },
                     similarity: match.similarity || 0.6
                   }
@@ -883,7 +898,7 @@ export default function Home() {
         if (existingDrop.candidate_user_id) {
           const { data: profile } = await supabase
             .from('profiles')
-            .select('id, full_name, avatar_url, interests, bio')
+            .select('id, full_name, avatar_url, interests')
             .eq('id', existingDrop.candidate_user_id)
             .single();
 
@@ -891,7 +906,7 @@ export default function Home() {
             // Fetch user profile for reason generation
             const { data: userProfile } = await supabase
               .from('profiles')
-              .select('interests, bio')
+              .select('interests')
               .eq('id', user.id)
               .single();
 
@@ -902,7 +917,7 @@ export default function Home() {
                   userAId: user.id,
                   userBId: profile.id,
                   userProfile,
-                  candidateProfile: { interests: profile.interests || [], bio: profile.bio || '' },
+                  candidateProfile: { interests: [], bio: '' },
                   similarity: existingDrop.similarity_score || 0.8
                 }
               });
@@ -915,8 +930,8 @@ export default function Home() {
                 id: profile.id,
                 name: profile.full_name?.split(' ')[0] || 'User',
                 avatar: getAvatarUrl(profile.avatar_url) || '/assets/onboarding/tn_logo_black.png',
-                bio: profile.bio,
-                interests: profile.interests,
+                bio: undefined,
+                interests: [],
                 reason
               }
             });
@@ -1017,7 +1032,7 @@ export default function Home() {
       console.log('✨ Weekly Drop: Selected candidate:', selected.id, 'Similarity:', selected.similarity);
       const { data: profile } = await supabase
         .from('profiles')
-        .select('id, full_name, avatar_url, interests, bio')
+        .select('id, full_name, avatar_url, interests')
         .eq('id', selected.id)
         .single();
 
@@ -1030,7 +1045,7 @@ export default function Home() {
       // Generate reason
       const { data: userProfile } = await supabase
         .from('profiles')
-        .select('interests, bio')
+        .select('interests')
         .eq('id', user.id)
         .single();
 
@@ -1041,7 +1056,7 @@ export default function Home() {
             userAId: user.id,
             userBId: profile.id,
             userProfile,
-            candidateProfile: { interests: profile.interests || [], bio: profile.bio || '' },
+            candidateProfile: { interests: profile.interests || [], bio: '' },
             similarity: selected.similarity
           }
         });
@@ -1069,7 +1084,7 @@ export default function Home() {
           id: profile.id,
           name: profile.full_name?.split(' ')[0] || 'User',
           avatar: getAvatarUrl(profile.avatar_url) || '/assets/onboarding/tn_logo_black.png',
-          bio: profile.bio,
+          bio: undefined,
           interests: profile.interests,
           reason
         }

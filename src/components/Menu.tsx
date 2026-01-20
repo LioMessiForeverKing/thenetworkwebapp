@@ -9,7 +9,6 @@ import styles from './Menu.module.css';
 
 const menuItems = [
   { label: 'THENETWORK', href: '/', authHref: '/network' },
-  { label: 'ARI', href: '/msg-aria' },
 ];
 
 export default function Menu() {
@@ -163,6 +162,14 @@ export default function Menu() {
                 </button>
               </div>
             </div>
+
+            {/* ARI Link - moved below SETTINGS */}
+            <Link
+              href="/msg-aria"
+              onClick={() => setIsOpen(false)}
+            >
+              ARI
+            </Link>
           </div>
         </div>
 
