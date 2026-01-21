@@ -168,12 +168,14 @@ export async function trackReferralSignup(
     const existingConnection = existingConnections && existingConnections.length > 0 ? existingConnections[0] : null;
 
     if (!existingConnection) {
-      // Create bidirectional connections
+      // Create connection with current user (referred user) as sender
+      // RLS policy requires sender_id = auth.uid(), so we must make the new user the sender
+      // Only ONE connection record is needed - it represents a bidirectional friendship
       const { error: connectionError } = await supabase
         .from('user_connections')
         .insert({
-          sender_id: referrerId,
-          receiver_id: referredUserId,
+          sender_id: referredUserId,  // Current user (new signup) must be sender for RLS
+          receiver_id: referrerId,     // The person who invited them
           status: 'accepted',
           initiated_via: 'referral',
           referral_invite_id: inviteId
@@ -181,20 +183,8 @@ export async function trackReferralSignup(
         .select()
         .single();
 
-      // Also create the reverse connection
-      const { error: reverseConnectionError } = await supabase
-        .from('user_connections')
-        .insert({
-          sender_id: referredUserId,
-          receiver_id: referrerId,
-          status: 'accepted',
-          initiated_via: 'referral',
-          referral_invite_id: inviteId
-        })
-        .select()
-        .single();
-
-      if (connectionError && reverseConnectionError) {
+      if (connectionError) {
+        console.error('Error creating referral connection:', connectionError);
         // Don't fail the whole operation if connection creation fails
       }
     } else {

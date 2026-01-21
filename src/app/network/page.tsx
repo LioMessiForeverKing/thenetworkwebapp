@@ -89,8 +89,40 @@ function FriendRequestsPanel({ onClose, onRequestAccepted }: { onClose: () => vo
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    await supabase.from('friend_requests').update({ status: 'accepted' }).eq('id', requestId);
-    await supabase.from('user_connections').insert({ sender_id: senderId, receiver_id: user.id, status: 'accepted' });
+    // Update friend request status to accepted
+    await supabase.from('friend_requests').update({ status: 'accepted', responded_at: new Date().toISOString() }).eq('id', requestId);
+    
+    // Create user_connection with current user as sender (required by RLS policy)
+    // First check if connection already exists in either direction
+    const { data: existingConns1 } = await supabase
+      .from('user_connections')
+      .select('id, status')
+      .eq('sender_id', senderId)
+      .eq('receiver_id', user.id);
+    
+    const { data: existingConns2 } = await supabase
+      .from('user_connections')
+      .select('id, status')
+      .eq('sender_id', user.id)
+      .eq('receiver_id', senderId);
+    
+    const existingConns = [...(existingConns1 || []), ...(existingConns2 || [])];
+
+    if (existingConns && existingConns.length > 0) {
+      // Update existing connection to accepted
+      await supabase
+        .from('user_connections')
+        .update({ status: 'accepted', responded_at: new Date().toISOString() })
+        .eq('id', existingConns[0].id);
+    } else {
+      // Create new connection with current user as sender (to pass RLS)
+      await supabase.from('user_connections').insert({ 
+        sender_id: user.id, 
+        receiver_id: senderId, 
+        status: 'accepted',
+        created_at: new Date().toISOString()
+      });
+    }
     
     setRequests(prev => prev.filter(r => r.id !== requestId));
     setProcessingIds(prev => { const next = new Set(prev); next.delete(requestId); return next; });
