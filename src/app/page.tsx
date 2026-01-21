@@ -1,13 +1,13 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import ConstellationSphere from '@/components/ConstellationSphere';
 import InstagramFloat from '@/components/InstagramFloat';
 import WaitlistModal from '@/components/WaitlistModal';
-import { createClient } from '@/utils/supabase/client';
 
 // --- Helper Components from Waitlist ---
 
@@ -231,9 +231,10 @@ function FAQItem({ question, answer, isOpen, onClick }: {
 
 // --- Main Landing Page Component ---
 
-export default function LandingPage() {
+function LandingPageContent() {
   const { user, loading, signInWithGoogle } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [mounted, setMounted] = useState(false);
   const transitionSectionRef = useRef<HTMLElement>(null);
@@ -241,6 +242,16 @@ export default function LandingPage() {
   const [galleryVisible, setGalleryVisible] = useState(false);
   const [openFAQ, setOpenFAQ] = useState<number | null>(null);
   const [isWaitlistModalOpen, setIsWaitlistModalOpen] = useState(false);
+  const [showYouTubeWarning, setShowYouTubeWarning] = useState(false);
+
+  // Check for YouTube permission warning from redirect
+  useEffect(() => {
+    if (searchParams.get('youtube_required') === 'true') {
+      setShowYouTubeWarning(true);
+      // Clear the URL parameter without reload
+      window.history.replaceState({}, '', '/');
+    }
+  }, [searchParams]);
   // === SCROLL Y TRACKER (uncomment to debug scroll positions) ===
   // const [scrollY, setScrollY] = useState(0);
 
@@ -473,17 +484,16 @@ export default function LandingPage() {
           </h1>
         </div>
 
-        {/* Top Right - Login */}
+        {/* Top Right - Join the Waitlist */}
         <div className="absolute top-6 right-4 md:top-8 md:right-8 z-20">
           <button
-            onClick={signInWithGoogle}
-            className={`font-brand text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold transition-all duration-300 cursor-pointer bg-transparent border-none hover:opacity-70 ${theme === 'dark' ? 'text-white' : 'text-black'}`}
+            onClick={() => setIsWaitlistModalOpen(true)}
+            className={`font-brand text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold transition-all duration-300 cursor-pointer bg-transparent border-none hover:opacity-70 ${theme === 'dark' ? 'text-white' : 'text-black'}`}
             style={{ letterSpacing: '-0.02em' }}
           >
-            LOGIN
+            JOIN WAITLIST
           </button>
         </div>
-
 
         {/* Center Content */}
         <div className="absolute inset-0 flex flex-col items-center justify-center z-10 pointer-events-none">
@@ -494,27 +504,31 @@ export default function LandingPage() {
               The shortest path to the right people: a social network designed for real life.
             </p>
 
-            <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4 mt-4">
+            <div className="flex flex-col items-center gap-3 sm:gap-4 mt-4">
               <button
                 onClick={() => setIsWaitlistModalOpen(true)}
-                className={`px-8 py-4 sm:px-10 sm:py-5 rounded-full text-lg sm:text-xl font-semibold transition-all duration-300 shadow-xl transform hover:scale-105 active:scale-95 cursor-pointer ${theme === 'dark' ? 'bg-transparent text-white border-2 border-white hover:bg-white/10' : 'bg-transparent text-black border-2 border-black hover:bg-black/10'}`}
+                className={`px-8 py-4 sm:px-10 sm:py-5 rounded-full text-lg sm:text-xl font-semibold transition-all duration-300 shadow-xl transform hover:scale-105 active:scale-95 cursor-pointer ${theme === 'dark' ? 'bg-white text-black hover:bg-gray-100' : 'bg-black text-white hover:bg-gray-800'}`}
               >
                 Join the Waitlist
               </button>
-              <div className="relative">
-                <button
-                  onClick={() => {
-                    router.push('/consent');
-                  }}
-                  className={`px-8 py-4 sm:px-10 sm:py-5 rounded-full text-lg sm:text-xl font-semibold transition-all duration-300 shadow-xl transform hover:scale-105 active:scale-95 cursor-pointer border-none ${theme === 'dark' ? 'bg-white text-black hover:bg-gray-100' : 'bg-black text-white hover:bg-gray-800'}`}
-                >
-                  Join the Network
-                </button>
-                <span className={`absolute -bottom-5 right-0 text-xs font-medium opacity-60 ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
-                  (demo)
-                </span>
-              </div>
+              <button
+                onClick={signInWithGoogle}
+                className={`px-6 py-2 rounded-full text-sm font-medium transition-all duration-300 cursor-pointer ${theme === 'dark' ? 'text-white/70 hover:text-white hover:bg-white/10' : 'text-black/70 hover:text-black hover:bg-black/10'}`}
+              >
+                Log In
+              </button>
             </div>
+
+            {/* YouTube Permission Warning */}
+            {showYouTubeWarning && (
+              <div className="mt-6 max-w-md mx-auto animate-fade-in-up">
+                <div className={`px-4 py-3 rounded-xl border ${theme === 'dark' ? 'bg-red-500/10 border-red-500/30' : 'bg-red-50 border-red-200'}`}>
+                  <p className={`text-sm font-medium ${theme === 'dark' ? 'text-red-400' : 'text-red-600'}`}>
+                    YouTube access is required for the best experience. Please join the waitlist and grant YouTube permissions to continue.
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
 
         </div>
@@ -669,10 +683,10 @@ export default function LandingPage() {
         <div className="text-center">
           <h2 className={`text-6xl sm:text-7xl md:text-8xl lg:text-9xl font-bold mb-12 leading-none ${theme === 'dark' ? 'text-black' : 'text-white'}`}>JOIN US</h2>
           <button
-            onClick={() => router.push('/consent')}
+            onClick={() => setIsWaitlistModalOpen(true)}
             className={`px-10 py-5 rounded-full text-xl font-semibold transition-colors shadow-xl transform hover:scale-105 active:scale-95 cursor-pointer border-none ${theme === 'dark' ? 'bg-black text-white hover:bg-gray-800' : 'bg-white text-black hover:bg-gray-200'}`}
           >
-            Connect to TheNetwork
+            Join the Waitlist
           </button>
         </div>
       </section>
@@ -685,5 +699,14 @@ export default function LandingPage() {
       />
 
     </main >
+  );
+}
+
+// Wrapper component with Suspense boundary for useSearchParams
+export default function LandingPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-black" />}>
+      <LandingPageContent />
+    </Suspense>
   );
 }

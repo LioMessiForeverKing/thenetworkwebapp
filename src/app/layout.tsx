@@ -6,8 +6,9 @@ export const metadata: Metadata = {
   title: "TheNetwork",
   description: "TheNetwork WebApp",
   icons: {
-    icon: [{ url: "/1.svg", type: "image/svg+xml" }],
-    shortcut: ["/1.svg"],
+    icon: [{ url: "/app_icon.svg", type: "image/svg+xml" }],
+    shortcut: ["/app_icon.svg"],
+    apple: [{ url: "/app_icon.svg", type: "image/svg+xml" }],
   },
 };
 

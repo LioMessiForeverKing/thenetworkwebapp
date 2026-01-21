@@ -23,7 +23,6 @@ interface Profile {
   id: string;
   full_name: string;
   avatar_url?: string;
-  star_color: string;
   bio?: string;
   interests?: string[];
 }
@@ -273,6 +272,7 @@ function WeeklyDropPanel({ onClose, mondayDrop }: { onClose: () => void; mondayD
 }
 
 function InviteFriendsPanel({ onClose }: { onClose: () => void }) {
+  const router = useRouter();
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
@@ -331,6 +331,34 @@ function InviteFriendsPanel({ onClose }: { onClose: () => void }) {
                 <div className={styles.embeddedInviteStatLabel}>Joined</div>
               </div>
             </div>
+            <button
+              onClick={() => {
+                onClose();
+                router.push('/invite-friends');
+              }}
+              className={styles.embeddedInviteFullPageButton}
+              style={{
+                marginTop: '16px',
+                width: '100%',
+                padding: '10px 16px',
+                background: 'rgba(255, 255, 255, 0.1)',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                borderRadius: '8px',
+                color: '#ffffff',
+                fontSize: '14px',
+                fontWeight: '500',
+                cursor: 'pointer',
+                transition: 'all 0.2s'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+              }}
+            >
+              View Full Invite Page →
+            </button>
           </>
         )}
       </div>
@@ -413,7 +441,7 @@ export default function Home() {
     loadedPeople.push(createCurrentUserNode(
       userId,
       currentProfile?.full_name?.split(' ')[0] || 'You',
-      currentProfile?.star_color || '#8E5BFF',
+      '#8E5BFF',
       getAvatarUrl(currentProfile?.avatar_url)
     ));
 
@@ -456,7 +484,7 @@ export default function Home() {
         loadedPeople.push({
           id: profile.id,
           name: profile.full_name?.split(' ')[0] || 'Friend',
-          starColor: profile.star_color || '#8E5BFF',
+          starColor: '#8E5BFF',
           x,
           y,
           compatibilityPercentage,
@@ -668,7 +696,7 @@ export default function Home() {
         return {
           id: profile.id,
           name: profile.full_name?.split(' ')[0] || 'User',
-          starColor: profile.star_color || '#8E5BFF',
+          starColor: '#8E5BFF',
           x,
           y,
           connections: [friendId], // Connected to the friend

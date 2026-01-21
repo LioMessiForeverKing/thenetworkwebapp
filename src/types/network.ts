@@ -19,7 +19,6 @@ export interface Profile {
     full_name: string;
     bio?: string;
     avatar_url?: string;
-    star_color: string;
     interests?: string[];
     school?: string;
 }

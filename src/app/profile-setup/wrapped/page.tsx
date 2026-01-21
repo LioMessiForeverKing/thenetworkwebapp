@@ -289,14 +289,14 @@ export default function WrappedPage() {
         // Must have user AND session before processing
         if (!user || !session || processingComplete.current) return;
 
-        // Start processing when we reach slide index 3 or later (Slide 4: "Connecting to YouTube...")
-        // Slides are 0-indexed: 0=Slide1, 1=Slide2, 2=Slide3, 3=Slide4
-        // We use >= 3 to handle race condition where checkAndProcess might not have completed yet
+        // Start processing when we reach slide index 4 or later (Slide 5: "Connecting to YouTube...")
+        // Slides are 0-indexed: 0=Waitlist, 1=Slide1, 2=Slide2, 3=Slide3, 4=Slide4
+        // We use >= 4 to handle race condition where checkAndProcess might not have completed yet
         // Also check isNewUser OR if we're still at the initial state (isNewUser not yet determined)
         const shouldProcess = processingStatus.isNewUser ||
             (!processingStatus.interests && !processingStatus.hierarchicalInterests && !processingStatus.dnaV2);
 
-        if (currentSlideIndex >= 3 && !hasStartedProcessing.current && shouldProcess) {
+        if (currentSlideIndex >= 4 && !hasStartedProcessing.current && shouldProcess) {
             hasStartedProcessing.current = true;
             processUserDataWithYouTubeProgress();
         }
@@ -598,9 +598,38 @@ export default function WrappedPage() {
     const processUserData = processUserDataWithYouTubeProgress;
 
     const SLIDES: Slide[] = [
+        // Slide 0 - You're on the waitlist
+        {
+            id: 0,
+            bg: 'dark',
+            content: (
+                <div className="relative w-full h-full flex flex-col items-center justify-center">
+                    {/* Text Content */}
+                    <div className="relative z-10 max-w-[800px] text-center px-6 md:px-8">
+                        <div className="mb-6 md:mb-8">
+                            <svg className="w-16 h-16 md:w-24 md:h-24 mx-auto text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                        <h1 className="text-[28px] md:text-[60px] font-bold text-white font-display leading-[1.1] mb-4 tracking-tight">
+                            You're on the waitlist!
+                        </h1>
+                        <p className="text-[18px] md:text-[32px] font-medium text-gray-400 font-display mb-8">
+                            Continue creating your account to secure your spot.
+                        </p>
+                    </div>
+
+                    {/* TN Logo */}
+                    <div className="absolute left-4 md:left-6 bottom-20 md:bottom-6 w-[100px] md:w-[150px] h-[80px] md:h-[120px] opacity-100 pointer-events-none">
+                        <Image src="/assets/onboarding/tn_logo.png" alt="TN" fill className="object-contain" />
+                    </div>
+                </div>
+            ),
+            type: 'manual'
+        },
         // Slide 1 - You already have a digital life
         {
-            id: 1,
+            id: 2,
             bg: 'dark',
             content: (
                 <div className="relative w-full h-full flex flex-col items-center justify-center">
@@ -635,7 +664,7 @@ export default function WrappedPage() {
         },
         // Slide 2 - What if all of that added up to something?
         {
-            id: 2,
+            id: 3,
             bg: 'dark',
             content: (
                 <div className="relative w-full h-full flex flex-col items-center justify-center">
@@ -669,7 +698,7 @@ export default function WrappedPage() {
         },
         // Slide 3 - Introducing
         {
-            id: 3,
+            id: 4,
             bg: 'dark',
             content: (
                 <div className="relative w-full h-full flex flex-col items-center justify-center">
@@ -703,7 +732,7 @@ export default function WrappedPage() {
         },
         // Slide 4 - Connecting to YouTube
         {
-            id: 4,
+            id: 5,
             bg: 'dark',
             content: (
                 <div className="relative w-full h-full flex flex-col items-center justify-center px-6">
@@ -725,7 +754,7 @@ export default function WrappedPage() {
         },
         // Slide 5 - Fetching subscriptions
         {
-            id: 5,
+            id: 6,
             bg: 'dark',
             content: (
                 <div className="relative w-full h-full flex flex-col items-center justify-center px-6">
@@ -750,7 +779,7 @@ export default function WrappedPage() {
         },
         // Slide 6 - Fetching liked videos
         {
-            id: 6,
+            id: 7,
             bg: 'dark',
             content: (
                 <div className="relative w-full h-full flex flex-col items-center justify-center px-6">
@@ -775,7 +804,7 @@ export default function WrappedPage() {
         },
         // Slide 7 - Interest Graph
         {
-            id: 7,
+            id: 8,
             bg: 'dark',
             content: (
                 <div className="relative w-full h-full flex flex-col items-center justify-center overflow-hidden">
@@ -849,60 +878,60 @@ export default function WrappedPage() {
             ),
             type: 'manual'
         },
-        // Slide 8 - You don't fit in one box (Revamped Identity Map)
-        {
-            id: 8,
-            bg: 'dark',
-            content: (
-                <div className="relative w-full h-full flex flex-col items-center md:items-start justify-center px-6 md:px-20">
-                    <div
-                        className="max-w-[1000px] text-center md:text-left transition-transform duration-75"
-                        style={{ transform: typeof window !== 'undefined' && window.innerWidth >= 768 ? `translate(202px, -158px)` : 'none' }}
-                    >
-                        <h1
-                            className="font-bold text-white mb-6 md:mb-8 font-display leading-tight tracking-tight text-[28px] md:text-[45px]"
-                        >
-                            You don't fit in one box. So we gave you four.
-                        </h1>
-                        {/* Custom Left-Aligned Identity Line Wrapper */}
-                        <div
-                            className="flex flex-wrap justify-center md:justify-start gap-x-2 md:gap-x-3 w-full font-bold font-display leading-tight tracking-tight text-[16px] md:text-[25px]"
-                        >
-                            {(() => {
-                                // Fallback if no data
-                                const displayArchetypes = archetypes.length > 0 ? archetypes : [
-                                    { name: 'Builder', percentage: 32 },
-                                    { name: 'Night Owl', percentage: 24 },
-                                    { name: 'Tech Optimist', percentage: 19 },
-                                    { name: 'Chaos Gremlin', percentage: 25 },
-                                ];
+        // Slide 8 - You don't fit in one box (Revamped Identity Map) - COMMENTED OUT
+        // {
+        //     id: 9,
+        //     bg: 'dark',
+        //     content: (
+        //         <div className="relative w-full h-full flex flex-col items-center md:items-start justify-center px-6 md:px-20">
+        //             <div
+        //                 className="max-w-[1000px] text-center md:text-left transition-transform duration-75"
+        //                 style={{ transform: typeof window !== 'undefined' && window.innerWidth >= 768 ? `translate(202px, -158px)` : 'none' }}
+        //             >
+        //                 <h1
+        //                     className="font-bold text-white mb-6 md:mb-8 font-display leading-tight tracking-tight text-[28px] md:text-[45px]"
+        //                 >
+        //                     You don't fit in one box. So we gave you four.
+        //                 </h1>
+        //                 {/* Custom Left-Aligned Identity Line Wrapper */}
+        //                 <div
+        //                     className="flex flex-wrap justify-center md:justify-start gap-x-2 md:gap-x-3 w-full font-bold font-display leading-tight tracking-tight text-[16px] md:text-[25px]"
+        //                 >
+        //                     {(() => {
+        //                         // Fallback if no data
+        //                         const displayArchetypes = archetypes.length > 0 ? archetypes : [
+        //                             { name: 'Builder', percentage: 32 },
+        //                             { name: 'Night Owl', percentage: 24 },
+        //                             { name: 'Tech Optimist', percentage: 19 },
+        //                             { name: 'Chaos Gremlin', percentage: 25 },
+        //                         ];
 
-                                const colors = [
-                                    'text-[#D4AF37]', // Gold
-                                    'text-[#9F9FFF]', // Periwinkle
-                                    'text-[#4ADE80]', // Green
-                                    'text-[#FF6B6B]', // Red
-                                ];
+        //                         const colors = [
+        //                             'text-[#D4AF37]', // Gold
+        //                             'text-[#9F9FFF]', // Periwinkle
+        //                             'text-[#4ADE80]', // Green
+        //                             'text-[#FF6B6B]', // Red
+        //                         ];
 
-                                return displayArchetypes.slice(0, 4).map((arch, i) => (
-                                    <span key={i} className={`${colors[i % colors.length]}`}>
-                                        {arch.percentage}% {arch.name}{i < 3 ? '.' : ''}
-                                    </span>
-                                ));
-                            })()}
-                        </div>
-                    </div>
-                    {/* TN Logo - White */}
-                    <div className="absolute left-4 md:left-6 bottom-20 md:bottom-6 w-[100px] md:w-[150px] h-[80px] md:h-[120px] opacity-100 pointer-events-none">
-                        <Image src="/assets/onboarding/tn_logo.png" alt="TN" fill className="object-contain" />
-                    </div>
-                </div>
-            ),
-            type: 'manual'
-        },
+        //                         return displayArchetypes.slice(0, 4).map((arch, i) => (
+        //                             <span key={i} className={`${colors[i % colors.length]}`}>
+        //                                 {arch.percentage}% {arch.name}{i < 3 ? '.' : ''}
+        //                             </span>
+        //                         ));
+        //                     })()}
+        //                 </div>
+        //             </div>
+        //             {/* TN Logo - White */}
+        //             <div className="absolute left-4 md:left-6 bottom-20 md:bottom-6 w-[100px] md:w-[150px] h-[80px] md:h-[120px] opacity-100 pointer-events-none">
+        //                 <Image src="/assets/onboarding/tn_logo.png" alt="TN" fill className="object-contain" />
+        //             </div>
+        //         </div>
+        //     ),
+        //     type: 'manual'
+        // },
         // Slide 9 - Doppelgangers
         {
-            id: 9,
+            id: 10,
             bg: 'dark',
             content: (
                 <div className="w-full h-full relative flex items-center justify-center md:justify-start">
@@ -951,13 +980,13 @@ export default function WrappedPage() {
         },
         // Slide 10 - Final
         {
-            id: 10,
+            id: 11,
             bg: 'dark',
             content: (
                 <div className="w-full h-full relative flex flex-col items-center md:items-start justify-center px-6 md:p-20">
                     <div className="max-w-[800px] text-center md:text-left">
                         <h1 className="text-[28px] md:text-[60px] font-bold text-white mb-6 md:mb-4 font-display leading-tight tracking-tight">
-                            Ready to meet more people like you?
+                            Ready to access the network?
                         </h1>
                         <button
                             onClick={async (e) => {
@@ -1013,7 +1042,7 @@ export default function WrappedPage() {
                                 if (reviewEnabled) {
                                     router.push('/youtube-data-review');
                                 } else {
-                                    router.push('/network');
+                                    router.push('/invite-friends');
                                 }
                             }}
                             className="text-[20px] md:text-[32px] font-bold text-white hover:opacity-70 transition-opacity font-display cursor-pointer flex items-center justify-center md:justify-start gap-2 w-full md:w-auto"
@@ -1039,17 +1068,17 @@ export default function WrappedPage() {
             // Calculate dynamic duration based on processing status
             let duration = slide.duration || 3000;
 
-            // For YouTube slides (4, 5, 6), wait for YouTube API calls to complete
-            if (processingStatus.isNewUser && slide.id >= 4 && slide.id <= 6) {
-                if (slide.id === 4) {
-                    // Slide 4: Wait for YouTube connection
+            // For YouTube slides (5, 6, 7), wait for YouTube API calls to complete
+            if (processingStatus.isNewUser && slide.id >= 5 && slide.id <= 7) {
+                if (slide.id === 5) {
+                    // Slide 5: Wait for YouTube connection
                     if (!youtubeStatus.connected) {
                         duration = 3000; // Wait up to 3 seconds for connection
                     } else {
                         duration = 1500; // Fast advance if connected
                     }
-                } else if (slide.id === 5) {
-                    // Slide 5: Wait for subscriptions to be fetched
+                } else if (slide.id === 6) {
+                    // Slide 6: Wait for subscriptions to be fetched
                     if (youtubeStatus.subscriptionsTotal === null && youtubeStatus.subscriptionsCount === 0) {
                         duration = 5000; // Still fetching, wait longer
                     } else if (youtubeStatus.subscriptionsTotal === null) {
@@ -1057,8 +1086,8 @@ export default function WrappedPage() {
                     } else {
                         duration = 1500; // Done, fast advance
                     }
-                } else if (slide.id === 6) {
-                    // Slide 6: Wait for liked videos to be fetched
+                } else if (slide.id === 7) {
+                    // Slide 7: Wait for liked videos to be fetched
                     if (youtubeStatus.likedVideosTotal === null && youtubeStatus.likedVideosCount === 0) {
                         duration = 5000; // Still fetching, wait longer
                     } else if (youtubeStatus.likedVideosTotal === null) {
@@ -1067,7 +1096,7 @@ export default function WrappedPage() {
                         duration = 2000; // Done, fast advance
                     }
                 }
-            } else if (slide.id >= 4 && slide.id <= 6) {
+            } else if (slide.id >= 5 && slide.id <= 7) {
                 // For existing users, still show the slides but with shorter duration
                 duration = slide.duration || 2000;
             }
@@ -1137,7 +1166,7 @@ export default function WrappedPage() {
             if (reviewEnabled) {
                 router.push('/youtube-data-review');
             } else {
-                router.push('/network');
+                router.push('/invite-friends');
             }
         }
     };
@@ -1377,7 +1406,7 @@ export default function WrappedPage() {
     // Check if current slide can be advanced
     const canAdvanceSlide = () => {
         // For slide 7 (Interest Graph), only allow advance if interests are loaded
-        if (currentSlideIndex === 6 && interests.length === 0) {
+        if (currentSlideIndex === 7 && interests.length === 0) {
             return false;
         }
         return currentSlide.type === 'manual' && !showInterestModal && !showNoYouTubeDataModal;
@@ -1407,7 +1436,7 @@ export default function WrappedPage() {
                 {/* Tap Indicator - Moved lower and centered */}
                 {currentSlide.type === 'manual' && currentSlideIndex < SLIDES.length - 1 &&
                     // For slide 7 (Interest Graph), only show indicator when interests are loaded
-                    (currentSlideIndex !== 6 || interests.length > 0) && (
+                    (currentSlideIndex !== 7 || interests.length > 0) && (
                         <div className="absolute bottom-8 left-1/2 -translate-x-1/2 text-sm opacity-50 animate-bounce font-display pointer-events-none">
                             Tap to continue
                         </div>

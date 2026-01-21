@@ -58,6 +58,44 @@ export default function AuthCallback() {
                 return;
             }
 
+            // Check for YouTube permissions (provider_token)
+            // If no provider_token, user likely didn't grant YouTube access
+            const hasProviderToken = !!session.provider_token;
+            
+            if (!hasProviderToken) {
+                // No YouTube access token - redirect to homepage with warning
+                setStatus('YouTube access required. Redirecting...');
+                await supabase.auth.signOut();
+                setTimeout(() => router.push('/?youtube_required=true'), 1500);
+                return;
+            }
+
+            // Try to verify YouTube access by making a test API call
+            try {
+                const testResponse = await fetch(
+                    'https://www.googleapis.com/youtube/v3/subscriptions?part=snippet&mine=true&maxResults=1',
+                    {
+                        headers: {
+                            'Authorization': `Bearer ${session.provider_token}`,
+                        },
+                    }
+                );
+                
+                if (!testResponse.ok) {
+                    // YouTube API rejected the token - user didn't grant YouTube scope
+                    setStatus('YouTube access required. Redirecting...');
+                    await supabase.auth.signOut();
+                    setTimeout(() => router.push('/?youtube_required=true'), 1500);
+                    return;
+                }
+            } catch (error) {
+                // YouTube API call failed - assume no access
+                setStatus('YouTube access required. Redirecting...');
+                await supabase.auth.signOut();
+                setTimeout(() => router.push('/?youtube_required=true'), 1500);
+                return;
+            }
+
             // Create or get profile - ensure profile exists with Google data
             let { data: profileData } = await supabase
                 .from('profiles')
@@ -77,7 +115,6 @@ export default function AuthCallback() {
                         id: userId,
                         full_name: googleName,
                         avatar_url: googlePicture,
-                        star_color: '#8E5BFF', // Default star color
                         interests: [],
                         hierarchical_interests: []
                     })
@@ -184,10 +221,36 @@ export default function AuthCallback() {
             // Set to false for production - when true, forces all users through onboarding
             const FORCE_ONBOARDING = false;
 
+            // Helper function to check friend count and route accordingly
+            const routeBasedOnFriendCount = async () => {
+                const { data: connections } = await supabase
+                    .from('user_connections')
+                    .select('sender_id, receiver_id')
+                    .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`)
+                    .eq('status', 'accepted');
+                
+                let friendCount = 0;
+                if (connections) {
+                    const friendIds = new Set<string>();
+                    connections.forEach(conn => {
+                        const otherId = conn.sender_id === userId ? conn.receiver_id : conn.sender_id;
+                        friendIds.add(otherId);
+                    });
+                    friendCount = friendIds.size;
+                }
+                
+                if (friendCount >= 3) {
+                    router.push('/network');
+                } else {
+                    router.push('/invite-friends');
+                }
+            };
+
             // Skip onboarding if user has already completed it (unless FORCE_ONBOARDING is true)
             if (hasCompletedOnboarding && !FORCE_ONBOARDING) {
                 setStatus('Welcome back!');
-                router.push('/network');
+                // Route based on friend count for returning users
+                await routeBasedOnFriendCount();
 
             } else if (FORCE_ONBOARDING || isNew) {
                 // New user - needs full setup

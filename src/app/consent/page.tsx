@@ -130,6 +130,13 @@ export default function ConsentPage() {
                     </p>
                 </div>
 
+                {/* YouTube Account Note */}
+                <div className={styles.infoBox} style={{ marginBottom: '16px', borderLeft: 'none' }}>
+                    <p className={styles.infoText} style={{ fontSize: '18px', fontWeight: '700', textAlign: 'center', color: '#3b82f6' }}>
+                        Sign up with your most active YouTube account
+                    </p>
+                </div>
+
                 {/* Action Buttons */}
                 <div className={styles.actions}>
                     <button

@@ -101,7 +101,6 @@ export default function ProfileSetupPage() {
                     full_name: name.trim(),
                     one_liner: oneLiner.trim() || null,
                     avatar_url: avatarUrl,
-                    star_color: '#8E5BFF', // Default
                 }, { onConflict: 'id' });
 
             if (updateError) {
