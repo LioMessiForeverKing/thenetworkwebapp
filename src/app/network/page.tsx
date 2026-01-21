@@ -259,14 +259,95 @@ function SearchUsersPanel({ onClose }: { onClose: () => void }) {
   );
 }
 
-function WeeklyDropPanel({ onClose, mondayDrop }: { onClose: () => void; mondayDrop: any }) {
+function WeeklyDropPanel({ onClose, mondayDrop, showCloseButton = true, onConnect, onSkip }: { 
+  onClose: () => void; 
+  mondayDrop: any; 
+  showCloseButton?: boolean;
+  onConnect?: () => void;
+  onSkip?: () => void;
+}) {
+  // If there's a candidate with status 'shown', display their profile
+  if (mondayDrop?.status === 'shown' && mondayDrop?.candidate) {
+    const candidate = mondayDrop.candidate;
+    return (
+      <div>
+        <div className={styles.embeddedPanelHeader}>
+          <h3 className={styles.embeddedPanelTitle}>Weekly Drop</h3>
+          {showCloseButton && (
+            <button className={styles.embeddedPanelClose} onClick={onClose}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12" /></svg>
+            </button>
+          )}
+        </div>
+        <div className={styles.embeddedPanelBody}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', padding: '16px 0' }}>
+            <img 
+              src={candidate.avatar} 
+              alt={candidate.name}
+              style={{ 
+                width: '80px', 
+                height: '80px', 
+                borderRadius: '50%', 
+                objectFit: 'cover',
+                border: '2px solid rgba(255,255,255,0.1)'
+              }} 
+            />
+            <div style={{ textAlign: 'center' }} className={styles.weeklyDropTextContainer}>
+              <div className={styles.weeklyDropName}>{candidate.name}</div>
+              {candidate.reason && (
+                <div className={styles.weeklyDropReason}>
+                  {candidate.reason}
+                </div>
+              )}
+            </div>
+            <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
+              <button
+                onClick={onSkip}
+                style={{
+                  padding: '10px 24px',
+                  borderRadius: '20px',
+                  border: '1px solid rgba(0,0,0,0.2)',
+                  background: 'transparent',
+                  color: '#000000',
+                  fontSize: '14px',
+                  fontWeight: 500,
+                  cursor: 'pointer'
+                }}
+              >
+                Skip
+              </button>
+              <button
+                onClick={onConnect}
+                style={{
+                  padding: '10px 24px',
+                  borderRadius: '20px',
+                  border: 'none',
+                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                  color: '#000000',
+                  fontSize: '14px',
+                  fontWeight: 500,
+                  cursor: 'pointer'
+                }}
+              >
+                Connect
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Fallback for other statuses (should not show if our conditions are correct)
   return (
     <div>
       <div className={styles.embeddedPanelHeader}>
         <h3 className={styles.embeddedPanelTitle}>Weekly Drop</h3>
-        <button className={styles.embeddedPanelClose} onClick={onClose}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12" /></svg>
-        </button>
+        {showCloseButton && (
+          <button className={styles.embeddedPanelClose} onClick={onClose}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12" /></svg>
+          </button>
+        )}
       </div>
       <div className={styles.embeddedPanelBody}>
         {mondayDrop?.status === 'skipped' || mondayDrop?.status === 'connected' ? (
@@ -1648,7 +1729,7 @@ export default function Home() {
           </svg>
         </button>
 
-        <div className={`${styles.actionIconsPill} ${expandedPanel ? styles.expanded : ''}`}>
+        <div className={`${styles.actionIconsPill} ${(expandedPanel || (mondayDrop?.status === 'shown' && mondayDrop?.candidate)) ? styles.expanded : ''}`}>
           <div className={styles.actionIcons}>
             <div 
               className={`${styles.iconButtonWrapper} ${expandedPanel === 'inviteFriends' ? styles.active : ''}`}
@@ -1686,30 +1767,17 @@ export default function Home() {
               </div>
               <span className={styles.iconLabel}>Friend Requests</span>
             </div>
-            <div 
-              className={`${styles.iconButtonWrapper} ${expandedPanel === 'weeklyDrop' ? styles.active : ''}`}
-              onClick={() => setExpandedPanel(expandedPanel === 'weeklyDrop' ? null : 'weeklyDrop')}
-            >
-              <div className={styles.iconButton}>
-                <div className={styles.iconContainer}>
-                  <WeeklyDropIcon />
-                </div>
-              </div>
-              <span className={styles.iconLabel}>Weekly Drop</span>
-            </div>
+{/* Weekly Drop button removed - card now shows automatically when no other panel is open */}
           </div>
           
-          {/* Expanded Panel Content */}
-          {expandedPanel && (
+          {/* Expanded Panel Content - only shows when there's a panel selected OR a valid weekly drop */}
+          {(expandedPanel || (mondayDrop?.status === 'shown' && mondayDrop?.candidate)) && (
             <div className={styles.expandedContent}>
               {expandedPanel === 'friendRequests' && (
                 <FriendRequestsPanel onClose={() => setExpandedPanel(null)} onRequestAccepted={loadNetworkData} />
               )}
               {expandedPanel === 'searchUsers' && (
                 <SearchUsersPanel onClose={() => setExpandedPanel(null)} />
-              )}
-              {expandedPanel === 'weeklyDrop' && (
-                <WeeklyDropPanel onClose={() => setExpandedPanel(null)} mondayDrop={mondayDrop} />
               )}
               {expandedPanel === 'inviteFriends' && (
                 <InviteFriendsPanel onClose={() => setExpandedPanel(null)} />
@@ -1736,6 +1804,16 @@ export default function Home() {
                     isEmbedded={true}
                   />
                 </div>
+              )}
+              {/* Weekly Drop shows by default ONLY when there's an actual match to show */}
+              {!expandedPanel && mondayDrop?.status === 'shown' && mondayDrop?.candidate && (
+                <WeeklyDropPanel 
+                  onClose={() => {}} 
+                  mondayDrop={mondayDrop} 
+                  showCloseButton={false}
+                  onConnect={() => handleMondayDropInteraction('connected')}
+                  onSkip={() => handleMondayDropInteraction('skipped')}
+                />
               )}
             </div>
           )}
