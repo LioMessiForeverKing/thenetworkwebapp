@@ -121,12 +121,12 @@ export default function WaitlistModal({ isOpen, onClose, theme = 'dark' }: Waitl
             </div>
             <h2 className={styles.title}>You&apos;re on the waitlist!</h2>
             <p className={styles.subtitle}>
-              We&apos;ll notify you when it&apos;s your turn to join.
+              We&apos;ll reach out when we have more updates.
             </p>
             
             <div className={styles.demoPrompt}>
               <p className={styles.demoText}>
-                Would you like to try the network beta?
+                Would you like to try the beta?
               </p>
               <div className={styles.demoButtons}>
                 <button

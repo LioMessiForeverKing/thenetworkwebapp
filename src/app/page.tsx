@@ -470,8 +470,6 @@ function LandingPageContent() {
       </div>
       */}
 
-      <InstagramFloat />
-
       {/* Initial Landing Section - Full Screen */}
       <section className={`relative h-100svh overflow-hidden transition-colors duration-500 ${theme === 'dark' ? 'bg-black' : 'bg-white'}`}>
 
@@ -531,6 +529,9 @@ function LandingPageContent() {
       {/* Fixed Bottom Navigation - Desktop */}
       <nav className="hidden md:block fixed bottom-0 left-0 right-0 z-50 pointer-events-none mix-blend-difference">
         <div className="relative w-full h-28 pointer-events-auto">
+          <div className="absolute bottom-1 left-4 z-20">
+            <InstagramFloat variant="navbar" />
+          </div>
           <Link href="/privacy-policy" className="absolute bottom-8 right-8 z-20 w-16 h-16 cursor-pointer">
             <img src="/app_icon.svg" alt="Network Icon" className="w-full h-full brightness-0 invert hover:opacity-70 transition-opacity" />
           </Link>
@@ -544,6 +545,9 @@ function LandingPageContent() {
       {/* Fixed Bottom Navigation - Mobile */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 pointer-events-none mix-blend-difference">
         <div className="relative w-full pointer-events-auto px-4 pb-4">
+          <div className="absolute bottom-0 left-2 z-20 translate-y-[10px]">
+            <InstagramFloat variant="navbar" />
+          </div>
           {/* App Icon - Bigger, on the right */}
           <Link href="/" className="absolute bottom-2 right-4 w-12 h-12 cursor-pointer z-20">
             <img src="/app_icon.svg" alt="Network Icon" className="w-full h-full brightness-0 invert hover:opacity-70 transition-opacity" />

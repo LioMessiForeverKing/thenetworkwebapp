@@ -87,16 +87,6 @@ function ConsentContent() {
                     </div>
                 </div>
 
-                {/* Accept Button */}
-                <div className={styles.acceptAllContainer}>
-                    <button
-                        onClick={handleAcceptAll}
-                        className={styles.acceptAllButton}
-                    >
-                        Accept
-                    </button>
-                </div>
-
                 {/* Info Box */}
                 <div className={styles.infoBox}>
                     <p className={styles.infoText}>
