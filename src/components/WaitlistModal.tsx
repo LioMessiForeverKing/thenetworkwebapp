@@ -1,7 +1,6 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import styles from './WaitlistModal.module.css';
 
@@ -11,15 +10,47 @@ interface WaitlistModalProps {
   theme?: 'dark' | 'light';
 }
 
+interface WaitlistResult {
+  id: string;
+  invite_code: string;
+  referral_count: number;
+  is_early_tester: boolean;
+  has_launch_party_ticket: boolean;
+}
+
 export default function WaitlistModal({ isOpen, onClose, theme = 'dark' }: WaitlistModalProps) {
-  const router = useRouter();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [school, setSchool] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitted, setIsSubmitted] = useState(false);
-  const [isFadingOut, setIsFadingOut] = useState(false);
+  const [campaignCode, setCampaignCode] = useState<string | null>(null);
+  const [referredByCode, setReferredByCode] = useState<string | null>(null);
+  const [waitlistResult, setWaitlistResult] = useState<WaitlistResult | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  // Load campaign code and referral code from localStorage on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const storedCampaignCode = localStorage.getItem('marketing_campaign_code');
+      const storedCampaignSchool = localStorage.getItem('marketing_campaign_school');
+      const storedReferralCode = localStorage.getItem('waitlist_referral_code');
+      
+      if (storedCampaignCode) {
+        setCampaignCode(storedCampaignCode);
+      }
+      
+      if (storedReferralCode) {
+        setReferredByCode(storedReferralCode);
+      }
+      
+      // Pre-fill school if we have it from the campaign
+      if (storedCampaignSchool && !school) {
+        setSchool(storedCampaignSchool);
+      }
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,32 +62,64 @@ export default function WaitlistModal({ isOpen, onClose, theme = 'dark' }: Waitl
       const normalizedEmail = email.trim().toLowerCase();
       
       // Check if email already exists on waitlist
-      const { data: existingEntries, error: checkError } = await supabase
-        .from('waitlist')
-        .select('email')
-        .eq('email', normalizedEmail);
+      const { data: existingEntry, error: checkError } = await supabase
+        .rpc('get_waitlist_entry_by_email', { p_email: normalizedEmail });
 
       if (checkError) {
         throw checkError;
       }
 
-      if (existingEntries && existingEntries.length > 0) {
-        setError('This email is already on the waitlist!');
+      if (existingEntry && existingEntry.length > 0) {
+        // User already on waitlist - show their existing invite code
+        setWaitlistResult({
+          id: existingEntry[0].id,
+          invite_code: existingEntry[0].invite_code,
+          referral_count: existingEntry[0].referral_count,
+          is_early_tester: existingEntry[0].is_early_tester,
+          has_launch_party_ticket: existingEntry[0].has_launch_party_ticket,
+        });
+        setIsSubmitted(true);
         setIsSubmitting(false);
         return;
       }
+
+      // Get campaign_id if we have a campaign code
+      let campaignId = null;
+      if (campaignCode) {
+        const { data: campaign } = await supabase
+          .from('ab_marketing_campaigns')
+          .select('id')
+          .eq('campaign_code', campaignCode)
+          .single();
+        
+        if (campaign) {
+          campaignId = campaign.id;
+        }
+      }
       
-      // Insert into waitlist table
-      const { error: insertError } = await supabase
-        .from('waitlist')
-        .insert({
-          name: name.trim(),
-          email: normalizedEmail,
-          school: school.trim() || null,
+      // Use the database function to create entry with invite code
+      const { data: result, error: insertError } = await supabase
+        .rpc('create_waitlist_entry', {
+          p_name: name.trim(),
+          p_email: normalizedEmail,
+          p_school: school.trim() || null,
+          p_campaign_code: campaignCode,
+          p_campaign_id: campaignId,
+          p_referred_by_code: referredByCode,
         });
 
       if (insertError) {
         throw insertError;
+      }
+
+      if (result && result.length > 0) {
+        setWaitlistResult({
+          id: result[0].id,
+          invite_code: result[0].invite_code,
+          referral_count: result[0].referral_count || 0,
+          is_early_tester: result[0].is_early_tester || false,
+          has_launch_party_ticket: result[0].has_launch_party_ticket || false,
+        });
       }
 
       // Reset form and show success state
@@ -64,6 +127,16 @@ export default function WaitlistModal({ isOpen, onClose, theme = 'dark' }: Waitl
       setEmail('');
       setSchool('');
       setIsSubmitted(true);
+      
+      // Clear campaign and referral data from localStorage after successful signup
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('marketing_campaign_code');
+        localStorage.removeItem('marketing_campaign_name');
+        localStorage.removeItem('marketing_campaign_school');
+        localStorage.removeItem('marketing_campaign_variant');
+        localStorage.removeItem('marketing_campaign_timestamp');
+        localStorage.removeItem('waitlist_referral_code');
+      }
     } catch (err: any) {
       setError(err.message || 'Something went wrong. Please try again.');
     } finally {
@@ -71,14 +144,33 @@ export default function WaitlistModal({ isOpen, onClose, theme = 'dark' }: Waitl
     }
   };
 
-  const handleContinueToDemo = () => {
-    setIsFadingOut(true);
-    setTimeout(() => {
-      onClose();
-      setIsSubmitted(false);
-      setIsFadingOut(false);
-      router.push('/consent?slideIn=true');
-    }, 400);
+  const getInviteLink = () => {
+    if (!waitlistResult?.invite_code) return '';
+    if (typeof window !== 'undefined') {
+      return `${window.location.origin}/r/${waitlistResult.invite_code}`;
+    }
+    return '';
+  };
+
+  const handleCopyLink = async () => {
+    const link = getInviteLink();
+    if (link) {
+      try {
+        await navigator.clipboard.writeText(link);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      } catch (err) {
+        // Fallback for older browsers
+        const textArea = document.createElement('textarea');
+        textArea.value = link;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      }
+    }
   };
 
   const handleClose = () => {
@@ -88,10 +180,14 @@ export default function WaitlistModal({ isOpen, onClose, theme = 'dark' }: Waitl
 
   if (!isOpen) return null;
 
+  const referralCount = waitlistResult?.referral_count || 0;
+  const isEarlyTester = waitlistResult?.is_early_tester || referralCount >= 3;
+  const hasLaunchTicket = waitlistResult?.has_launch_party_ticket || referralCount >= 5;
+
   return (
-    <div className={`${styles.overlay} ${isFadingOut ? styles.fadeToBlack : ''}`} onClick={handleClose}>
+    <div className={styles.overlay} onClick={handleClose}>
       <div 
-        className={`${styles.modal} ${isFadingOut ? styles.fadeOutModal : ''}`} 
+        className={styles.modal}
         onClick={(e) => e.stopPropagation()}
         style={{
           backgroundColor: theme === 'dark' ? '#ffffff' : '#000000',
@@ -111,45 +207,105 @@ export default function WaitlistModal({ isOpen, onClose, theme = 'dark' }: Waitl
         </button>
 
         {isSubmitted ? (
-          // Success State
+          // Success State with Invite Link
           <div className={styles.successState}>
             <div className={styles.successIcon}>
-              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
                 <polyline points="22 4 12 14.01 9 11.01" />
               </svg>
             </div>
-            <h2 className={styles.title}>You&apos;re on the waitlist!</h2>
-            <p className={styles.subtitle}>
-              We&apos;ll reach out when we have more updates.
+            <h2 className={styles.titleSuccess}>You&apos;re on the waitlist!</h2>
+            <p className={styles.subtitleCompact}>
+              We&apos;ll reach out when we have more updates. In the meantime, follow our <a 
+                href="https://www.instagram.com/join.thenetwork/" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className={styles.instaLink}
+              >Insta</a> to stay updated.
             </p>
             
-            <div className={styles.demoPrompt}>
-              <p className={styles.demoText}>
-                Would you like to try the beta?
+            {/* Referral Section */}
+            <div className={styles.referralSection}>
+              <h3 className={styles.referralTitle}>Want to skip the line?</h3>
+              <p className={styles.referralSubtitle}>
+                Invite friends to unlock exclusive rewards
               </p>
-              <div className={styles.demoButtons}>
-                <button
-                  onClick={handleContinueToDemo}
-                  className={styles.submitButton}
+              
+              {/* Reward Tiers */}
+              <div className={styles.rewardTiers}>
+                <div className={`${styles.rewardTier} ${isEarlyTester ? styles.rewardUnlocked : ''}`}>
+                  <div className={styles.rewardIcon}>
+                    {isEarlyTester ? (
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                        <polyline points="22 4 12 14.01 9 11.01" />
+                      </svg>
+                    ) : (
+                      <span>{Math.min(referralCount, 3)}/3</span>
+                    )}
+                  </div>
+                  <div className={styles.rewardInfo}>
+                    <span className={styles.rewardLabel}>3 invites</span>
+                    <span className={styles.rewardName}>Early Tester Access</span>
+                  </div>
+                </div>
+                
+                <div className={`${styles.rewardTier} ${hasLaunchTicket ? styles.rewardUnlocked : ''}`}>
+                  <div className={styles.rewardIcon}>
+                    {hasLaunchTicket ? (
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                        <polyline points="22 4 12 14.01 9 11.01" />
+                      </svg>
+                    ) : (
+                      <span>{Math.min(referralCount, 5)}/5</span>
+                    )}
+                  </div>
+                  <div className={styles.rewardInfo}>
+                    <span className={styles.rewardLabel}>5 invites</span>
+                    <span className={styles.rewardName}>Free Launch Party Ticket</span>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Progress Bar */}
+              <div className={styles.progressContainer}>
+                <div className={styles.progressBar}>
+                  <div 
+                    className={styles.progressFill} 
+                    style={{ width: `${Math.min((referralCount / 5) * 100, 100)}%` }}
+                  />
+                  <div className={styles.progressMarker} style={{ left: '60%' }} />
+                </div>
+                <div className={styles.progressLabels}>
+                  <span>{referralCount} invited</span>
+                  <span>{Math.max(5 - referralCount, 0)} to go</span>
+                </div>
+              </div>
+              
+              {/* Invite Link */}
+              <div className={styles.inviteLinkSection}>
+                <p className={styles.inviteLinkLabel}>Your personal invite link</p>
+                <div 
+                  className={styles.inviteLinkBox}
                   style={{
-                    backgroundColor: theme === 'dark' ? '#000000' : '#ffffff',
-                    color: theme === 'dark' ? '#ffffff' : '#000000',
+                    backgroundColor: theme === 'dark' ? 'rgba(0, 0, 0, 0.05)' : 'rgba(255, 255, 255, 0.1)',
+                    borderColor: theme === 'dark' ? 'rgba(0, 0, 0, 0.1)' : 'rgba(255, 255, 255, 0.2)',
                   }}
                 >
-                  Yes, show me the beta
-                </button>
-                <button
-                  onClick={handleClose}
-                  className={styles.secondaryButton}
-                  style={{
-                    backgroundColor: 'transparent',
-                    color: theme === 'dark' ? 'rgba(0, 0, 0, 0.7)' : 'rgba(255, 255, 255, 0.7)',
-                    border: `1px solid ${theme === 'dark' ? 'rgba(0, 0, 0, 0.2)' : 'rgba(255, 255, 255, 0.2)'}`,
-                  }}
-                >
-                  Maybe later
-                </button>
+                  <span className={styles.inviteLink}>{getInviteLink()}</span>
+                  <button
+                    onClick={handleCopyLink}
+                    className={styles.copyButton}
+                    style={{
+                      backgroundColor: theme === 'dark' ? '#000000' : '#ffffff',
+                      color: theme === 'dark' ? '#ffffff' : '#000000',
+                    }}
+                  >
+                    {copied ? 'Copied!' : 'Copy'}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -229,16 +385,6 @@ export default function WaitlistModal({ isOpen, onClose, theme = 'dark' }: Waitl
                 {isSubmitting ? 'Submitting...' : 'Join Waitlist'}
               </button>
             </form>
-
-            <button
-              onClick={handleContinueToDemo}
-              className={styles.demoLink}
-              style={{
-                color: theme === 'dark' ? 'rgba(0, 0, 0, 0.6)' : 'rgba(255, 255, 255, 0.6)',
-              }}
-            >
-              Want to try the beta directly?
-            </button>
           </>
         )}
       </div>

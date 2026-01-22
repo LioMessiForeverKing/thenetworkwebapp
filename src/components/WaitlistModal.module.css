@@ -68,11 +68,26 @@
   letter-spacing: -0.02em;
 }
 
+.titleSuccess {
+  font-size: 26px;
+  font-weight: 700;
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
 .subtitle {
   font-size: 16px;
   font-weight: 400;
   margin: 0 0 32px;
   opacity: 0.7;
+}
+
+.subtitleCompact {
+  font-size: 15px;
+  font-weight: 400;
+  margin: 0;
+  opacity: 0.7;
+  line-height: 1.5;
 }
 
 .form {
@@ -137,19 +152,31 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
-  padding: 20px 0;
+  gap: 8px;
+  padding: 10px 0;
 }
 
 .successIcon {
-  width: 64px;
-  height: 64px;
+  width: 52px;
+  height: 52px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   animation: scaleIn 0.4s ease;
   color: #22c55e;
+}
+
+.instaLink {
+  color: #3b82f6;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.instaLink:hover {
+  color: #60a5fa;
 }
 
 @keyframes scaleIn {
@@ -179,53 +206,177 @@
   max-width: 320px;
 }
 
-.demoPrompt {
-  margin-top: 12px;
+/* Referral Section */
+.referralSection {
+  margin-top: 16px;
   width: 100%;
+  text-align: left;
 }
 
-.demoText {
+.referralTitle {
   font-size: 16px;
-  font-weight: 500;
-  margin: 0 0 20px;
-  opacity: 0.9;
+  font-weight: 700;
+  margin: 0 0 2px;
+  text-align: center;
 }
 
-.demoButtons {
+.referralSubtitle {
+  font-size: 13px;
+  opacity: 0.6;
+  margin: 0 0 14px;
+  text-align: center;
+}
+
+/* Reward Tiers */
+.rewardTiers {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  width: 100%;
+  gap: 8px;
+  margin-bottom: 14px;
 }
 
-.secondaryButton {
-  width: 100%;
-  padding: 16px;
-  border-radius: 12px;
-  font-size: 16px;
+.rewardTier {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.03);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+}
+
+.rewardTier.rewardUnlocked {
+  background: rgba(34, 197, 94, 0.1);
+  border-color: rgba(34, 197, 94, 0.3);
+}
+
+.rewardIcon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.rewardTier.rewardUnlocked .rewardIcon {
+  background: #22c55e;
+  color: white;
+}
+
+.rewardInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.rewardLabel {
+  font-size: 11px;
+  opacity: 0.5;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.rewardName {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* Progress Bar */
+.progressContainer {
+  margin-bottom: 14px;
+}
+
+.progressBar {
+  height: 6px;
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 3px;
+  position: relative;
+  overflow: visible;
+}
+
+.progressFill {
+  height: 100%;
+  background: linear-gradient(90deg, #22c55e, #16a34a);
+  border-radius: 3px;
+  transition: width 0.5s ease;
+}
+
+.progressMarker {
+  position: absolute;
+  top: -3px;
+  width: 2px;
+  height: 12px;
+  background: rgba(0, 0, 0, 0.15);
+  transform: translateX(-50%);
+}
+
+.progressLabels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 6px;
+  font-size: 11px;
+  opacity: 0.5;
+}
+
+/* Invite Link Section */
+.inviteLinkSection {
+  margin-top: 4px;
+}
+
+.inviteLinkLabel {
+  font-size: 12px;
+  font-weight: 600;
+  margin: 0 0 6px;
+  text-align: center;
+  opacity: 0.7;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.inviteLinkBox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 6px 6px 14px;
+  border-radius: 10px;
+  border: 1px solid;
+}
+
+.inviteLink {
+  flex: 1;
+  font-size: 12px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  opacity: 0.7;
+  font-family: monospace;
+}
+
+.copyButton {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
+  flex-shrink: 0;
 }
 
-.secondaryButton:hover {
-  opacity: 0.8;
+.copyButton:hover {
+  transform: scale(1.02);
 }
 
-.demoLink {
-  background: none;
-  border: none;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  margin-top: 16px;
-  transition: opacity 0.2s ease;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-
-.demoLink:hover {
-  opacity: 1;
+.copyButton:active {
+  transform: scale(0.98);
 }
 
 /* Fade to black transition */

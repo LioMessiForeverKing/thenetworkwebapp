@@ -243,6 +243,19 @@ function LandingPageContent() {
   const [openFAQ, setOpenFAQ] = useState<number | null>(null);
   const [isWaitlistModalOpen, setIsWaitlistModalOpen] = useState(false);
   const [showYouTubeWarning, setShowYouTubeWarning] = useState(false);
+  const lastTapRef = useRef<number>(0);
+
+  // Double-tap handler for hidden login access via logo
+  const handleLogoDoubleTap = useCallback(() => {
+    const now = Date.now();
+    const DOUBLE_TAP_DELAY = 300; // ms
+    
+    if (now - lastTapRef.current < DOUBLE_TAP_DELAY) {
+      // Double tap detected - trigger login
+      signInWithGoogle();
+    }
+    lastTapRef.current = now;
+  }, [signInWithGoogle]);
 
   // Check for YouTube permission warning from redirect
   useEffect(() => {
@@ -349,110 +362,110 @@ function LandingPageContent() {
     }
   }, [user, loading, router]);
 
-  // Checkerboard transition scroll handler
-  useEffect(() => {
-    const handleScroll = () => {
-      const section = transitionSectionRef.current;
-      if (!section) return;
+  // Checkerboard transition scroll handler - COMMENTED OUT
+  // useEffect(() => {
+  //   const handleScroll = () => {
+  //     const section = transitionSectionRef.current;
+  //     if (!section) return;
 
-      const rect = section.getBoundingClientRect();
-      const windowHeight = window.innerHeight;
-      const scrollProgress = Math.max(0, Math.min(1, 1 - (rect.top / windowHeight)));
+  //     const rect = section.getBoundingClientRect();
+  //     const windowHeight = window.innerHeight;
+  //     const scrollProgress = Math.max(0, Math.min(1, 1 - (rect.top / windowHeight)));
 
-      const stages = [
-        '.transition-stage-1', '.transition-stage-2', '.transition-stage-3',
-        '.transition-stage-4', '.transition-stage-5', '.transition-stage-6',
-        '.transition-stage-7', '.transition-stage-8'
-      ];
+  //     const stages = [
+  //       '.transition-stage-1', '.transition-stage-2', '.transition-stage-3',
+  //       '.transition-stage-4', '.transition-stage-5', '.transition-stage-6',
+  //       '.transition-stage-7', '.transition-stage-8'
+  //     ];
 
-      const stageWidth = 1 / stages.length;
+  //     const stageWidth = 1 / stages.length;
 
-      stages.forEach((selector, index) => {
-        const stage = section.querySelector(selector) as HTMLElement;
-        if (!stage) return;
+  //     stages.forEach((selector, index) => {
+  //       const stage = section.querySelector(selector) as HTMLElement;
+  //       if (!stage) return;
 
-        const start = index * stageWidth;
-        const end = (index + 1) * stageWidth;
+  //       const start = index * stageWidth;
+  //       const end = (index + 1) * stageWidth;
 
-        if (scrollProgress < start) {
-          stage.style.opacity = '0';
-        } else if (scrollProgress < end) {
-          const progress = (scrollProgress - start) / stageWidth;
-          stage.style.opacity = String(progress);
-          // Also fade out previous stage
-          if (index > 0) {
-            const prevStage = section.querySelector(stages[index - 1]) as HTMLElement;
-            if (prevStage) prevStage.style.opacity = String(1 - progress);
-          }
-        } else {
-          stage.style.opacity = index === stages.length - 1 ? '1' : '0';
-        }
-      });
-    };
+  //       if (scrollProgress < start) {
+  //         stage.style.opacity = '0';
+  //       } else if (scrollProgress < end) {
+  //         const progress = (scrollProgress - start) / stageWidth;
+  //         stage.style.opacity = String(progress);
+  //         // Also fade out previous stage
+  //         if (index > 0) {
+  //           const prevStage = section.querySelector(stages[index - 1]) as HTMLElement;
+  //           if (prevStage) prevStage.style.opacity = String(1 - progress);
+  //         }
+  //       } else {
+  //         stage.style.opacity = index === stages.length - 1 ? '1' : '0';
+  //       }
+  //     });
+  //   };
 
-    window.addEventListener('scroll', handleScroll);
-    handleScroll();
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  //   window.addEventListener('scroll', handleScroll);
+  //   handleScroll();
+  //   return () => window.removeEventListener('scroll', handleScroll);
+  // }, []);
 
-  // Gallery section visibility observer and scroll handler (desktop only)
-  useEffect(() => {
-    if (typeof window !== 'undefined' && window.innerWidth <= 768) return;
+  // Gallery section visibility observer and scroll handler (desktop only) - COMMENTED OUT
+  // useEffect(() => {
+  //   if (typeof window !== 'undefined' && window.innerWidth <= 768) return;
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting && !galleryVisible) {
-            setGalleryVisible(true);
-          }
-        });
-      },
-      { threshold: 0.3 }
-    );
+  //   const observer = new IntersectionObserver(
+  //     (entries) => {
+  //       entries.forEach((entry) => {
+  //         if (entry.isIntersecting && !galleryVisible) {
+  //           setGalleryVisible(true);
+  //         }
+  //       });
+  //     },
+  //     { threshold: 0.3 }
+  //   );
 
-    if (gallerySectionRef.current) {
-      observer.observe(gallerySectionRef.current);
-    }
+  //   if (gallerySectionRef.current) {
+  //     observer.observe(gallerySectionRef.current);
+  //   }
 
-    const handleGalleryScroll = () => {
-      const section = gallerySectionRef.current;
-      if (!section) return;
+  //   const handleGalleryScroll = () => {
+  //     const section = gallerySectionRef.current;
+  //     if (!section) return;
 
-      const rect = section.getBoundingClientRect();
-      const sectionHeight = section.offsetHeight;
-      const windowHeight = window.innerHeight;
-      // Added offset of 300px to start animation earlier (around Y: 1400 instead of 1687)
-      const earlyStartOffset = 300;
-      const scrollProgress = Math.max(0, Math.min(1, (-rect.top + earlyStartOffset) / (sectionHeight - windowHeight)));
+  //     const rect = section.getBoundingClientRect();
+  //     const sectionHeight = section.offsetHeight;
+  //     const windowHeight = window.innerHeight;
+  //     // Added offset of 300px to start animation earlier (around Y: 1400 instead of 1687)
+  //     const earlyStartOffset = 300;
+  //     const scrollProgress = Math.max(0, Math.min(1, (-rect.top + earlyStartOffset) / (sectionHeight - windowHeight)));
 
-      const scrollContainer = section.querySelector('.gallery-scroll-container') as HTMLElement;
-      const textContainer = section.querySelector('.gallery-text-container') as HTMLElement;
+  //     const scrollContainer = section.querySelector('.gallery-scroll-container') as HTMLElement;
+  //     const textContainer = section.querySelector('.gallery-text-container') as HTMLElement;
 
-      if (scrollContainer && textContainer) {
-        if (scrollProgress < 0.3) {
-          scrollContainer.style.transform = 'translateX(0)';
-          textContainer.style.transform = 'translateX(0)';
-        } else {
-          const adjustedProgress = (scrollProgress - 0.3) / 0.7;
-          const maxScroll = scrollContainer.scrollWidth - window.innerWidth;
-          const horizontalOffset = adjustedProgress * maxScroll * 1.3;
+  //     if (scrollContainer && textContainer) {
+  //       if (scrollProgress < 0.3) {
+  //         scrollContainer.style.transform = 'translateX(0)';
+  //         textContainer.style.transform = 'translateX(0)';
+  //       } else {
+  //         const adjustedProgress = (scrollProgress - 0.3) / 0.7;
+  //         const maxScroll = scrollContainer.scrollWidth - window.innerWidth;
+  //         const horizontalOffset = adjustedProgress * maxScroll * 1.3;
 
-          scrollContainer.style.transform = `translateX(-${horizontalOffset}px)`;
-          textContainer.style.transform = `translateX(-${horizontalOffset}px)`;
-        }
-      }
-    };
+  //         scrollContainer.style.transform = `translateX(-${horizontalOffset}px)`;
+  //         textContainer.style.transform = `translateX(-${horizontalOffset}px)`;
+  //       }
+  //     }
+  //   };
 
-    window.addEventListener('scroll', handleGalleryScroll);
-    handleGalleryScroll();
+  //   window.addEventListener('scroll', handleGalleryScroll);
+  //   handleGalleryScroll();
 
-    return () => {
-      if (gallerySectionRef.current) {
-        observer.unobserve(gallerySectionRef.current);
-      }
-      window.removeEventListener('scroll', handleGalleryScroll);
-    };
-  }, [galleryVisible]);
+  //   return () => {
+  //     if (gallerySectionRef.current) {
+  //       observer.unobserve(gallerySectionRef.current);
+  //     }
+  //     window.removeEventListener('scroll', handleGalleryScroll);
+  //   };
+  // }, [galleryVisible]);
 
   if (loading || user) return null;
 
@@ -463,7 +476,7 @@ function LandingPageContent() {
   );
 
   return (
-    <main style={{ backgroundColor: theme === 'dark' ? '#ffffff' : '#000000', paddingBottom: '80px' }}>
+    <main style={{ backgroundColor: '#ffffff' }}>
       {/* === SCROLL Y TRACKER UI (uncomment along with state + useEffect to enable) ===
       <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[9999] bg-red-500 text-white px-4 py-2 rounded-full font-mono text-lg font-bold shadow-lg">
         Y: {Math.round(scrollY)}
@@ -471,18 +484,18 @@ function LandingPageContent() {
       */}
 
       {/* Initial Landing Section - Full Screen */}
-      <section className={`relative h-100svh overflow-hidden transition-colors duration-500 ${theme === 'dark' ? 'bg-black' : 'bg-white'}`}>
+      <section className="relative h-100svh overflow-hidden transition-colors duration-500 bg-black">
 
-        <ConstellationSphere theme={theme} />
+        <ConstellationSphere theme="dark" />
 
         {/* Top Left - THE NETWORK. */}
         <div className="absolute top-6 left-4 md:top-8 md:left-8 z-20">
-          <h1 className={`font-brand text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold transition-colors duration-500 ${theme === 'dark' ? 'text-white' : 'text-black'}`} style={{ letterSpacing: '-0.02em' }}>
+          <h1 className="font-brand text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold transition-colors duration-500 text-white" style={{ letterSpacing: '-0.02em' }}>
             THE<br />NETWORK.
           </h1>
         </div>
 
-        {/* Top Right - Login */}
+        {/* Hidden Login Button - Commented out but preserved (double-tap logo to access)
         <div className="absolute top-6 right-4 md:top-8 md:right-8 z-20">
           <button
             onClick={signInWithGoogle}
@@ -492,22 +505,23 @@ function LandingPageContent() {
             LOGIN
           </button>
         </div>
+        */}
 
         {/* Center Content */}
         <div className="absolute inset-0 flex flex-col items-center justify-center z-10 pointer-events-none">
           <div className="pointer-events-auto flex flex-col items-center gap-6 text-center px-4">
-            <AnimatedWord isDark={theme === 'light'} />
+            <AnimatedWord isDark={false} />
 
-            <p className={`text-lg md:text-xl font-medium max-w-lg mx-auto leading-relaxed animate-fade-in-up opacity-0 transition-colors duration-500 ${theme === 'dark' ? 'text-white/90' : 'text-black/90'}`} style={{ animationDelay: '0.3s' }}>
-              The shortest path to the right people: a social network designed for real life.
+            <p className="text-lg md:text-xl font-medium max-w-lg mx-auto leading-relaxed animate-fade-in-up opacity-0 transition-colors duration-500 text-white/90" style={{ animationDelay: '0.3s' }}>
+              The shortest path to the right people:<br />a social network designed for real life.
             </p>
 
             <div className="flex flex-col items-center gap-3 sm:gap-4 mt-4">
               <button
                 onClick={() => setIsWaitlistModalOpen(true)}
-                className={`px-8 py-4 sm:px-10 sm:py-5 rounded-full text-lg sm:text-xl font-semibold transition-all duration-300 shadow-xl transform hover:scale-105 active:scale-95 cursor-pointer ${theme === 'dark' ? 'bg-white text-black hover:bg-gray-100' : 'bg-black text-white hover:bg-gray-800'}`}
+                className="px-8 py-4 sm:px-10 sm:py-5 rounded-full text-lg sm:text-xl font-semibold transition-all duration-300 shadow-xl transform hover:scale-105 active:scale-95 cursor-pointer bg-white text-black hover:bg-gray-100"
               >
-                Join the Waitlist
+                Join The Network
               </button>
             </div>
 
@@ -527,42 +541,50 @@ function LandingPageContent() {
       </section>
 
       {/* Fixed Bottom Navigation - Desktop */}
-      <nav className="hidden md:block fixed bottom-0 left-0 right-0 z-50 pointer-events-none mix-blend-difference">
+      <nav className="hidden md:block fixed bottom-0 left-0 right-0 z-50 pointer-events-none">
         <div className="relative w-full h-28 pointer-events-auto">
           <div className="absolute bottom-1 left-4 z-20">
             <InstagramFloat variant="navbar" />
           </div>
-          <Link href="/privacy-policy" className="absolute bottom-8 right-8 z-20 w-16 h-16 cursor-pointer">
-            <img src="/app_icon.svg" alt="Network Icon" className="w-full h-full brightness-0 invert hover:opacity-70 transition-opacity" />
-          </Link>
+          {/* Double-tap logo to access login */}
+          <button 
+            onClick={handleLogoDoubleTap}
+            className="absolute bottom-8 right-8 z-20 w-16 h-16 cursor-pointer bg-transparent border-none p-0"
+            aria-label="Network Icon - Double tap to login"
+          >
+            <img src="/app_icon.svg" alt="Network Icon" className="w-full h-full brightness-0 hover:opacity-70 transition-opacity" />
+          </button>
 
           <div className="absolute bottom-16 left-6 right-28 z-10">
-            <div className="h-[1px] bg-white opacity-30"></div>
+            <div className="h-[1px] bg-black opacity-30"></div>
           </div>
         </div>
       </nav>
 
       {/* Fixed Bottom Navigation - Mobile */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 pointer-events-none mix-blend-difference">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 pointer-events-none">
         <div className="relative w-full pointer-events-auto px-4 pb-4">
           <div className="absolute bottom-0 left-2 z-20 translate-y-[10px]">
             <InstagramFloat variant="navbar" />
           </div>
-          {/* App Icon - Bigger, on the right */}
-          <Link href="/" className="absolute bottom-2 right-4 w-12 h-12 cursor-pointer z-20">
-            <img src="/app_icon.svg" alt="Network Icon" className="w-full h-full brightness-0 invert hover:opacity-70 transition-opacity" />
-          </Link>
+          {/* App Icon - Double-tap to access login */}
+          <button 
+            onClick={handleLogoDoubleTap}
+            className="absolute bottom-2 right-4 w-12 h-12 cursor-pointer z-20 bg-transparent border-none p-0"
+            aria-label="Network Icon - Double tap to login"
+          >
+            <img src="/app_icon.svg" alt="Network Icon" className="w-full h-full brightness-0 hover:opacity-70 transition-opacity" />
+          </button>
 
           {/* Horizontal Line - Cut off early for logo */}
           <div className="absolute bottom-8 left-4 right-20 z-10">
-            <div className="h-[1px] bg-white opacity-30"></div>
+            <div className="h-[1px] bg-black opacity-30"></div>
           </div>
         </div>
       </nav>
 
-      {/* Transition Section - Only visible in Dark Mode */}
-      {/* Transition Section */}
-      <section
+      {/* Transition Section - COMMENTED OUT */}
+      {/* <section
         ref={transitionSectionRef}
         className="relative min-h-screen overflow-hidden"
         id="checkerboard-transition"
@@ -576,10 +598,10 @@ function LandingPageContent() {
         <div className="absolute inset-0 transition-stage-6" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg width='40' height='40' xmlns='http://www.w3.org/2000/svg'%3E%3Crect x='0' y='0' width='40' height='40' rx='0' fill='${theme === 'dark' ? 'white' : 'black'}'/%3E%3C/svg%3E")`, backgroundSize: '40px 40px', opacity: 0 }} />
         <div className="absolute inset-0 transition-stage-7" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg width='40' height='40' xmlns='http://www.w3.org/2000/svg'%3E%3Crect x='-2' y='-2' width='44' height='44' fill='${theme === 'dark' ? 'white' : 'black'}'/%3E%3C/svg%3E")`, backgroundSize: '40px 40px', opacity: 0 }} />
         <div className="absolute inset-0 transition-stage-8" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg width='40' height='40' xmlns='http://www.w3.org/2000/svg'%3E%3Crect x='-5' y='-5' width='50' height='50' fill='${theme === 'dark' ? 'white' : 'black'}'/%3E%3C/svg%3E")`, backgroundSize: '40px 40px', opacity: 0 }} />
-      </section>
+      </section> */}
 
-      {/* Gallery Section */}
-      <section ref={gallerySectionRef} className={`relative overflow-hidden hidden md:block ${theme === 'dark' ? 'bg-white' : 'bg-black'}`} style={{ minHeight: '200vh' }}>
+      {/* Gallery Section - COMMENTED OUT */}
+      {/* <section ref={gallerySectionRef} className={`relative overflow-hidden hidden md:block ${theme === 'dark' ? 'bg-white' : 'bg-black'}`} style={{ minHeight: '200vh' }}>
         <div className="sticky top-0 min-h-screen flex flex-col justify-between py-12 px-6 md:px-12 overflow-hidden" style={{ paddingTop: '80px', paddingBottom: '30px' }}>
           <div className="w-full mb-6">
             <h2 className={`text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold leading-tight text-left max-w-7xl ${theme === 'dark' ? 'text-black' : 'text-white'}`}>
@@ -612,7 +634,6 @@ function LandingPageContent() {
         </div>
       </section>
 
-      {/* Mobile Gallery */}
       <section className={`px-6 py-10 space-y-8 md:hidden ${theme === 'dark' ? 'bg-white' : 'bg-black'}`}>
         <h2 className={`text-2xl font-bold leading-tight ${theme === 'dark' ? 'text-black' : 'text-white'}`}>
           We turn your feeds, starting with YouTube, into your Digital DNA; a personalized set of people, moments, and opportunities that feel just right.
@@ -625,24 +646,19 @@ function LandingPageContent() {
           ))}
         </div>
         <h2 className={`text-4xl font-bold ${theme === 'dark' ? 'text-black' : 'text-white'}`}>THIS COULD BE YOU!</h2>
-      </section>
+      </section> */}
 
       {/* Signal Intelligence Section */}
-      <section id="signal-intelligence" className={`relative overflow-hidden py-24 px-6 md:px-12 ${theme === 'dark' ? 'bg-white' : 'bg-black'}`}>
-        <div className="max-w-7xl mx-auto">
-          <h2 className={`font-bold mb-12 leading-none ${theme === 'dark' ? 'text-black' : 'text-white'}`} style={{ fontSize: 'clamp(2rem, 8vw, 6rem)' }}>
-            {signalHeading}
-          </h2>
-          <div className="max-w-2xl space-y-6">
-            <p className={`text-xl md:text-2xl leading-relaxed font-medium ${theme === 'dark' ? 'text-black' : 'text-white'}`}>The small signals you leave behind every day.</p>
-            <p className={`text-xl md:text-2xl leading-relaxed font-medium ${theme === 'dark' ? 'text-black' : 'text-white'}`}>You choose to connect YouTube, and we use your subscriptions and liked videos, read-only, to build your Digital DNA.</p>
-            <p className={`text-xl md:text-2xl leading-relaxed font-medium ${theme === 'dark' ? 'text-black' : 'text-white'}`}>That's how meeting people starts to feel intentional, not random.</p>
-          </div>
+      <section id="signal-intelligence" className="relative h-100svh overflow-hidden bg-white flex items-center">
+        <div className="w-full px-6 md:px-12 text-left">
+          <p className="text-3xl md:text-4xl lg:text-5xl leading-tight font-bold text-black tracking-tight">
+            From who you are, we turn your signals into the connections<br />that finally place you in the right community.
+          </p>
         </div>
       </section>
 
-      {/* FAQ Section */}
-      <section id="faq" className={`relative overflow-hidden pt-32 pb-24 px-6 md:px-12 mt-8 ${theme === 'dark' ? 'bg-white' : 'bg-black'}`}>
+      {/* FAQ Section - COMMENTED OUT */}
+      {/* <section id="faq" className={`relative overflow-hidden pt-32 pb-24 px-6 md:px-12 mt-8 ${theme === 'dark' ? 'bg-white' : 'bg-black'}`}>
         <div className="max-w-4xl mx-auto">
           <h2 className={`font-bold mb-12 leading-none ${theme === 'dark' ? 'text-black' : 'text-white'}`} style={{ fontSize: 'clamp(2rem, 8vw, 4rem)' }}>
             QUESTIONS? <span className={`border-b-[3px] pb-2 inline-block sm:inline ${theme === 'dark' ? 'border-black' : 'border-white'}`}>ANSWERS.</span>
@@ -674,17 +690,17 @@ function LandingPageContent() {
             ))}
           </div>
         </div>
-      </section>
+      </section> */}
 
       {/* Join Us Section */}
-      <section className={`relative min-h-screen overflow-hidden flex items-center justify-center px-6 ${theme === 'dark' ? 'bg-white' : 'bg-black'}`}>
+      <section className="relative h-100svh overflow-hidden flex items-center justify-center px-6 bg-white">
         <div className="text-center">
-          <h2 className={`text-6xl sm:text-7xl md:text-8xl lg:text-9xl font-bold mb-12 leading-none ${theme === 'dark' ? 'text-black' : 'text-white'}`}>JOIN US</h2>
+          <h2 className="text-6xl sm:text-7xl md:text-8xl lg:text-9xl font-bold mb-12 leading-none text-black">JOIN US</h2>
           <button
             onClick={() => setIsWaitlistModalOpen(true)}
-            className={`px-10 py-5 rounded-full text-xl font-semibold transition-colors shadow-xl transform hover:scale-105 active:scale-95 cursor-pointer border-none ${theme === 'dark' ? 'bg-black text-white hover:bg-gray-800' : 'bg-white text-black hover:bg-gray-200'}`}
+            className="px-10 py-5 rounded-full text-xl font-semibold transition-colors shadow-xl transform hover:scale-105 active:scale-95 cursor-pointer border-none bg-black text-white hover:bg-gray-800"
           >
-            Join the Waitlist
+            Join The Network
           </button>
         </div>
       </section>

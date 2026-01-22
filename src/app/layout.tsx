@@ -4,11 +4,25 @@ import { AuthProvider } from "@/contexts/AuthContext";
 
 export const metadata: Metadata = {
   title: "TheNetwork",
-  description: "TheNetwork WebApp",
+  description: "The shortest path to the right people: a social network designed for real life.",
   icons: {
-    icon: [{ url: "/app_icon.svg", type: "image/svg+xml" }],
-    shortcut: ["/app_icon.svg"],
-    apple: [{ url: "/app_icon.svg", type: "image/svg+xml" }],
+    icon: [
+      { url: "/favicon.png", type: "image/png" },
+    ],
+    shortcut: ["/favicon.png"],
+    apple: [{ url: "/favicon.png", type: "image/png" }],
+  },
+  openGraph: {
+    title: "TheNetwork",
+    description: "The shortest path to the right people: a social network designed for real life.",
+    images: [{ url: "/favicon.png", width: 1024, height: 1024 }],
+    type: "website",
+  },
+  twitter: {
+    card: "summary",
+    title: "TheNetwork",
+    description: "The shortest path to the right people: a social network designed for real life.",
+    images: ["/favicon.png"],
   },
 };
 
