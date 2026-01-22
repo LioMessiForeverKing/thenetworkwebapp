@@ -6,6 +6,12 @@
     width: 100%;
     min-height: 100vh;
     background: #000;
+    overflow-x: hidden;
+}
+
+/* Counter the global invert filter when theme is inverted */
+:global(.theme-inverted) .wrapper {
+    filter: invert(1) hue-rotate(180deg);
 }
 
 .loadingContainer {
@@ -37,7 +43,8 @@
 .headerSection {
     background: #000;
     padding: 24px 32px;
-    margin-top: 60px;
+    padding-top: 80px;
+    margin-top: 0;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
@@ -208,7 +215,7 @@
 }
 
 /* ============================================
-   Main Content Grid - Independent Scrolling Columns
+   Main Content Grid
    ============================================ */
 .mainContent {
     max-width: 1200px;
@@ -217,14 +224,12 @@
     display: grid;
     grid-template-columns: 260px 1fr 300px;
     gap: 20px;
-    height: calc(100vh - 280px);
     padding-bottom: 80px;
 }
 
 @media (max-width: 1100px) {
     .mainContent {
         grid-template-columns: 240px 1fr;
-        height: auto;
     }
     .rightColumn {
         display: none;
@@ -235,7 +240,6 @@
     .mainContent {
         grid-template-columns: 1fr;
         padding: 16px;
-        height: auto;
     }
     .headerContent {
         flex-direction: column;
@@ -284,22 +288,9 @@
 .leftColumn {
     display: flex;
     flex-direction: column;
-    overflow-y: auto;
-    max-height: 100%;
+    overflow-y: visible;
+    overflow: visible;
     padding-right: 8px;
-}
-
-.leftColumn::-webkit-scrollbar {
-    width: 4px;
-}
-
-.leftColumn::-webkit-scrollbar-track {
-    background: transparent;
-}
-
-.leftColumn::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.2);
-    border-radius: 2px;
 }
 
 /* Network Score Card */
@@ -450,22 +441,7 @@
 .centerColumn {
     display: flex;
     flex-direction: column;
-    overflow-y: auto;
-    max-height: 100%;
     padding-right: 8px;
-}
-
-.centerColumn::-webkit-scrollbar {
-    width: 4px;
-}
-
-.centerColumn::-webkit-scrollbar-track {
-    background: transparent;
-}
-
-.centerColumn::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.2);
-    border-radius: 2px;
 }
 
 .aboutCard {
@@ -648,22 +624,7 @@
 .rightColumn {
     display: flex;
     flex-direction: column;
-    overflow-y: auto;
-    max-height: 100%;
     padding-right: 8px;
-}
-
-.rightColumn::-webkit-scrollbar {
-    width: 4px;
-}
-
-.rightColumn::-webkit-scrollbar-track {
-    background: transparent;
-}
-
-.rightColumn::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.2);
-    border-radius: 2px;
 }
 
 .clusterCard {
@@ -1020,7 +981,7 @@
     display: grid;
     grid-template-columns: 220px 1fr 320px;
     gap: 0;
-    height: calc(100vh - 280px);
+    min-height: calc(100vh - 280px);
     margin: 0 auto;
     max-width: 100%;
     padding-bottom: 60px;
@@ -1044,7 +1005,7 @@
 @media (max-width: 768px) {
     .interestsTabContent {
         grid-template-columns: 1fr;
-        height: auto;
+        min-height: auto;
     }
     .interestsRightPanel {
         position: fixed;

@@ -1766,12 +1766,6 @@ export default function NetworkProfilePage() {
                 </div>
             )}
 
-            {/* Footer Bar */}
-            <div className={styles.footerBar}>
-                <div className={styles.footerLeft}>{displayName}'s Profile</div>
-                <div className={styles.footerRight}>{profileData.location || ''}</div>
-            </div>
-
             {/* Cluster Friends Modal */}
             {selectedCluster && (
                 <div className={styles.modalOverlay} onClick={() => setSelectedCluster(null)}>

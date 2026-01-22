@@ -14,7 +14,6 @@ const menuItems = [
 export default function Menu() {
   const [isOpen, setIsOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [isDigitalDnaOpen, setIsDigitalDnaOpen] = useState(false);
   const [isInverted, setIsInverted] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -94,32 +93,12 @@ export default function Menu() {
               </Link>
             ))}
 
-            {/* Digital DNA Toggle */}
-            <div className={styles.settingsSection}>
-              <button
-                className={styles.settingsToggle}
-                onClick={() => setIsDigitalDnaOpen(!isDigitalDnaOpen)}
-              >
-                DIGITAL DNA
-              </button>
-
-              <div className={`${styles.subMenu} ${isDigitalDnaOpen ? styles.show : ''}`}>
-                <Link
-                  href="/network-profile"
-                  onClick={() => setIsOpen(false)}
-                  className={styles.subMenuItem}
-                >
-                  YOUR NETWORK PROFILE
-                </Link>
-                <Link
-                  href="/digital-dna"
-                  onClick={() => setIsOpen(false)}
-                  className={styles.subMenuItem}
-                >
-                  DNA VISUALIZATION
-                </Link>
-              </div>
-            </div>
+            <Link
+              href="/network-profile"
+              onClick={() => setIsOpen(false)}
+            >
+              YOUR PROFILE
+            </Link>
 
             <Link
               href="/msg-aria"
@@ -138,13 +117,6 @@ export default function Menu() {
               </button>
 
               <div className={`${styles.subMenu} ${isSettingsOpen ? styles.show : ''}`}>
-                <Link
-                  href="/edit-profile"
-                  onClick={() => setIsOpen(false)}
-                  className={styles.subMenuItem}
-                >
-                  EDIT PROFILE
-                </Link>
                 <Link
                   href="/invite-leaderboard"
                   onClick={() => setIsOpen(false)}

@@ -23,7 +23,7 @@
   border: none;
   cursor: pointer;
   padding: 0;
-  z-index: 20;
+  z-index: 1001;
   transform: translateX(0);
   transition: transform 0.2s ease;
 }
@@ -46,7 +46,7 @@
   right: 14px;
   top: 14px;
   transform: none;
-  z-index: 21;
+  z-index: 1002;
   display: none;
 }
 
@@ -100,7 +100,7 @@
   box-shadow: none;
   transform: translateX(-100%);
   transition: transform 0.2s ease;
-  z-index: 19;
+  z-index: 1000;
   display: flex;
   align-items: flex-start;
   padding: 20px;
@@ -294,4 +294,63 @@
 
 .subMenuItem:hover {
   color: #0f172a !important;
+}
+
+/* ============================================
+   Dark Mode Styles (when global invert is active)
+   Counter the invert filter and use pure colors
+   ============================================ */
+:global(.theme-inverted) .menuPanel {
+  filter: invert(1) hue-rotate(180deg);
+  background: #000000;
+}
+
+:global(.theme-inverted) .menuContent {
+  color: #ffffff;
+}
+
+:global(.theme-inverted) .menuContent a:hover {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+:global(.theme-inverted) .menuTitle {
+  color: #ffffff;
+}
+
+:global(.theme-inverted) .menuFooter {
+  color: #ffffff;
+}
+
+:global(.theme-inverted) .settingsToggle:hover {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+:global(.theme-inverted) .subMenuItem {
+  color: rgba(255, 255, 255, 0.5) !important;
+}
+
+:global(.theme-inverted) .subMenuItem:hover {
+  color: #ffffff !important;
+}
+
+:global(.theme-inverted) .menuButton.inner .menuLines span {
+  background: #ffffff;
+}
+
+:global(.theme-inverted) .toggle {
+  background: #333333;
+  border-color: #444444;
+}
+
+:global(.theme-inverted) .toggle::after {
+  background: #ffffff;
+}
+
+:global(.theme-inverted) .toggle.active {
+  background: #ffffff;
+  border-color: #ffffff;
+}
+
+:global(.theme-inverted) .toggle.active::after {
+  background: #000000;
 }
