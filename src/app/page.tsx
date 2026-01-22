@@ -228,8 +228,8 @@ function AnimatedWord({ isDark = false }: { isDark?: boolean }) {
       setTimeout(() => {
         setCurrentIndex(prev => (prev + 1) % phrases.length);
         setIsFadingOut(false);
-      }, 400);
-    }, 2800);
+      }, 550);
+    }, 3500);
     return () => clearInterval(interval);
   }, [phrases.length]);
 
@@ -245,6 +245,8 @@ function AnimatedWord({ isDark = false }: { isDark?: boolean }) {
         style={{
           opacity: isFadingOut ? 0 : 1,
           color: isDark ? '#000000' : '#ffffff',
+          willChange: 'opacity',
+          transform: 'translateZ(0)',
         }}
       >
         {currentPhrase}
@@ -320,6 +322,18 @@ function LandingPageContent() {
       setShowYouTubeWarning(true);
       // Clear the URL parameter without reload
       window.history.replaceState({}, '', '/');
+    }
+
+    // Campaign / Source Tracking
+    const campaign = searchParams.get('campaign') || searchParams.get('source') || searchParams.get('utm_source');
+    const school = searchParams.get('school');
+    
+    if (campaign && typeof window !== 'undefined') {
+      localStorage.setItem('marketing_campaign_code', campaign);
+    }
+    
+    if (school && typeof window !== 'undefined') {
+      localStorage.setItem('marketing_campaign_school', school);
     }
   }, [searchParams]);
   // === SCROLL Y TRACKER (uncomment to debug scroll positions) ===
@@ -709,7 +723,7 @@ function LandingPageContent() {
       <section id="signal-intelligence" className="relative h-100svh overflow-hidden bg-white flex items-center">
         <div className="w-full px-6 md:px-12 text-left">
           <p className="text-3xl md:text-4xl lg:text-5xl leading-tight font-bold text-black tracking-tight">
-            From who you are, we turn your signals into the connections<br />that finally place you in the right community.
+            From who you are, we turn your signals <br className="md:hidden" />into the connections<br className="hidden md:block" /> that finally <br className="md:hidden" />place you in the right community.
           </p>
         </div>
       </section>

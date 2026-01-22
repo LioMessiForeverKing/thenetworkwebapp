@@ -1,0 +1,114 @@
+'use server'
+
+import { createClient } from '@supabase/supabase-js'
+
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!
+
+export async function getAdminData(password: string) {
+  if (password !== 'Ironman1234@') {
+    return { error: 'Invalid password' }
+  }
+
+  if (!SUPABASE_SERVICE_ROLE_KEY) {
+      console.error('SUPABASE_SERVICE_ROLE_KEY is missing')
+      return { error: 'Service configuration error. Check server logs.' }
+  }
+
+  const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+
+  try {
+    // 1. Total Count
+    const { count: totalCount, error: countError } = await supabase
+      .from('waitlist')
+      .select('*', { count: 'exact', head: true })
+
+    if (countError) throw countError
+
+    // 2. Today's Count
+    const todayStart = new Date()
+    todayStart.setHours(0, 0, 0, 0)
+    
+    const { count: todayCount, error: todayError } = await supabase
+      .from('waitlist')
+      .select('*', { count: 'exact', head: true })
+      .gte('created_at', todayStart.toISOString())
+
+    if (todayError) throw todayError
+
+    // 3. Growth over time (Last 30 days)
+    const thirtyDaysAgo = new Date()
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+
+    const { data: recentData, error: recentError } = await supabase
+      .from('waitlist')
+      .select('created_at')
+      .gte('created_at', thirtyDaysAgo.toISOString())
+      .order('created_at', { ascending: true })
+
+    if (recentError) throw recentError
+
+    // Process for Chart
+    const dailyGrowth: Record<string, number> = {}
+    recentData.forEach(item => {
+        const date = new Date(item.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+        dailyGrowth[date] = (dailyGrowth[date] || 0) + 1
+    })
+
+    const chartData = Object.entries(dailyGrowth).map(([date, count]) => ({ date, count }))
+
+    // 4. Acquisition Sources (All time)
+    // We fetch just the campaign_code to aggregate
+    const { data: sourceData, error: sourceError } = await supabase
+      .from('waitlist')
+      .select('campaign_code, referred_by_code')
+    
+    if (sourceError) throw sourceError
+
+    const sources: Record<string, number> = {}
+    sourceData.forEach(item => {
+        // If they have a referred_by_code, count it as "Referral"
+        // If they have a campaign_code, use that
+        // Otherwise Direct
+        let source = 'Direct / Unknown'
+        if (item.referred_by_code) {
+            source = 'Referral'
+        } else if (item.campaign_code) {
+            source = item.campaign_code
+        }
+        sources[source] = (sources[source] || 0) + 1
+    })
+
+    const sourceList = Object.entries(sources)
+      .map(([source, count]) => ({ 
+          source, 
+          count, 
+          percentage: totalCount ? ((count / totalCount) * 100).toFixed(1) : '0' 
+      }))
+      .sort((a, b) => b.count - a.count)
+
+    // 5. Recent Signups Table
+    const { data: recentSignups, error: signupsError } = await supabase
+      .from('waitlist')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(100)
+
+    if (signupsError) throw signupsError
+
+    return {
+      success: true,
+      data: {
+        totalCount: totalCount || 0,
+        todayCount: todayCount || 0,
+        chartData,
+        sourceList,
+        recentSignups
+      }
+    }
+
+  } catch (error: any) {
+    console.error('Admin Data Fetch Error:', error)
+    return { error: error.message || 'Failed to fetch data' }
+  }
+}
