@@ -1886,7 +1886,7 @@ export default function Home() {
                         <img
                           src={suggestion.avatar}
                           alt={suggestion.name}
-                          className={styles.cardAvatar}
+                          className={`${styles.cardAvatar} invert-media`}
                         />
                         <div className={styles.cardInfo}>
                           <div className={styles.cardName}>{suggestion.name}</div>
