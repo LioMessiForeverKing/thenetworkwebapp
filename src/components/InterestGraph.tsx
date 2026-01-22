@@ -57,6 +57,10 @@ interface InterestGraphProps {
     onInterestClick?: (interest: string) => void;
 }
 
+// Track if graph has been initialized globally (persists across component remounts)
+let globalGraphInitialized = false;
+let lastInterestsKey = '';
+
 const GraphController: React.FC<{
     interests: string[];
     userFullName: string;
@@ -70,6 +74,9 @@ const GraphController: React.FC<{
     const sigma = useSigma();
     const registerEvents = useRegisterEvents();
     const hasInitialized = React.useRef(false);
+    
+    // Create a stable key for the current interests
+    const interestsKey = interests.join('-');
     
     // Store isMobile in a ref so it doesn't cause hook recreation
     const isMobileRef = React.useRef(isMobile);
@@ -133,8 +140,26 @@ const GraphController: React.FC<{
     }, [registerEvents, sigma, onInterestClick]);
 
     useEffect(() => {
-        if (hasInitialized.current) return;
+        // Skip if already initialized with same interests (prevents reload on tab switch)
+        if (hasInitialized.current) {
+            // If interests haven't changed, just call onGraphLoaded immediately
+            if (interestsKey === lastInterestsKey && globalGraphInitialized) {
+                setIsReady(true);
+                if (onGraphLoaded) onGraphLoaded();
+            }
+            return;
+        }
+        
+        // Check if graph was previously initialized with same interests
+        if (globalGraphInitialized && interestsKey === lastInterestsKey) {
+            hasInitialized.current = true;
+            setIsReady(true);
+            if (onGraphLoaded) onGraphLoaded();
+            return;
+        }
+        
         hasInitialized.current = true;
+        lastInterestsKey = interestsKey;
 
         const graph = new Graph();
 
@@ -254,11 +279,12 @@ const GraphController: React.FC<{
         // PERFORMANCE: Reduced delay from 1000ms to 300ms
         // ForceAtlas2 completes quickly with fewer iterations
         setTimeout(() => {
+            globalGraphInitialized = true;
             setIsReady(true);
             if (onGraphLoaded) onGraphLoaded();
         }, 300);
 
-    }, [interests, userFullName, loadGraph, assignForceAtlas2, onGraphLoaded, setIsReady]);
+    }, [interests, userFullName, loadGraph, assignForceAtlas2, onGraphLoaded, setIsReady, interestsKey]);
 
     return null;
 };
@@ -271,6 +297,8 @@ export default function InterestGraph({
 }: InterestGraphProps) {
     const [isReady, setIsReady] = useState(false);
     const [showLabels, setShowLabels] = useState(true);
+    const containerRef = React.useRef<HTMLDivElement | null>(null);
+    const [isContainerReady, setIsContainerReady] = useState(false);
 
     // Check mobile once on mount, use ref to avoid re-renders
     const isMobileRef = React.useRef(typeof window !== 'undefined' ? window.innerWidth <= 768 : false);
@@ -305,7 +333,10 @@ export default function InterestGraph({
             // Fine-tune collision grid to allow tight packing
             labelDensity: mobile ? 0.5 : 1, // Lower density on mobile to reduce overlaps
             labelGridCellSize: mobile ? 80 : 60, // Larger on mobile to reduce label collisions
-            zIndex: true
+            zIndex: true,
+            // Avoid crashes when the graph is inside a hidden tab/zero-width container.
+            // We still guard render based on container size below.
+            allowInvalidContainer: true
         };
     }, []); // Empty deps - settings are fixed after mount
 
@@ -325,6 +356,19 @@ export default function InterestGraph({
      * - CSS specificity requires inline styles to override
      * - Multiple layers ensure no white "bleeds through" during render
      */
+    useEffect(() => {
+        if (!containerRef.current) return;
+        const node = containerRef.current;
+        const observer = new ResizeObserver((entries) => {
+            const entry = entries[0];
+            if (!entry) return;
+            const { width, height } = entry.contentRect;
+            setIsContainerReady(width > 0 && height > 0);
+        });
+        observer.observe(node);
+        return () => observer.disconnect();
+    }, []);
+
     return (
         <div style={{ position: 'relative', width: '100%', height: '100%', background: '#000000' }}>
 
@@ -401,25 +445,32 @@ export default function InterestGraph({
               Without these overrides, the graph would appear white even though the rest
               of the page is dark, breaking the theme consistency.
             */}
-            <div style={{
-                width: '100%',
-                height: '100%',
-                background: '#000000'
-            }}>
-                <SigmaContainer
-                    style={{ height: '100%', width: '100%', background: '#000000' }}
-                    settings={settings}
-                >
-                    <GraphController
-                        interests={interests}
-                        userFullName={userFullName}
-                        onGraphLoaded={onGraphLoaded}
-                        setIsReady={setIsReady}
-                        showLabels={showLabels}
-                        onInterestClick={onInterestClick}
-                        isMobile={isMobileRef.current}
-                    />
-                </SigmaContainer>
+            <div
+                ref={containerRef}
+                style={{
+                    width: '100%',
+                    height: '100%',
+                    minWidth: '1px',
+                    minHeight: '1px',
+                    background: '#000000'
+                }}
+            >
+                {isContainerReady ? (
+                    <SigmaContainer
+                        style={{ height: '100%', width: '100%', background: '#000000' }}
+                        settings={settings}
+                    >
+                        <GraphController
+                            interests={interests}
+                            userFullName={userFullName}
+                            onGraphLoaded={onGraphLoaded}
+                            setIsReady={setIsReady}
+                            showLabels={showLabels}
+                            onInterestClick={onInterestClick}
+                            isMobile={isMobileRef.current}
+                        />
+                    </SigmaContainer>
+                ) : null}
             </div>
         </div>
     );
