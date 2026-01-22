@@ -12,76 +12,70 @@ interface InterestExplanationModalProps {
 }
 
 // Parse the explanation text into structured bullet points
-function parseExplanation(text: string): { bullets: string[]; isLegacy: boolean } {
-    if (!text) return { bullets: [], isLegacy: false };
+function parseExplanation(text: string): string[] {
+    if (!text) return [];
     
-    // Check if it's the new bullet point format
-    const bulletLines = text.split('\n').filter(line => line.trim().startsWith('•'));
+    // Split by bullet character •
+    // This handles both "• item1 • item2" and "• item1\n• item2" formats
+    const parts = text.split(/\s*•\s*/).filter(p => p.trim().length > 0);
     
-    if (bulletLines.length > 0) {
-        return { bullets: bulletLines.map(b => b.trim()), isLegacy: false };
+    if (parts.length > 0) {
+        return parts;
     }
     
-    // Legacy format - just return as single item
-    return { bullets: [text], isLegacy: true };
+    // If no bullets found, return as single item
+    return [text];
 }
 
-// Render a single bullet point with bold text and arrow styling
-function renderBullet(bullet: string, index: number) {
-    // Remove the bullet point character
-    let content = bullet.replace(/^•\s*/, '');
-    
-    // Parse **bold** text and → arrows
+// Render formatted text with **bold** and → arrows
+function renderFormattedText(text: string): React.ReactNode[] {
     const parts: React.ReactNode[] = [];
-    let remaining = content;
+    let remaining = text;
     let keyIndex = 0;
     
     while (remaining.length > 0) {
-        // Find **bold** patterns
-        const boldMatch = remaining.match(/\*\*([^*]+)\*\*/);
+        // Find **[text]** or **text** patterns
+        const boldMatch = remaining.match(/\*\*\[([^\]]+)\]\*\*|\*\*([^*]+)\*\*/);
         
         if (boldMatch && boldMatch.index !== undefined) {
-            // Add text before bold
+            // Add text before bold (with arrow styling)
             if (boldMatch.index > 0) {
                 const beforeText = remaining.substring(0, boldMatch.index);
-                // Check for arrows in the before text
-                parts.push(...renderArrows(beforeText, keyIndex));
-                keyIndex += 10;
+                parts.push(...renderWithArrows(beforeText, keyIndex));
+                keyIndex += 100;
             }
-            // Add bold text
+            
+            // Get the bold text (from either capture group)
+            const boldText = boldMatch[1] || boldMatch[2];
             parts.push(
-                <span key={`bold-${index}-${keyIndex}`} className={styles.evidence}>
-                    {boldMatch[1]}
+                <span key={`bold-${keyIndex}`} className={styles.evidence}>
+                    {boldText}
                 </span>
             );
             keyIndex++;
             remaining = remaining.substring(boldMatch.index + boldMatch[0].length);
         } else {
-            // No more bold, add rest with arrow handling
-            parts.push(...renderArrows(remaining, keyIndex));
+            // No more bold patterns, render rest with arrows
+            parts.push(...renderWithArrows(remaining, keyIndex));
             break;
         }
     }
     
-    return (
-        <li key={index} className={styles.bulletItem}>
-            {parts}
-        </li>
-    );
+    return parts;
 }
 
-// Helper to render arrows with special styling
-function renderArrows(text: string, baseKey: number): React.ReactNode[] {
+// Helper to render text with arrow styling
+function renderWithArrows(text: string, baseKey: number): React.ReactNode[] {
     const parts: React.ReactNode[] = [];
     const segments = text.split('→');
     
     segments.forEach((segment, i) => {
         if (i > 0) {
             parts.push(
-                <span key={`arrow-${baseKey}-${i}`} className={styles.arrow}>→</span>
+                <span key={`arrow-${baseKey}-${i}`} className={styles.arrow}> → </span>
             );
         }
-        if (segment) {
+        if (segment.trim()) {
             parts.push(<span key={`text-${baseKey}-${i}`}>{segment}</span>);
         }
     });
@@ -96,7 +90,7 @@ export default function InterestExplanationModal({
     error,
     onClose
 }: InterestExplanationModalProps) {
-    const { bullets, isLegacy } = parseExplanation(explanation || '');
+    const bullets = parseExplanation(explanation || '');
     
     return (
         <div className={styles.overlay} onClick={onClose}>
@@ -122,11 +116,13 @@ export default function InterestExplanationModal({
                         <div className={styles.error}>
                             <p>{error}</p>
                         </div>
-                    ) : isLegacy ? (
-                        <p className={styles.explanation}>{explanation}</p>
                     ) : (
                         <ul className={styles.bulletList}>
-                            {bullets.map((bullet, i) => renderBullet(bullet, i))}
+                            {bullets.map((bullet, i) => (
+                                <li key={i} className={styles.bulletItem}>
+                                    {renderFormattedText(bullet)}
+                                </li>
+                            ))}
                         </ul>
                     )}
                 </div>

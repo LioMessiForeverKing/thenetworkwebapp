@@ -363,7 +363,12 @@ export default function InterestGraph({
             const entry = entries[0];
             if (!entry) return;
             const { width, height } = entry.contentRect;
-            setIsContainerReady(width > 0 && height > 0);
+            // Only set to ready when dimensions are valid
+            // Never set back to false once ready (prevents unmount on tab switch)
+            if (width > 0 && height > 0) {
+                setIsContainerReady(true);
+            }
+            // Don't set to false when hidden - keep the graph mounted
         });
         observer.observe(node);
         return () => observer.disconnect();

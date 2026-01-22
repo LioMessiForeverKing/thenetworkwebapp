@@ -12,6 +12,103 @@ import styles from './page.module.css';
 // Dynamically import InterestGraph to avoid SSR issues with Sigma.js
 const InterestGraph = dynamic(() => import('@/components/InterestGraph'), { ssr: false });
 
+// Format explanation text with markdown-style bold and arrows
+function formatExplanationText(text: string): React.ReactNode {
+    if (!text) return null;
+    
+    // Split into bullet section and self-discovery section (separated by ---)
+    const sections = text.split(/\s*---\s*/);
+    const bulletSection = sections[0] || '';
+    const selfDiscoverySection = sections[1]?.trim() || '';
+    
+    // Parse bullets
+    const bullets = bulletSection.split(/\s*•\s*/).filter(p => p.trim().length > 0);
+    
+    const formatBullet = (bullet: string, bulletIndex: number) => {
+        const parts: React.ReactNode[] = [];
+        let remaining = bullet;
+        let keyIndex = 0;
+        
+        while (remaining.length > 0) {
+            // Find **[text]** or **text** patterns
+            const boldMatch = remaining.match(/\*\*\[([^\]]+)\]\*\*|\*\*([^*]+)\*\*/);
+            
+            if (boldMatch && boldMatch.index !== undefined) {
+                // Add text before bold
+                if (boldMatch.index > 0) {
+                    const beforeText = remaining.substring(0, boldMatch.index);
+                    // Replace arrows with styled version
+                    const arrowParts = beforeText.split('→');
+                    arrowParts.forEach((part, i) => {
+                        if (i > 0) {
+                            parts.push(<span key={`arrow-${bulletIndex}-${keyIndex}-${i}`} style={{ color: 'rgba(99, 102, 241, 0.8)', padding: '0 4px' }}> → </span>);
+                        }
+                        if (part.trim()) {
+                            parts.push(<span key={`text-${bulletIndex}-${keyIndex}-${i}`}>{part}</span>);
+                        }
+                    });
+                    keyIndex += 10;
+                }
+                
+                // Get bold text and style it
+                const boldText = boldMatch[1] || boldMatch[2];
+                parts.push(
+                    <span 
+                        key={`bold-${bulletIndex}-${keyIndex}`} 
+                        style={{ 
+                            fontWeight: 600
+                        }}
+                    >
+                        {boldText}
+                    </span>
+                );
+                keyIndex++;
+                remaining = remaining.substring(boldMatch.index + boldMatch[0].length);
+            } else {
+                // No more bold, add rest with arrow handling
+                const arrowParts = remaining.split('→');
+                arrowParts.forEach((part, i) => {
+                    if (i > 0) {
+                        parts.push(<span key={`arrow-${bulletIndex}-${keyIndex}-${i}`} style={{ color: 'rgba(99, 102, 241, 0.8)', padding: '0 4px' }}> → </span>);
+                    }
+                    if (part.trim()) {
+                        parts.push(<span key={`text-${bulletIndex}-${keyIndex}-${i}`}>{part}</span>);
+                    }
+                });
+                break;
+            }
+        }
+        
+        return (
+            <div key={bulletIndex} style={{ marginBottom: '12px' }}>
+                {parts}
+            </div>
+        );
+    };
+    
+    return (
+        <>
+            {/* Bullet points */}
+            <div style={{ marginBottom: selfDiscoverySection ? '16px' : '0' }}>
+                {bullets.map((bullet, i) => formatBullet(bullet, i))}
+            </div>
+            
+            {/* Self-discovery section */}
+            {selfDiscoverySection && (
+                <div style={{ 
+                    paddingTop: '16px', 
+                    borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+                    fontStyle: 'italic',
+                    color: 'rgba(255, 255, 255, 0.7)',
+                    lineHeight: '1.5'
+                }}>
+                    {selfDiscoverySection}
+                </div>
+            )}
+        </>
+    );
+}
+
 // Module-level variable to track if graph has been loaded (persists across component unmounts)
 // This prevents showing loading spinner when switching tabs
 let moduleGraphHasLoaded = false;
@@ -1557,10 +1654,13 @@ export default function NetworkProfilePage() {
             </div>
             )}
 
-            {/* Interests Tab Content - Always rendered, hidden with CSS to preserve graph state */}
+            {/* Interests Tab Content - Always rendered but hidden when not active */}
+            {/* Using conditional rendering with key preservation to maintain graph state */}
             <div 
                 className={styles.interestsTabContent}
-                style={{ display: activeTab === 'interests' ? 'grid' : 'none' }}
+                style={{ 
+                    display: activeTab === 'interests' ? 'grid' : 'none'
+                }}
             >
                     {/* Left Sidebar - Same as About tab */}
                     <div className={styles.interestsLeftColumn}>
@@ -1775,17 +1875,19 @@ export default function NetworkProfilePage() {
                                                 <p>Analyzing your interest...</p>
                                             </div>
                                         ) : (
-                                            <p className={styles.interestDetailText}>{interestExplanation}</p>
+                                            <div className={styles.interestDetailText}>
+                                                {formatExplanationText(interestExplanation || '')}
+                                            </div>
                                         )}
                                     </div>
                                 </div>
 
                                 {/* Friends with this interest */}
-                                {friendsWithSelectedInterest.length > 0 && (
-                                    <div className={styles.friendsInterestCard}>
-                                        <h4 className={styles.friendsInterestTitle}>
-                                            Friends interested in {selectedInterest}
-                                        </h4>
+                                <div className={styles.friendsInterestCard}>
+                                    <h4 className={styles.friendsInterestTitle}>
+                                        Friends interested in {selectedInterest}
+                                    </h4>
+                                    {friendsWithSelectedInterest.length > 0 ? (
                                         <div className={styles.friendsHorizontalScroll}>
                                             {friendsWithSelectedInterest.map((friend) => (
                                                 <div key={friend.id} className={styles.friendScrollItem}>
@@ -1805,8 +1907,12 @@ export default function NetworkProfilePage() {
                                                 </div>
                                             ))}
                                         </div>
-                                    </div>
-                                )}
+                                    ) : (
+                                        <p className={styles.noFriendsMessage}>
+                                            None of your current connections share this interest.
+                                        </p>
+                                    )}
+                                </div>
                             </>
                         ) : (
                             <div className={styles.selectInterestPrompt}>

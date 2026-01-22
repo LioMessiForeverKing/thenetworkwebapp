@@ -1134,11 +1134,13 @@
 
 /* Interest Detail Card */
 .interestDetailCard {
-    background: rgba(255, 255, 255, 0.05);
+    background: rgba(0, 0, 0, 0.05);
     border-radius: 12px;
     padding: 20px;
     border: 1px solid rgba(255, 255, 255, 0.1);
     position: relative;
+    max-height: 400px;
+    overflow-y: auto;
 }
 
 .interestDetailClose {
@@ -1207,7 +1209,7 @@
 
 /* Friends Interest Card */
 .friendsInterestCard {
-    background: rgba(255, 255, 255, 0.05);
+    background: rgba(0, 0, 0, 0.05);
     border-radius: 12px;
     padding: 16px;
     border: 1px solid rgba(255, 255, 255, 0.1);
@@ -1226,6 +1228,14 @@
 .friendsCount {
     font-weight: 400;
     color: rgba(255, 255, 255, 0.5);
+}
+
+.noFriendsMessage {
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.5);
+    font-style: italic;
+    margin: 0;
+    padding: 8px 0;
 }
 
 /* Horizontal Scroll Friends */
