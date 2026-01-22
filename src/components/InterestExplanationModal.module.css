@@ -113,6 +113,58 @@
     }
 }
 
+/* Bullet point list styles */
+.bulletList {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.bulletItem {
+    font-size: 16px;
+    line-height: 1.5;
+    color: rgba(0, 0, 0, 0.75);
+    padding-left: 0;
+    position: relative;
+}
+
+/* Evidence highlight (bold text) */
+.evidence {
+    font-weight: 600;
+    color: #000;
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(168, 85, 247, 0.15));
+    padding: 2px 8px;
+    border-radius: 6px;
+    white-space: nowrap;
+}
+
+/* Arrow styling */
+.arrow {
+    color: rgba(99, 102, 241, 0.8);
+    font-weight: 500;
+    padding: 0 6px;
+}
+
+/* Mobile adjustments for bullets */
+@media (max-width: 768px) {
+    .bulletList {
+        gap: 14px;
+    }
+    
+    .bulletItem {
+        font-size: 15px;
+        line-height: 1.45;
+    }
+    
+    .evidence {
+        padding: 2px 6px;
+        font-size: 14px;
+    }
+}
+
 .loadingContainer {
     display: flex;
     flex-direction: column;
