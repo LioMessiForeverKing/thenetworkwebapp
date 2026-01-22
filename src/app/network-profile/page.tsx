@@ -94,8 +94,15 @@ const HARDCODED_PROFILE = {
 // Helper to resolve avatar URL
 const getAvatarUrl = (path?: string | null) => {
     if (!path) return undefined;
-    if (path.startsWith('http')) return path;
-    return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/profile-images/${path}`;
+    // If it's already a full URL (e.g., from Google auth), return as-is
+    if (path.startsWith('http://') || path.startsWith('https://')) return path;
+    // Otherwise, construct the Supabase storage URL
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    if (!supabaseUrl) {
+        console.warn('NEXT_PUBLIC_SUPABASE_URL is not set');
+        return undefined;
+    }
+    return `${supabaseUrl}/storage/v1/object/public/profile-images/${path}`;
 };
 
 // Canonical tag normalization
@@ -226,6 +233,7 @@ export default function NetworkProfilePage() {
     const [isInterestGraphReady, setIsInterestGraphReady] = useState(false);
     const [friendsWithSelectedInterest, setFriendsWithSelectedInterest] = useState<ClusterFriend[]>([]);
     const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+    const [avatarLoadError, setAvatarLoadError] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     // Auth Redirect
@@ -280,6 +288,7 @@ export default function NetworkProfilePage() {
                     interests: userInterests,
                     location: undefined
                 });
+                setAvatarLoadError(false); // Reset error state when loading profile
                 // Set interests for the InterestGraph
                 setInterests(userInterests);
                 setHierarchicalInterests((profile.hierarchical_interests as any[]) || []);
@@ -886,6 +895,7 @@ export default function NetworkProfilePage() {
                     ...profileData,
                     avatar_url: filePath
                 });
+                setAvatarLoadError(false); // Reset error state for new avatar
             }
             
             // Reload profile data to get updated avatar
@@ -941,11 +951,12 @@ export default function NetworkProfilePage() {
                                 <div className={styles.uploadingSpinner}></div>
                             </div>
                         )}
-                        {avatarUrl ? (
+                        {avatarUrl && !avatarLoadError ? (
                             <img 
                                 src={avatarUrl} 
                                 alt={displayName} 
                                 className={`${styles.profileImageLarge} invert-media`}
+                                onError={() => setAvatarLoadError(true)}
                             />
                         ) : (
                             <div className={styles.profileImagePlaceholder}>
