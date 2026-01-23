@@ -109,10 +109,10 @@ export async function getAdminData(password: string) {
 
     if (signupsError) throw signupsError
 
-    // 6. AB Campaign Analytics with Discord clicks
+    // 6. AB Campaign Analytics
     const { data: campaignAnalytics, error: campaignError } = await supabase
       .from('ab_marketing_campaigns')
-      .select('id, campaign_code, campaign_name, school, variant, is_active, discord_clicks, discord_url, created_at')
+      .select('id, campaign_code, campaign_name, school, variant, is_active, created_at')
       .order('created_at', { ascending: false })
 
     // Don't throw on campaign error - it's okay if the table doesn't have the new columns yet
@@ -132,11 +132,7 @@ export async function getAdminData(password: string) {
     const campaignsWithStats = (campaignAnalytics || []).map(campaign => ({
       ...campaign,
       signup_count: campaignSignupCounts[campaign.campaign_code] || 0,
-      discord_clicks: campaign.discord_clicks || 0,
     }))
-
-    // Calculate total Discord clicks
-    const totalDiscordClicks = campaignsWithStats.reduce((sum, c) => sum + (c.discord_clicks || 0), 0)
 
     return {
       success: true,
@@ -149,7 +145,6 @@ export async function getAdminData(password: string) {
         sourceList,
         recentSignups,
         campaignAnalytics: campaignsWithStats,
-        totalDiscordClicks,
       }
     }
 

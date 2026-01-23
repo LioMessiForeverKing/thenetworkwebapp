@@ -75,11 +75,19 @@ function calculateStars(similarity: number): number {
 
 type RequestStatus = 'none' | 'pending' | 'accepted' | 'checking';
 
+// Shared network interface
+interface SharedNetwork {
+    name: string;
+    type: string;
+}
+
 export default function ProfileModal({ person, onClose, isEmbedded = false }: ProfileModalProps) {
     const { user } = useAuth();
     const [compatibilityDescription, setCompatibilityDescription] = useState<string>('');
     const [compatibilityPercentage, setCompatibilityPercentage] = useState<number | null>(null);
     const [sharedInterests, setSharedInterests] = useState<string[]>([]);
+    const [sharedNetworks, setSharedNetworks] = useState<SharedNetwork[]>([]);
+    const [mutualFriendsCount, setMutualFriendsCount] = useState<number>(0);
     const [isLoading, setIsLoading] = useState(true);
     const [profileData, setProfileData] = useState<any>(null);
     const [isConnected, setIsConnected] = useState<boolean>(false);
@@ -191,50 +199,52 @@ export default function ProfileModal({ person, onClose, isEmbedded = false }: Pr
                             );
                             setSharedInterests(shared.length > 0 ? shared : otherInterests.slice(0, 5));
 
-                            // Get compatibility score for connected users - check both directions
-                            const { data: matchData1 } = await supabase
-                                .from('user_matches')
-                                .select('compatibility_percentage, similarity_score')
-                                .eq('user_id', user.id)
-                                .eq('match_user_id', person.id)
-                                .maybeSingle();
+                            // Calculate network proximity score for connected users
+                            try {
+                                const { data: proximityData, error: proximityError } = await supabase.functions.invoke(
+                                    'calculate-network-proximity',
+                                    {
+                                        body: {
+                                            userAId: user.id,
+                                            userBId: person.id,
+                                        }
+                                    }
+                                );
 
-                            const { data: matchData2 } = await supabase
-                                .from('user_matches')
-                                .select('compatibility_percentage, similarity_score')
-                                .eq('user_id', person.id)
-                                .eq('match_user_id', user.id)
-                                .maybeSingle();
+                                if (!proximityError && proximityData) {
+                                    setCompatibilityPercentage(proximityData.compatibilityPercentage);
+                                    if (proximityData.sharedNetworks && Array.isArray(proximityData.sharedNetworks)) {
+                                        setSharedNetworks(proximityData.sharedNetworks);
+                                    }
+                                    if (proximityData.mutualFriendsCount != null) {
+                                        setMutualFriendsCount(proximityData.mutualFriendsCount);
+                                    }
+                                } else {
+                                    // Fallback to old method
+                                    const { data: matchData1 } = await supabase
+                                        .from('user_matches')
+                                        .select('compatibility_percentage, similarity_score')
+                                        .eq('user_id', user.id)
+                                        .eq('match_user_id', person.id)
+                                        .maybeSingle();
 
-                            const matchData = matchData1 || matchData2;
+                                    const { data: matchData2 } = await supabase
+                                        .from('user_matches')
+                                        .select('compatibility_percentage, similarity_score')
+                                        .eq('user_id', person.id)
+                                        .eq('match_user_id', user.id)
+                                        .maybeSingle();
 
-                            if (matchData?.compatibility_percentage != null) {
-                                setCompatibilityPercentage(matchData.compatibility_percentage);
-                            } else if (matchData?.similarity_score != null) {
-                                setCompatibilityPercentage(Math.round(matchData.similarity_score * 100));
-                            } else {
-                                // Calculate on-the-fly from DNA as fallback
-                                const { data: userDnaV2 } = await supabase
-                                    .from('digital_dna_v2')
-                                    .select('composite_vector')
-                                    .eq('user_id', user.id)
-                                    .single();
+                                    const matchData = matchData1 || matchData2;
 
-                                const { data: otherDnaV2 } = await supabase
-                                    .from('digital_dna_v2')
-                                    .select('composite_vector')
-                                    .eq('user_id', person.id)
-                                    .single();
-
-                                if (userDnaV2?.composite_vector && otherDnaV2?.composite_vector) {
-                                    const userVec = parseVector(userDnaV2.composite_vector);
-                                    const otherVec = parseVector(otherDnaV2.composite_vector);
-                                    if (userVec && otherVec && userVec.length > 0 && otherVec.length > 0) {
-                                        const rawSimilarity = cosineSimilarity(userVec, otherVec);
-                                        const scaledSimilarity = scaleCompatibilityScore(rawSimilarity);
-                                        setCompatibilityPercentage(Math.round(scaledSimilarity * 100));
+                                    if (matchData?.compatibility_percentage != null) {
+                                        setCompatibilityPercentage(matchData.compatibility_percentage);
+                                    } else if (matchData?.similarity_score != null) {
+                                        setCompatibilityPercentage(Math.round(matchData.similarity_score * 100));
                                     }
                                 }
+                            } catch (error) {
+                                console.error('Error calculating proximity for connected user:', error);
                             }
                             
                             // Check for cached compatibility description
@@ -320,109 +330,87 @@ export default function ProfileModal({ person, onClose, isEmbedded = false }: Pr
                 const shared = userInterests.filter(i => otherInterests.includes(i));
                 setSharedInterests(shared);
 
-                // Get compatibility score from user_matches table (pre-calculated using DNA v2)
-                // Check both directions since matches can be stored either way
-                const { data: matchData1 } = await supabase
-                    .from('user_matches')
-                    .select('compatibility_percentage, similarity_score, shared_interests')
-                    .eq('user_id', user.id)
-                    .eq('match_user_id', person.id)
-                    .maybeSingle();
-
-                const { data: matchData2 } = await supabase
-                    .from('user_matches')
-                    .select('compatibility_percentage, similarity_score, shared_interests')
-                    .eq('user_id', person.id)
-                    .eq('match_user_id', user.id)
-                    .maybeSingle();
-
-                const matchData = matchData1 || matchData2;
-
+                // Calculate network proximity score (includes networks, mutuals, and interests)
                 let similarity = 0;
-                if (matchData?.compatibility_percentage != null) {
-                    // Use stored compatibility percentage from user_matches
-                    setCompatibilityPercentage(matchData.compatibility_percentage);
-                    // Convert percentage back to similarity for fallback calculations
-                    similarity = matchData.compatibility_percentage / 100;
-                    
-                    // Update shared interests from stored data if available
-                    if (matchData.shared_interests && Array.isArray(matchData.shared_interests)) {
-                        setSharedInterests(matchData.shared_interests as string[]);
-                    }
-                } else if (matchData?.similarity_score != null) {
-                    // Fallback: use similarity_score if compatibility_percentage is not available
-                    similarity = matchData.similarity_score;
-                    setCompatibilityPercentage(Math.round(similarity * 100));
-                    
-                    // Update shared interests from stored data if available
-                    if (matchData.shared_interests && Array.isArray(matchData.shared_interests)) {
-                        setSharedInterests(matchData.shared_interests as string[]);
-                    }
-                } else {
-                    // Fallback: Calculate on-the-fly if not in user_matches table
-                    // Try DNA v2 first, then DNA v1
-                    const { data: userDnaV2 } = await supabase
-                        .from('digital_dna_v2')
-                        .select('composite_vector')
-                        .eq('user_id', user.id)
-                        .single();
+                try {
+                    const { data: proximityData, error: proximityError } = await supabase.functions.invoke(
+                        'calculate-network-proximity',
+                        {
+                            body: {
+                                userAId: user.id,
+                                userBId: person.id,
+                            }
+                        }
+                    );
 
-                    const { data: otherDnaV2 } = await supabase
-                        .from('digital_dna_v2')
-                        .select('composite_vector')
-                        .eq('user_id', person.id)
-                        .single();
-
-                    if (userDnaV2?.composite_vector && otherDnaV2?.composite_vector) {
-                        const userVec = parseVector(userDnaV2.composite_vector);
-                        const otherVec = parseVector(otherDnaV2.composite_vector);
-                        if (userVec && otherVec && userVec.length > 0 && otherVec.length > 0) {
-                            const rawSimilarity = cosineSimilarity(userVec, otherVec);
-                            similarity = scaleCompatibilityScore(rawSimilarity);
+                    if (!proximityError && proximityData) {
+                        // Use the new proximity-based compatibility percentage
+                        setCompatibilityPercentage(proximityData.compatibilityPercentage);
+                        similarity = proximityData.overlap || 0;
+                        
+                        // Store shared networks for display
+                        if (proximityData.sharedNetworks && Array.isArray(proximityData.sharedNetworks)) {
+                            setSharedNetworks(proximityData.sharedNetworks);
+                        }
+                        
+                        // Store mutual friends count
+                        if (proximityData.mutualFriendsCount != null) {
+                            setMutualFriendsCount(proximityData.mutualFriendsCount);
                         }
                     } else {
-                        // Fallback to DNA v1
-                        const { data: userDnaV1 } = await supabase
-                            .from('digital_dna_v1')
-                            .select('interest_vector')
+                        // Fallback to old DNA-based calculation if proximity calc fails
+                        console.warn('Proximity calculation failed, falling back to DNA-based score');
+                        const { data: matchData1 } = await supabase
+                            .from('user_matches')
+                            .select('compatibility_percentage, similarity_score, shared_interests')
                             .eq('user_id', user.id)
-                            .single();
+                            .eq('match_user_id', person.id)
+                            .maybeSingle();
 
-                        const { data: otherDnaV1 } = await supabase
-                            .from('digital_dna_v1')
-                            .select('interest_vector')
+                        const { data: matchData2 } = await supabase
+                            .from('user_matches')
+                            .select('compatibility_percentage, similarity_score, shared_interests')
                             .eq('user_id', person.id)
-                            .single();
+                            .eq('match_user_id', user.id)
+                            .maybeSingle();
 
-                        if (userDnaV1?.interest_vector && otherDnaV1?.interest_vector) {
-                            const userVec = parseVector(userDnaV1.interest_vector);
-                            const otherVec = parseVector(otherDnaV1.interest_vector);
-                            if (userVec && otherVec && userVec.length > 0 && otherVec.length > 0) {
-                                const rawSimilarity = cosineSimilarity(userVec, otherVec);
-                                similarity = scaleCompatibilityScore(rawSimilarity);
+                        const matchData = matchData1 || matchData2;
+
+                        if (matchData?.compatibility_percentage != null) {
+                            setCompatibilityPercentage(matchData.compatibility_percentage);
+                            similarity = matchData.compatibility_percentage / 100;
+                        } else if (matchData?.similarity_score != null) {
+                            similarity = matchData.similarity_score;
+                            setCompatibilityPercentage(Math.round(similarity * 100));
+                        } else {
+                            // Calculate on-the-fly from DNA
+                            const { data: userDnaV2 } = await supabase
+                                .from('digital_dna_v2')
+                                .select('composite_vector')
+                                .eq('user_id', user.id)
+                                .single();
+
+                            const { data: otherDnaV2 } = await supabase
+                                .from('digital_dna_v2')
+                                .select('composite_vector')
+                                .eq('user_id', person.id)
+                                .single();
+
+                            if (userDnaV2?.composite_vector && otherDnaV2?.composite_vector) {
+                                const userVec = parseVector(userDnaV2.composite_vector);
+                                const otherVec = parseVector(otherDnaV2.composite_vector);
+                                if (userVec && otherVec && userVec.length > 0 && otherVec.length > 0) {
+                                    const rawSimilarity = cosineSimilarity(userVec, otherVec);
+                                    similarity = scaleCompatibilityScore(rawSimilarity);
+                                    setCompatibilityPercentage(Math.round(similarity * 100));
+                                }
                             }
                         }
                     }
-
-                    // If no DNA found, use shared interests as fallback
-                    if (similarity === 0 && sharedInterests.length > 0) {
-                        const totalInterests = new Set([...userInterests, ...otherInterests]).size;
-                        const rawSimilarity = sharedInterests.length / Math.max(totalInterests, 1);
-                        similarity = scaleCompatibilityScore(rawSimilarity);
-                    }
-                    
-                    // Trigger background calculation to store this score for future use
-                    // (non-blocking, fire-and-forget)
-                    supabase.functions.invoke('update-dna-v2-compatibility', {
-                        body: { user_id: user.id }
-                    }).catch(() => {
-                        // Silently fail - this is just for caching
-                    });
+                } catch (error) {
+                    console.error('Error calculating proximity:', error);
+                    // Continue with default values
                 }
-
-                // Convert similarity (0-1) to percentage (0-100)
-                const percentage = Math.round(similarity * 100);
-                setCompatibilityPercentage(percentage);
 
                 // Check for cached compatibility description
                 const userAId = user.id < person.id ? user.id : person.id;
@@ -592,13 +580,37 @@ export default function ProfileModal({ person, onClose, isEmbedded = false }: Pr
                 <p className={styles.bio}>{profileData.bio}</p>
             )}
 
+            {/* Shared Networks - Show prominently if present */}
+            {sharedNetworks.length > 0 && (
+                <div className={styles.sharedNetworksSection}>
+                    <div className={styles.sharedNetworksTitle}>SHARED NETWORKS</div>
+                    <div className={styles.sharedNetworksList}>
+                        {sharedNetworks.map((network, i) => (
+                            <span key={i} className={`${styles.networkTag} ${styles[`network_${network.type}`] || ''}`}>
+                                {network.type === 'college' && '🎓 '}
+                                {network.type === 'high_school' && '🏫 '}
+                                {network.type === 'company' && '💼 '}
+                                {network.type === 'city' && '📍 '}
+                                {network.type === 'community' && '👥 '}
+                                {network.name}
+                            </span>
+                        ))}
+                    </div>
+                    {mutualFriendsCount > 0 && (
+                        <div className={styles.mutualFriends}>
+                            👫 {mutualFriendsCount} mutual friend{mutualFriendsCount > 1 ? 's' : ''}
+                        </div>
+                    )}
+                </div>
+            )}
+
             {/* Why You're Connected / Why You'd Connect */}
             {isLoading ? (
                 <div className={styles.loading}>Loading...</div>
             ) : compatibilityDescription ? (
                 <div className={styles.compatibilitySection}>
                     <div className={styles.compatibilityTitle}>
-                        WHY YOU'RE CONNECTED
+                        {sharedNetworks.length > 0 ? 'WHY YOU SHOULD CONNECT' : 'WHY YOU\'RE CONNECTED'}
                     </div>
                     <div className={styles.compatibilityDescription}>{compatibilityDescription}</div>
                 </div>
