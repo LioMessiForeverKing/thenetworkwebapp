@@ -193,7 +193,9 @@ export default React.memo(function NetworkGalaxy({
                 isExpandedFriend,
                 isDiscoveryNode: false,
                 isSuggestionNode: false,
-                proximityLevel: undefined as 'very_close' | 'close' | 'nearby' | 'distant' | 'far' | undefined
+                proximityLevel: undefined as 'very_close' | 'close' | 'nearby' | 'distant' | 'far' | undefined,
+                similarity: undefined as number | undefined,
+                suggestionReason: undefined as string | undefined
             };
         });
 
@@ -229,7 +231,9 @@ export default React.memo(function NetworkGalaxy({
                     isExpandedFriend: false,
                     isDiscoveryNode: true,
                     isSuggestionNode: false,
-                    proximityLevel: dp.proximityLevel || 'nearby'
+                    proximityLevel: dp.proximityLevel || 'nearby',
+                    similarity: undefined,
+                    suggestionReason: undefined
                 });
             });
         }
@@ -307,7 +311,9 @@ export default React.memo(function NetworkGalaxy({
                     isExpandedFriend: false,
                     isDiscoveryNode: false,
                     isSuggestionNode: false,
-                    proximityLevel: undefined
+                    proximityLevel: undefined,
+                    similarity: undefined,
+                    suggestionReason: undefined
                 });
             });
         }
