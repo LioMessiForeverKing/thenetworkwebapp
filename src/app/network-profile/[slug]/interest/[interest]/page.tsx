@@ -41,7 +41,6 @@ export default function InterestFeedPage() {
     const [resolveStatus, setResolveStatus] = useState<'idle' | 'resolving' | 'ok' | 'not_found'>('idle');
     const [profileUserId, setProfileUserId] = useState<string | null>(null);
     const [profile, setProfile] = useState<ProfileInfo | null>(null);
-    const [sharedNetwork, setSharedNetwork] = useState<boolean | null>(null);
     const [posts, setPosts] = useState<Post[]>([]);
     const [loading, setLoading] = useState(true);
     const [composerBody, setComposerBody] = useState('');
@@ -104,30 +103,15 @@ export default function InterestFeedPage() {
         if (!error) setPosts(data || []);
     }, [interest]);
 
-    const checkSharedNetwork = useCallback(async (uid: string) => {
-        const supabase = createClient();
-        const { data, error } = await supabase.rpc('users_share_network', { p_other_user_id: uid });
-        if (!error && typeof data === 'boolean') setSharedNetwork(data);
-        else setSharedNetwork(false);
-    }, []);
-
-    // Load profile, shared-network check, and posts when we have profileUserId
+    // Load profile and posts when we have profileUserId
     useEffect(() => {
         if (!profileUserId || resolveStatus !== 'ok') return;
         setLoading(true);
-        const supabase = createClient();
-
         (async () => {
             await fetchProfile(profileUserId);
-            // Only need to check shared network when viewing someone else
-            if (profileUserId !== user?.id) {
-                await checkSharedNetwork(profileUserId);
-            } else {
-                setSharedNetwork(true); // own profile: always “allowed”
-            }
             await fetchPosts(profileUserId);
         })().finally(() => setLoading(false));
-    }, [profileUserId, resolveStatus, user?.id, fetchProfile, fetchPosts, checkSharedNetwork]);
+    }, [profileUserId, resolveStatus, fetchProfile, fetchPosts]);
 
     const handlePost = async () => {
         if (!user || !profileUserId || profileUserId !== user.id || !composerBody.trim() || posting) return;
@@ -171,8 +155,7 @@ export default function InterestFeedPage() {
     }
 
     const profileUrl = `/network-profile/${slug}`;
-    const canSeeFeed = sharedNetwork === true;
-    const showComposer = isOwnProfile && canSeeFeed;
+    const showComposer = isOwnProfile;
 
     return (
         <div className={parentStyles.wrapper}>
@@ -197,15 +180,6 @@ export default function InterestFeedPage() {
                 {loading ? (
                     <div className={parentStyles.loadingContainer} style={{ minHeight: 120 }}>
                         <div className={parentStyles.loader} />
-                    </div>
-                ) : !canSeeFeed ? (
-                    <div className={styles.gateCard}>
-                        <p className={styles.gateMessage}>
-                            You and {profile?.full_name || 'this user'} aren’t in any shared networks yet, so you can’t see their {interest} feed.
-                        </p>
-                        <p className={styles.gateSub}>
-                            Add overlapping networks (school, company, community, etc.) on your profiles to view each other’s interest feeds.
-                        </p>
                     </div>
                 ) : (
                     <div className={styles.feedContainer}>
