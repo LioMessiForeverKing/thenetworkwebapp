@@ -180,7 +180,7 @@ export default function GlobalInterestFeedPage() {
                                                     <img
                                                         src={getAvatarUrl(avatarUrl) || ''}
                                                         alt=""
-                                                        className={styles.feedPostAvatar}
+                                                        className={`${styles.feedPostAvatar} invert-media`}
                                                         referrerPolicy="no-referrer"
                                                     />
                                                 ) : (
