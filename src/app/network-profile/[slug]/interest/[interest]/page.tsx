@@ -4,7 +4,7 @@ import React, { useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 
 /**
- * Redirect old per-user interest feed URLs to the global feed.
+ * Redirect old per-user interest space URLs to the global space.
  * /network-profile/[slug]/interest/[interest] -> /feed/[interest]
  */
 export default function InterestFeedRedirect() {

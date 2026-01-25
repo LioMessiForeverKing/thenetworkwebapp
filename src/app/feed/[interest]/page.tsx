@@ -41,8 +41,14 @@ export default function GlobalInterestFeedPage() {
     const [loading, setLoading] = useState(true);
     const [composerBody, setComposerBody] = useState('');
     const [posting, setPosting] = useState(false);
+    const [userInterests, setUserInterests] = useState<string[]>([]);
 
     const interest = decodeURIComponent(interestParam);
+
+    // User can write only if they have this interest; everyone can read.
+    const hasInterest = userInterests.some(
+        (i) => i.toLowerCase().trim() === interest.toLowerCase().trim()
+    );
 
     // Auth redirect
     useEffect(() => {
@@ -84,8 +90,26 @@ export default function GlobalInterestFeedPage() {
         fetchPosts().finally(() => setLoading(false));
     }, [interest, fetchPosts]);
 
+    // Fetch current user's interests to decide read-only vs can-post.
+    useEffect(() => {
+        if (!user?.id) {
+            setUserInterests([]);
+            return;
+        }
+        const supabase = createClient();
+        supabase
+            .from('profiles')
+            .select('interests')
+            .eq('id', user.id)
+            .maybeSingle()
+            .then(({ data }) => {
+                const list = (data?.interests as string[] | null) || [];
+                setUserInterests(Array.isArray(list) ? list : []);
+            });
+    }, [user?.id]);
+
     const handlePost = async () => {
-        if (!user || !composerBody.trim() || posting) return;
+        if (!user || !composerBody.trim() || posting || !hasInterest) return;
         setPosting(true);
         const supabase = createClient();
         const { error } = await supabase.from('interest_feed_posts').insert({
@@ -134,7 +158,7 @@ export default function GlobalInterestFeedPage() {
                 </Link>
 
                 <div className={styles.feedHeader}>
-                    <h1 className={styles.feedTitle}>{interest} feed</h1>
+                    <h1 className={styles.feedTitle}>{interest} space</h1>
                 </div>
 
                 {loading ? (
@@ -143,7 +167,7 @@ export default function GlobalInterestFeedPage() {
                     </div>
                 ) : (
                     <div className={styles.feedContainer}>
-                        {user && (
+                        {user && hasInterest && (
                             <div className={styles.composer}>
                                 <label className={styles.composerLabel}>Post a thought about {interest}</label>
                                 <textarea
@@ -165,7 +189,9 @@ export default function GlobalInterestFeedPage() {
 
                         {posts.length === 0 ? (
                             <p className={styles.emptyFeed}>
-                                No posts yet. Share a thought about {interest}!
+                                {hasInterest
+                                    ? `No posts yet. Share a thought about ${interest}!`
+                                    : 'No posts yet in this space.'}
                             </p>
                         ) : (
                             <div className={styles.feedList}>

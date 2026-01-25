@@ -1991,7 +1991,7 @@ export default function NetworkProfilePage() {
                                         className={styles.seeAllButton}
                                         style={{ display: 'block', marginTop: 12, textAlign: 'center' }}
                                     >
-                                        View feed →
+                                        View space →
                                     </Link>
                                 </div>
 
