@@ -1613,7 +1613,7 @@ export default function NetworkProfilePage() {
                             <div className={styles.tagsList}>
                                 {(profileData.interests && profileData.interests.length > 0) ? (
                                     profileData.interests.map((interest, i) => (
-                                        <Link key={i} href={`/network-profile/${slug}/interest/${encodeURIComponent(interest)}`} className={styles.tag} style={{ textDecoration: 'none' }}>{interest}</Link>
+                                        <Link key={i} href={`/feed/${encodeURIComponent(interest)}`} className={styles.tag} style={{ textDecoration: 'none' }}>{interest}</Link>
                                     ))
                                 ) : (
                                     <span className={styles.infoValue}>Not set</span>
@@ -1987,7 +1987,7 @@ export default function NetworkProfilePage() {
                                         )}
                                     </div>
                                     <Link
-                                        href={`/network-profile/${slug}/interest/${encodeURIComponent(selectedInterest)}`}
+                                        href={`/feed/${encodeURIComponent(selectedInterest)}`}
                                         className={styles.seeAllButton}
                                         style={{ display: 'block', marginTop: 12, textAlign: 'center' }}
                                     >
