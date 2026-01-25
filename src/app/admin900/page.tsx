@@ -11,6 +11,8 @@ export default function AdminPage() {
   const [error, setError] = useState('')
   const [data, setData] = useState<any>(null)
 
+  const TZ_EST = data?.timeZone || 'America/New_York'
+
   const chartData = useMemo(() => {
     if (!data) return []
 
@@ -19,20 +21,20 @@ export default function AdminPage() {
       return data.chartData
     }
 
-    // Otherwise, process recentData (new format)
+    // Otherwise, process recentData (new format). All date bucketing uses EST.
     const rawData = data.recentData || []
     const totalCount = data.totalCount || 0
 
-    // Get the range (last 30 days)
+    // Get the range (last 30 days) in EST for labels
     const now = new Date()
     const thirtyDaysAgo = new Date()
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
     thirtyDaysAgo.setHours(0, 0, 0, 0)
 
-    // Create a map of date strings to Date objects for proper sorting
+    // Create a map of date strings (in EST) to Date objects for proper sorting
     const dateMap = new Map<string, Date>()
     for (let d = new Date(thirtyDaysAgo); d <= now; d.setDate(d.getDate() + 1)) {
-      const dateKey = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+      const dateKey = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: TZ_EST })
       dateMap.set(dateKey, new Date(d))
     }
 
@@ -43,9 +45,8 @@ export default function AdminPage() {
       dailyGrowth[dateKey] = 0
     })
 
-    // Fill in actual counts from recentData (sorted by created_at first)
+    // Fill in actual counts from recentData; bucket each item by its date in EST
     if (rawData && Array.isArray(rawData)) {
-      // Sort by created_at to ensure chronological order
       const sortedRawData = [...rawData].sort((a, b) => {
         const dateA = new Date(a.created_at).getTime()
         const dateB = new Date(b.created_at).getTime()
@@ -55,11 +56,11 @@ export default function AdminPage() {
       sortedRawData.forEach((item: any) => {
         if (item && item.created_at) {
           const itemDate = new Date(item.created_at)
-          // Only count items within the 30-day window
           if (itemDate >= thirtyDaysAgo && itemDate <= now) {
             const dateKey = itemDate.toLocaleDateString('en-US', {
               month: 'short',
-              day: 'numeric'
+              day: 'numeric',
+              timeZone: TZ_EST
             })
             if (dateKey in dailyGrowth) {
               dailyGrowth[dateKey]++
@@ -165,7 +166,7 @@ export default function AdminPage() {
         </div>
 
         {/* KPI Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
             <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Total Users</h3>
             <p className="text-5xl font-bold mt-2 text-gray-900">{data.totalCount.toLocaleString()}</p>
@@ -179,8 +180,9 @@ export default function AdminPage() {
             <p className="text-xs text-gray-400 mt-2">Active users on platform</p>
           </div>
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">New Today</h3>
+            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">New Today (EST)</h3>
             <p className="text-5xl font-bold mt-2 text-green-600">+{data.todayCount.toLocaleString()}</p>
+            <p className="text-xs text-gray-400 mt-2">Since midnight America/New_York</p>
           </div>
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
             <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Top Source</h3>
@@ -196,6 +198,26 @@ export default function AdminPage() {
             <p className="text-5xl font-bold mt-2 text-purple-600">{data.betaTestersCount?.toLocaleString() || 0}</p>
             <p className="text-xs text-gray-400 mt-2">Interested in early access</p>
           </div>
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">% Beta Access Accepted</h3>
+            <p className="text-5xl font-bold mt-2 text-gray-900">{data.betaAcceptedPct ?? '0'}%</p>
+            <p className="text-xs text-gray-400 mt-2">Of those who asked for beta</p>
+          </div>
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">% Who Share Invite Code</h3>
+            <p className="text-5xl font-bold mt-2 text-gray-900">{data.shareInvitePct ?? '0'}%</p>
+            <p className="text-xs text-gray-400 mt-2">At least 1 signup via their code</p>
+          </div>
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Avg Referrals per User</h3>
+            <p className="text-5xl font-bold mt-2 text-gray-900">{data.avgReferralsPerUser ?? '0'}</p>
+            <p className="text-xs text-gray-400 mt-2">Waitlist referrals (converted)</p>
+          </div>
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Schools Reached</h3>
+            <p className="text-5xl font-bold mt-2 text-gray-900">{data.schoolsReached ?? 0}</p>
+            <p className="text-xs text-gray-400 mt-2">Distinct schools on waitlist</p>
+          </div>
         </div>
 
         {/* Charts & Sources */}
@@ -203,7 +225,8 @@ export default function AdminPage() {
 
           {/* Growth Chart */}
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-            <h3 className="text-lg font-bold mb-6 text-gray-800">User Growth (Last 30 Days)</h3>
+            <h3 className="text-lg font-bold mb-1 text-gray-800">User Growth (Last 30 Days)</h3>
+            <p className="text-sm text-gray-500 mb-6">Day buckets in EST</p>
             <div className="h-64 w-full">
               {chartData && chartData.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
@@ -255,6 +278,44 @@ export default function AdminPage() {
             </div>
           </div>
         </div>
+
+        {/* Time from 1st to 20th user by school (schools with 20+ only) */}
+        {data.schoolTimeTo20 && data.schoolTimeTo20.length > 0 && (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div className="p-6 border-b border-gray-100">
+              <h3 className="text-lg font-bold text-gray-800">Time to 20 Users by School</h3>
+              <p className="text-sm text-gray-500 mt-1">Hours from 1st to 20th waitlist signup (EST). Only schools that have reached 20+.</p>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left whitespace-nowrap">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">School</th>
+                    <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">1st user (EST)</th>
+                    <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">20th user (EST)</th>
+                    <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Hours to 20</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100 bg-white">
+                  {data.schoolTimeTo20.map((row: { school: string; first_at: string; twentieth_at: string; hours_to_20: number }) => (
+                    <tr key={row.school} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 text-sm font-medium text-gray-900">{row.school}</td>
+                      <td className="px-6 py-4 text-sm text-gray-500">
+                        {row.first_at ? new Date(row.first_at).toLocaleString('en-US', { timeZone: data?.timeZone || 'America/New_York' }) : '-'}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-500">
+                        {row.twentieth_at ? new Date(row.twentieth_at).toLocaleString('en-US', { timeZone: data?.timeZone || 'America/New_York' }) : '-'}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-900 text-right font-medium">
+                        {row.hours_to_20 != null ? (row.hours_to_20 >= 24 ? `${(row.hours_to_20 / 24).toFixed(1)} days` : `${row.hours_to_20} hrs`) : '-'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
 
         {/* AB Campaign Performance */}
         {data.campaignAnalytics && data.campaignAnalytics.length > 0 && (
@@ -331,7 +392,7 @@ export default function AdminPage() {
                   <tr key={user.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 text-sm font-medium text-gray-900">{user.email}</td>
                     <td className="px-6 py-4 text-sm text-gray-500">
-                      {new Date(user.created_at).toLocaleString()}
+                      {new Date(user.created_at).toLocaleString('en-US', { timeZone: data?.timeZone || 'America/New_York' })}
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-500">
                       {user.school || '-'}
@@ -416,7 +477,7 @@ export default function AdminPage() {
                       <td className="px-6 py-4 text-sm text-gray-600">{user.email}</td>
                       <td className="px-6 py-4 text-sm text-gray-500">{user.school || '-'}</td>
                       <td className="px-6 py-4 text-sm text-gray-500">
-                        {new Date(user.created_at).toLocaleDateString()}
+                        {new Date(user.created_at).toLocaleString('en-US', { timeZone: data?.timeZone || 'America/New_York' })}
                       </td>
                       <td className="px-6 py-4 text-sm">
                         <div className="flex items-center gap-3">

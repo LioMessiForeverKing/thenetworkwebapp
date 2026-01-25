@@ -5,6 +5,15 @@ import { createClient } from '@supabase/supabase-js'
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!
 
+const TZ_EST = 'America/New_York'
+
+/** Start of today 00:00 in America/New_York as ISO string (UTC). Uses 5h offset for EST; ~1h drift possible in EDT. */
+function getStartOfTodayEST(): string {
+  const n = new Date()
+  const [y, m, d] = n.toLocaleDateString('en-CA', { timeZone: TZ_EST }).split('-').map(Number)
+  return new Date(Date.UTC(y, m - 1, d, 5, 0, 0, 0)).toISOString()
+}
+
 export async function getAdminData(password: string) {
   if (password !== 'Ironman1234@') {
     return { error: 'Invalid password' }
@@ -35,19 +44,16 @@ export async function getAdminData(password: string) {
     // Total users = waitlist + profiles
     const totalCount = (waitlistCount || 0) + (profilesCount || 0)
 
-    // 2. "New Today" = waitlist signups in the last 24 hours
-    // (Uses 24h window to avoid timezone bugs: server is often UTC, so "midnight today"
-    // would exclude evening signups in US timezones.)
-    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000)
-
+    // 2. "New Today" = waitlist signups since start of today EST (00:00 America/New_York)
+    const startOfTodayEST = getStartOfTodayEST()
     const { count: todayCount, error: todayError } = await supabase
       .from('waitlist')
       .select('*', { count: 'exact', head: true })
-      .gte('created_at', twentyFourHoursAgo.toISOString())
+      .gte('created_at', startOfTodayEST)
 
     if (todayError) throw todayError
 
-    // 3. Growth over time (Last 30 days)
+    // 3. Growth over time (Last 30 days) — bucketing uses EST in the UI
     const thirtyDaysAgo = new Date()
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
 
@@ -59,11 +65,11 @@ export async function getAdminData(password: string) {
 
     if (recentError) throw recentError
 
-    // 4. Acquisition Sources (All time)
-    // We fetch just the campaign_code to aggregate
+    // 4. Acquisition Sources (All time) + referral metrics. Fetch all for accurate aggregation.
     const { data: sourceData, error: sourceError } = await supabase
       .from('waitlist')
       .select('campaign_code, referred_by_code')
+      .limit(50000)
 
     if (sourceError) throw sourceError
 
@@ -146,6 +152,44 @@ export async function getAdminData(password: string) {
       signup_count: campaignSignupCounts[campaign.campaign_code] || 0,
     }))
 
+    // --- New metrics ---
+    const totalReferrals = (sourceData || []).filter((i: any) => i.referred_by_code).length
+    const referrersSet = new Set((sourceData || []).filter((i: any) => i.referred_by_code).map((i: any) => i.referred_by_code))
+    const referrersCount = referrersSet.size
+
+    const { count: betaAccepted } = await supabase
+      .from('waitlist')
+      .select('*', { count: 'exact', head: true })
+      .eq('interested_in_beta', true)
+      .eq('beta_status', 'accepted')
+    const { count: betaInterested } = await supabase
+      .from('waitlist')
+      .select('*', { count: 'exact', head: true })
+      .eq('interested_in_beta', true)
+    const betaAcceptedPct = (betaInterested != null && betaInterested > 0 && betaAccepted != null)
+      ? ((betaAccepted / betaInterested) * 100).toFixed(1) : '0'
+
+    const { count: withInviteCode } = await supabase
+      .from('waitlist')
+      .select('*', { count: 'exact', head: true })
+      .not('invite_code', 'is', null)
+    const shareInvitePct = (withInviteCode != null && withInviteCode > 0)
+      ? ((referrersCount / withInviteCode) * 100).toFixed(1) : '0'
+
+    const avgReferralsPerUser = (waitlistCount != null && waitlistCount > 0)
+      ? (totalReferrals / waitlistCount).toFixed(2) : '0'
+
+    const { data: schoolRows } = await supabase.from('waitlist').select('school').limit(50000)
+    const schoolsSet = new Set(
+      (schoolRows || [])
+        .filter((r: any) => r.school != null && String(r.school).trim() !== '')
+        .map((r: any) => String(r.school).trim())
+    )
+    const schoolsReached = schoolsSet.size
+
+    const { data: schoolTimeTo20, error: timeTo20Err } = await supabase.rpc('get_school_time_to_20')
+    if (timeTo20Err) console.warn('get_school_time_to_20 warning:', timeTo20Err)
+
     return {
       success: true,
       data: {
@@ -159,6 +203,12 @@ export async function getAdminData(password: string) {
         campaignAnalytics: campaignsWithStats,
         betaTesters: betaTesters || [],
         betaTestersCount: betaTestersCount || 0,
+        timeZone: TZ_EST,
+        betaAcceptedPct,
+        shareInvitePct,
+        avgReferralsPerUser,
+        schoolsReached,
+        schoolTimeTo20: schoolTimeTo20 || [],
       }
     }
 

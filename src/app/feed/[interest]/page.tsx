@@ -169,10 +169,9 @@ export default function GlobalInterestFeedPage() {
                     <div className={styles.feedContainer}>
                         {user && hasInterest && (
                             <div className={styles.composer}>
-                                <label className={styles.composerLabel}>Post a thought about {interest}</label>
                                 <textarea
                                     className={styles.composerTextarea}
-                                    placeholder="e.g. Has anyone watched Air Crash Investigation? I'm a pilot — if you're in NY, happy to take you for a ride."
+                                    placeholder="What's on your mind?"
                                     value={composerBody}
                                     onChange={(e) => setComposerBody(e.target.value)}
                                     maxLength={2000}
