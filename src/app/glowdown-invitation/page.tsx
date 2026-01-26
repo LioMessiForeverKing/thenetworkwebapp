@@ -3,6 +3,14 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 
+// QR Code component - install with: npm install react-qr-code
+let QRCode: any = null;
+try {
+  QRCode = require('react-qr-code').default;
+} catch (e) {
+  // Library not installed yet - will show text code only
+}
+
 const PIKE_SVG = '/mcmaster/pike.svg';
 const THE_NETWORK_SVG = '/mcmaster/TheNetwork.svg';
 const GLOW_COLORS = [
@@ -213,15 +221,35 @@ export default function GlowdownInvitationPage() {
                 {/* Barcode/Ticket Code Display */}
                 <div className="w-full aspect-[3/4] rounded-xl border-2 border-dashed border-amber-400/40 bg-amber-950/20 py-8 flex flex-col items-center justify-center gap-6 mb-6">
                   <span className="text-amber-400/70 text-[11px] font-semibold tracking-[0.2em] uppercase">
-                    Ticket Code
+                    Your Ticket
                   </span>
                   <div className="w-48 h-1 bg-gradient-to-r from-transparent via-amber-400/20 to-transparent" />
                   
-                  {/* Barcode-style display */}
+                  {/* QR Code - Scannable Barcode */}
                   <div className="bg-white p-4 rounded-lg">
-                    <div className="font-mono text-4xl font-bold text-black tracking-wider">
+                    {ticketCode && QRCode ? (
+                      <QRCode
+                        value={ticketCode}
+                        size={200}
+                        style={{ height: "auto", maxWidth: "100%", width: "100%" }}
+                        viewBox={`0 0 200 200`}
+                      />
+                    ) : ticketCode ? (
+                      // Fallback: Show QR code via image API if library not installed
+                      <img 
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(ticketCode)}`}
+                        alt="Ticket QR Code"
+                        className="w-[200px] h-[200px]"
+                      />
+                    ) : null}
+                  </div>
+                  
+                  {/* Text Code (backup) */}
+                  <div className="text-center">
+                    <p className="text-amber-400/50 text-xs mb-1">Code:</p>
+                    <p className="font-mono text-xl font-bold text-amber-400 tracking-wider">
                       {ticketCode}
-                    </div>
+                    </p>
                   </div>
                   
                   <div className="text-center">

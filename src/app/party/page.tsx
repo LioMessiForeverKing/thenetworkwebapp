@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { getPartyAdminData, getPartyStats } from './actions';
+import { getPartyAdminData, getPartyStats, deleteRsvp } from './actions';
 import Link from 'next/link';
 
 interface Party {
@@ -30,6 +30,7 @@ interface PartyStats {
 
 interface RsvpDetail {
   id: string;
+  waitlist_id?: string; // For waitlist entries
   user_id: string | null;
   status: string;
   ticket_code: string | null;
@@ -51,6 +52,7 @@ export default function PartyAdminPage() {
   const [partyStats, setPartyStats] = useState<Record<string, PartyStats>>({});
   const [rsvpDetails, setRsvpDetails] = useState<Record<string, RsvpDetail[]>>({});
   const [loadingStats, setLoadingStats] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const ADMIN_PASSWORD = 'Superman1234@';
 
@@ -116,6 +118,49 @@ export default function PartyAdminPage() {
       loadPartyStats(selectedParty);
     }
   }, [selectedParty]);
+
+  const handleDeleteRsvp = async (rsvp: RsvpDetail) => {
+    if (!confirm(`Are you sure you want to delete ${rsvp.user_name || rsvp.waitlist_name || rsvp.user_email || rsvp.waitlist_email}?`)) {
+      return;
+    }
+
+    setDeletingId(rsvp.id);
+    try {
+      const result = await deleteRsvp(
+        ADMIN_PASSWORD,
+        rsvp.id,
+        rsvp.source || 'waitlist',
+        rsvp.waitlist_id,
+        rsvp.waitlist_email || rsvp.user_email || undefined
+      );
+
+      if (result.error) {
+        alert(result.error);
+        return;
+      }
+
+      // Refresh the stats
+      if (selectedParty) {
+        // Clear cached stats to force reload
+        setPartyStats(prev => {
+          const newStats = { ...prev };
+          delete newStats[selectedParty];
+          return newStats;
+        });
+        setRsvpDetails(prev => {
+          const newDetails = { ...prev };
+          delete newDetails[selectedParty];
+          return newDetails;
+        });
+        // Reload
+        loadPartyStats(selectedParty);
+      }
+    } catch (err: any) {
+      alert(err.message || 'Failed to delete RSVP');
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   if (!isAuthenticated) {
     return (
@@ -304,6 +349,7 @@ export default function PartyAdminPage() {
                           <th className="text-left p-2">Ticket Code</th>
                           <th className="text-left p-2">Source</th>
                           <th className="text-left p-2">RSVP Date</th>
+                          <th className="text-left p-2">Actions</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -333,11 +379,20 @@ export default function PartyAdminPage() {
                             <td className="p-2 text-gray-400">
                               {new Date(rsvp.rsvped_at).toLocaleDateString()}
                             </td>
+                            <td className="p-2">
+                              <button
+                                onClick={() => handleDeleteRsvp(rsvp)}
+                                disabled={deletingId === rsvp.id}
+                                className="px-3 py-1 bg-red-900/50 hover:bg-red-900/70 border border-red-800 text-red-400 rounded text-xs transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                {deletingId === rsvp.id ? 'Deleting...' : 'Delete'}
+                              </button>
+                            </td>
                           </tr>
                         ))}
                         {rsvps.length === 0 && !loadingStats && (
                           <tr>
-                            <td colSpan={6} className="p-4 text-center text-gray-500">
+                            <td colSpan={7} className="p-4 text-center text-gray-500">
                               No RSVPs yet
                             </td>
                           </tr>

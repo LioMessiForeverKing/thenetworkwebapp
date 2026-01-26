@@ -87,8 +87,8 @@ export default function McMasterGlowdownPage() {
           <ul className="list-none p-0 space-y-4 text-white/80 text-base leading-relaxed font-ui max-w-[65ch]">
             <li>
               think of The Network as an extension of your mind...<br /><br />
-              we want to help you understand yourself in a world full of noise.<br /><br />
-              we want to connect you with communities that share your niche .<br /><br />
+              we want to help you understand yourself in a world full of noise.<br />
+              we want to connect you with communities that share your niche .<br />
               we want to remove all the junk that is keeping the right opportunities out of reach.
             </li>
             <li><strong className="text-white">...ultimately, we want to connect the dots and light up your network so that you can continue to live your best life, both online AND offline.</strong></li>
@@ -100,6 +100,9 @@ export default function McMasterGlowdownPage() {
           <h2 className="font-brand text-xl md:text-2xl font-bold tracking-tight text-white mb-8" style={{ letterSpacing: '-0.02em' }}>
             ready?**
           </h2>
+          <p className="text-white/30 text-xs mb-6 font-ui">
+            Meet the people behind TNW. Click the logo.
+          </p>
           <Link
             href="/invite/4NA8JW"
             className="inline-block px-10 py-5 rounded-full text-lg font-semibold bg-white text-black hover:bg-gray-100 transition-colors duration-200"

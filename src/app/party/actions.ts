@@ -93,7 +93,7 @@ export async function getPartyStats(password: string, partyId: string) {
     // Get waitlist entries linked to this party
     const { data: waitlistRsvps, error: waitlistError } = await supabase
       .from('waitlist')
-      .select('name, email, party_ticket_code, created_at')
+      .select('id, name, email, party_ticket_code, created_at')
       .eq('party_id', partyId)
       .order('created_at', { ascending: false });
 
@@ -122,7 +122,8 @@ export async function getPartyStats(password: string, partyId: string) {
     // Add waitlist RSVPs (non-authenticated)
     waitlistRsvps?.forEach((waitlist: any) => {
       details.push({
-        id: `waitlist-${waitlist.email}`,
+        id: `waitlist-${waitlist.id}`, // Use actual waitlist id
+        waitlist_id: waitlist.id, // Store actual id for deletion
         user_id: null,
         status: 'going',
         ticket_code: waitlist.party_ticket_code,
@@ -144,5 +145,53 @@ export async function getPartyStats(password: string, partyId: string) {
   } catch (error: any) {
     console.error('Get Party Stats Error:', error);
     return { error: error.message || 'Failed to load party stats' };
+  }
+}
+
+export async function deleteRsvp(password: string, rsvpId: string, source: string, waitlistId?: string, email?: string) {
+  if (password !== ADMIN_PASSWORD) {
+    return { error: 'Invalid password' };
+  }
+
+  if (!SUPABASE_SERVICE_ROLE_KEY) {
+    return { error: 'Service configuration error' };
+  }
+
+  const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+  try {
+    if (source === 'waitlist') {
+      // Delete from waitlist table - use waitlist_id if available, otherwise use email
+      if (waitlistId) {
+        const { error: deleteError } = await supabase
+          .from('waitlist')
+          .delete()
+          .eq('id', waitlistId);
+
+        if (deleteError) throw deleteError;
+      } else if (email) {
+        const { error: deleteError } = await supabase
+          .from('waitlist')
+          .delete()
+          .eq('email', email.toLowerCase());
+
+        if (deleteError) throw deleteError;
+      } else {
+        return { error: 'Missing waitlist ID or email for deletion' };
+      }
+    } else {
+      // Delete from party_rsvps table
+      const { error: deleteError } = await supabase
+        .from('party_rsvps')
+        .delete()
+        .eq('id', rsvpId);
+
+      if (deleteError) throw deleteError;
+    }
+
+    return { success: true };
+  } catch (error: any) {
+    console.error('Delete RSVP Error:', error);
+    return { error: error.message || 'Failed to delete RSVP' };
   }
 }
