@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 
 const PIKE_SVG = '/mcmaster/pike.svg';
@@ -83,6 +83,51 @@ function GlowdownBackground() {
 }
 
 export default function GlowdownInvitationPage() {
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [obsession, setObsession] = useState('');
+  const [interestedInBeta, setInterestedInBeta] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [ticketCode, setTicketCode] = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setIsSubmitting(true);
+
+    try {
+      const response = await fetch('/api/glowdown-register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name,
+          email,
+          interestedInBeta,
+          obsession,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to register');
+      }
+
+      setTicketCode(data.ticketCode);
+      // Scroll to ticket code
+      setTimeout(() => {
+        document.getElementById('ticket-display')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 100);
+    } catch (err: any) {
+      setError(err.message || 'Something went wrong. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-black text-white overflow-x-hidden font-sans">
       <GlowdownBackground />
@@ -145,8 +190,60 @@ export default function GlowdownInvitationPage() {
           </div>
         </header>
 
+        {/* Ticket Display - shown after successful registration */}
+        {ticketCode && (
+          <div id="ticket-display" className="w-full max-w-lg mb-8">
+            <div
+              className="rounded-[20px] p-[2px]"
+              style={{
+                background: 'linear-gradient(135deg, rgba(236,72,153,0.5) 0%, rgba(168,85,247,0.5) 35%, rgba(249,179,70,0.5) 70%, rgba(236,72,153,0.4) 100%)',
+                boxShadow: '0 0 30px rgba(236,72,153,0.2), 0 0 60px rgba(168,85,247,0.15)',
+              }}
+            >
+              <div className="rounded-[18px] bg-black/90 backdrop-blur-md p-7 md:p-10 text-center relative overflow-hidden">
+                <span className="absolute top-4 left-4 text-amber-400/50 text-lg" aria-hidden>✦</span>
+                <span className="absolute top-4 right-4 text-amber-400/50 text-lg" aria-hidden>✦</span>
+                <span className="absolute bottom-4 left-4 text-amber-400/50 text-lg" aria-hidden>✦</span>
+                <span className="absolute bottom-4 right-4 text-amber-400/50 text-lg" aria-hidden>✦</span>
+
+                <h2 className="font-brand text-2xl md:text-3xl font-bold text-white mb-4" style={{ letterSpacing: '-0.02em' }}>
+                  Your Ticket
+                </h2>
+                
+                {/* Barcode/Ticket Code Display */}
+                <div className="w-full aspect-[3/4] rounded-xl border-2 border-dashed border-amber-400/40 bg-amber-950/20 py-8 flex flex-col items-center justify-center gap-6 mb-6">
+                  <span className="text-amber-400/70 text-[11px] font-semibold tracking-[0.2em] uppercase">
+                    Ticket Code
+                  </span>
+                  <div className="w-48 h-1 bg-gradient-to-r from-transparent via-amber-400/20 to-transparent" />
+                  
+                  {/* Barcode-style display */}
+                  <div className="bg-white p-4 rounded-lg">
+                    <div className="font-mono text-4xl font-bold text-black tracking-wider">
+                      {ticketCode}
+                    </div>
+                  </div>
+                  
+                  <div className="text-center">
+                    <p className="text-amber-400/60 text-sm font-medium">122 Whitney Avenue</p>
+                    <p className="text-amber-400/40 text-xs">10:00PM</p>
+                  </div>
+                </div>
+
+                <p className="text-white/60 text-sm mb-4">
+                  Your ticket has been sent to <strong>{email}</strong>
+                </p>
+                <p className="text-white/40 text-xs leading-relaxed">
+                  Show this code at the door. See you at the Glowdown! ✨
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Invitation card — ornate, party-invite feel */}
-        <article className="w-full max-w-lg relative">
+        {!ticketCode && (
+          <article className="w-full max-w-lg relative">
           {/* Gradient border via wrapper */}
           <div
             className="rounded-[20px] p-[2px]"
@@ -170,21 +267,29 @@ export default function GlowdownInvitationPage() {
               </p>
               <p className="text-white/50 text-sm mb-6">— Wear white. Bring energy. —</p>
 
-              <div className="flex flex-col gap-4 mb-6 mt-4">
+              <form onSubmit={handleSubmit} className="flex flex-col gap-4 mb-6 mt-4">
                 <input
                   type="text"
                   placeholder="Full Name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
                   className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-amber-500/50 transition-all"
                 />
                 <input
                   type="email"
                   placeholder="Email address (Gmail preferred)"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
                   className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-amber-500/50 transition-all"
                 />
                 <div className="flex flex-col gap-1.5">
                   <input
                     type="text"
                     placeholder="Your current obsession"
+                    value={obsession}
+                    onChange={(e) => setObsession(e.target.value)}
                     className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-amber-500/50 transition-all"
                   />
                   <p className="text-[10px] text-white/40 text-left px-2 leading-relaxed">
@@ -196,6 +301,8 @@ export default function GlowdownInvitationPage() {
                   <div className="mt-1">
                     <input
                       type="checkbox"
+                      checked={interestedInBeta}
+                      onChange={(e) => setInterestedInBeta(e.target.checked)}
                       className="h-4 w-4 rounded border-white/20 bg-white/5 text-amber-500 focus:ring-amber-500/50 transition-all cursor-pointer"
                     />
                   </div>
@@ -203,20 +310,28 @@ export default function GlowdownInvitationPage() {
                     I want to try The Network and be matched with someone at GlowDown who shares my interests. At 12am, we’ll send you the name of another attendee. Find them, say hi, and see what happens. If you happen to meet your next best friend, no pressure, but that&apos;s kind of the point.
                   </span>
                 </label>
-              </div>
 
-              <div className="flex flex-col gap-3">
-                <Link
-                  href="/ticket"
-                  className="inline-block w-full py-4 rounded-full text-base font-bold transition-all duration-300 hover:scale-[1.02] hover:shadow-lg text-center"
+                {error && (
+                  <div className="bg-red-500/20 border border-red-500/50 rounded-xl py-3 px-4 text-red-300 text-sm">
+                    {error}
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="inline-block w-full py-4 rounded-full text-base font-bold transition-all duration-300 hover:scale-[1.02] hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                   style={{
                     background: 'linear-gradient(90deg, #f59e0b 0%, #f97316 50%, #ec4899 100%)',
                     color: '#000',
                     boxShadow: '0 4px 20px rgba(245,158,11,0.4)',
                   }}
                 >
-                  I&apos;m in
-                </Link>
+                  {isSubmitting ? 'Registering...' : "I'm in"}
+                </button>
+              </form>
+
+              <div className="flex flex-col gap-3">
                 <p className="text-[10px] text-white/30 leading-relaxed px-4">
                   *Confirming attendance means you consent to being added to The Network&apos;s waitlist. No information beyond your name and email address will be collected. No data will be taken, and all participation in The Network initiative is entirely optional and always controlled by you.
                 </p>
@@ -230,6 +345,7 @@ export default function GlowdownInvitationPage() {
             </div>
           </div>
         </article>
+        )}
 
         <footer className="mt-16 text-center">
           <p className="text-white/40 text-sm">© 2026 The Network.</p>

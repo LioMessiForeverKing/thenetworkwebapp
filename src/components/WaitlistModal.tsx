@@ -401,9 +401,10 @@ export default function WaitlistModal({ isOpen, onClose, theme = 'dark' }: Waitl
               <div className={styles.inputGroup}>
                 <input
                   type="text"
-                  placeholder="School (optional)"
+                  placeholder="University or NA if not applicable"
                   value={school}
                   onChange={(e) => setSchool(e.target.value)}
+                  required
                   className={styles.input}
                   style={{
                     backgroundColor: theme === 'dark' ? 'rgba(0, 0, 0, 0.05)' : 'rgba(255, 255, 255, 0.1)',
@@ -439,13 +440,13 @@ export default function WaitlistModal({ isOpen, onClose, theme = 'dark' }: Waitl
 
               <button
                 type="submit"
-                disabled={isSubmitting}
+                disabled={isSubmitting || !name || !email || !school}
                 className={styles.submitButton}
                 style={{
                   backgroundColor: theme === 'dark' ? '#000000' : '#ffffff',
                   color: theme === 'dark' ? '#ffffff' : '#000000',
-                  opacity: isSubmitting ? 0.6 : 1,
-                  cursor: isSubmitting ? 'not-allowed' : 'pointer',
+                  opacity: (isSubmitting || !name || !email || !school) ? 0.6 : 1,
+                  cursor: (isSubmitting || !name || !email || !school) ? 'not-allowed' : 'pointer',
                 }}
               >
                 {isSubmitting ? 'Submitting...' : 'Join Waitlist'}
