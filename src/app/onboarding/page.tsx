@@ -213,6 +213,16 @@ export default function OnboardingPage() {
 
                     if (data?.university_name) {
                         const universityName = data.university_name;
+                        
+                        // Save university name to college field in user_profile_extras
+                        await supabase
+                            .from('user_profile_extras')
+                            .upsert({
+                                user_id: user.id,
+                                college: universityName,
+                                updated_at: new Date().toISOString(),
+                            }, { onConflict: 'user_id' });
+                        
                         // Check if university not already added (race condition protection)
                         setNetworks(prev => {
                             const alreadyExists = prev.some(
@@ -497,20 +507,75 @@ export default function OnboardingPage() {
     };
 
     const handleNetworksSubmit = async () => {
-        // Save networks to database
-        if (user && networks.length > 0) {
-            const supabase = createClient();
-            
-            // Save each network
-            for (const network of networks) {
-                await supabase
-                    .from('user_networks')
-                    .upsert({
-                        user_id: user.id,
-                        network_type: network.type,
-                        network_name: network.name,
-                        created_at: new Date().toISOString(),
-                    });
+        if (!user) {
+            setError('User not authenticated');
+            return;
+        }
+
+        const supabase = createClient();
+        
+        // Extract network names as array of strings for user_profile_extras.networks
+        const networkNames = networks.map(n => n.name.trim()).filter(name => name.length > 0);
+        
+        // Extract college/university from networks (type === 'university' or 'work' if it's a school)
+        const universityNetwork = networks.find(n => 
+            n.type === 'university' || 
+            (n.type === 'work' && (n.name.toLowerCase().includes('university') || n.name.toLowerCase().includes('college')))
+        );
+        const collegeName = universityNetwork ? universityNetwork.name.trim() : null;
+        
+        // Extract high school from networks (type === 'highschool')
+        const highSchoolNetwork = networks.find(n => n.type === 'highschool');
+        const highSchoolName = highSchoolNetwork ? highSchoolNetwork.name.trim() : null;
+        
+        // Extract company from networks (type === 'work' and not a school)
+        const companyNetwork = networks.find(n => 
+            n.type === 'work' && 
+            !n.name.toLowerCase().includes('university') && 
+            !n.name.toLowerCase().includes('college')
+        );
+        const companyName = companyNetwork ? companyNetwork.name.trim() : null;
+        
+        // Save to user_profile_extras
+        const extrasUpdate: any = {
+            user_id: user.id,
+            updated_at: new Date().toISOString(),
+        };
+        
+        // Only update fields that have values
+        if (networkNames.length > 0) {
+            extrasUpdate.networks = networkNames;
+        }
+        if (collegeName) {
+            extrasUpdate.college = collegeName;
+        }
+        if (highSchoolName) {
+            extrasUpdate.high_school = highSchoolName;
+        }
+        if (companyName) {
+            extrasUpdate.company = companyName;
+        }
+        
+        await supabase
+            .from('user_profile_extras')
+            .upsert(extrasUpdate, { onConflict: 'user_id' });
+        
+        // Also save to user_networks table for backwards compatibility (if that table exists)
+        if (networks.length > 0) {
+            try {
+                for (const network of networks) {
+                    await supabase
+                        .from('user_networks')
+                        .upsert({
+                            user_id: user.id,
+                            network_type: network.type,
+                            network_name: network.name,
+                            created_at: new Date().toISOString(),
+                        });
+                }
+            } catch (e) {
+                // Silently fail if user_networks table doesn't exist
+                console.warn('Could not save to user_networks table:', e);
             }
         }
         
