@@ -5,9 +5,10 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { createClient } from '@/lib/supabase';
 import { YouTubeService } from '@/services/youtube';
+import { VerificationService } from '@/services/verification';
 import styles from './page.module.css';
 
-type Step = 'age' | 'email' | 'email-verify' | 'phone' | 'phone-verify' | 'networks' | 'processing';
+type Step = 'age' | 'email' | 'email-verify' | 'phone' | 'phone-verify' | 'networks' | 'processing'; // phone-verify commented out but kept in type for now
 
 interface Network {
     id: string;
@@ -15,53 +16,14 @@ interface Network {
     name: string;
 }
 
-// Helper to extract university name from .edu email
-const extractUniversityName = (email: string): string | null => {
-    if (!email || !email.includes('@')) return null;
-    const domain = email.split('@')[1]?.toLowerCase();
-    if (!domain?.endsWith('.edu')) return null;
-    
-    // Common university domain mappings
-    const universityMap: Record<string, string> = {
-        'rutgers.edu': 'Rutgers University',
-        'my.rutgers.edu': 'Rutgers University',
-        'scarletmail.rutgers.edu': 'Rutgers University',
-        'columbia.edu': 'Columbia University',
-        'stanford.edu': 'Stanford University',
-        'mit.edu': 'MIT',
-        'harvard.edu': 'Harvard University',
-        'yale.edu': 'Yale University',
-        'princeton.edu': 'Princeton University',
-        'berkeley.edu': 'UC Berkeley',
-        'ucla.edu': 'UCLA',
-        'nyu.edu': 'NYU',
-        'upenn.edu': 'UPenn',
-        'cornell.edu': 'Cornell University',
-        'brown.edu': 'Brown University',
-        'dartmouth.edu': 'Dartmouth College',
-        'duke.edu': 'Duke University',
-        'uchicago.edu': 'University of Chicago',
-        'northwestern.edu': 'Northwestern University',
-        'cmu.edu': 'Carnegie Mellon University',
-        'gatech.edu': 'Georgia Tech',
-        'umich.edu': 'University of Michigan',
-        'utexas.edu': 'UT Austin',
-        'usc.edu': 'USC',
-    };
-    
-    if (universityMap[domain]) {
-        return universityMap[domain];
-    }
-    
-    // Fallback: capitalize the domain name without .edu
-    const baseDomain = domain.replace('.edu', '').split('.').pop() || '';
-    return baseDomain.charAt(0).toUpperCase() + baseDomain.slice(1) + ' University';
-};
+// University name is now dynamically parsed using LLM via parse-university-name Edge Function
 
 export default function OnboardingPage() {
     const { user, session, loading } = useAuth();
     const router = useRouter();
     const hasStartedProcessing = useRef(false);
+    const hasCalledDeriveInterests = useRef(false);
+    const hasAttemptedUniversityParse = useRef(false);
     
     const [step, setStep] = useState<Step>('age');
     const [error, setError] = useState('');
@@ -79,6 +41,10 @@ export default function OnboardingPage() {
     // Processing state
     const [processingProgress, setProcessingProgress] = useState(0);
     const [processingStatus, setProcessingStatus] = useState('Analyzing your interests...');
+    
+    // Loading states
+    const [isVerifyingEmail, setIsVerifyingEmail] = useState(false);
+    const [isParsingUniversity, setIsParsingUniversity] = useState(false);
 
     // Redirect if not authenticated
     useEffect(() => {
@@ -87,102 +53,199 @@ export default function OnboardingPage() {
         }
     }, [user, loading, router]);
 
-    // Start backend processing immediately when page loads
+    // Check YouTube data and start derive_interests when on age page
+    useEffect(() => {
+        if (step === 'age' && user && !hasCalledDeriveInterests.current) {
+            hasCalledDeriveInterests.current = true;
+            
+            const checkAndStartProcessing = async () => {
+                const supabase = createClient();
+                
+                try {
+                    // Check if YouTube data exists
+                    const [subsResult, likesResult] = await Promise.all([
+                        supabase
+                            .from('youtube_subscriptions')
+                            .select('user_id')
+                            .eq('user_id', user.id)
+                            .limit(1),
+                        supabase
+                            .from('youtube_liked_videos')
+                            .select('user_id')
+                            .eq('user_id', user.id)
+                            .limit(1)
+                    ]);
+
+                    const hasYouTubeData = (subsResult.data?.length ?? 0) > 0 || (likesResult.data?.length ?? 0) > 0;
+
+                    if (!hasYouTubeData) {
+                        // Try to sync YouTube data first
+                        try {
+                            const accessToken = await YouTubeService.getAccessToken();
+                            if (accessToken) {
+                                await YouTubeService.syncYouTubeData(user.id);
+                                // Re-check after sync
+                                const [subsCheck, likesCheck] = await Promise.all([
+                                    supabase
+                                        .from('youtube_subscriptions')
+                                        .select('user_id')
+                                        .eq('user_id', user.id)
+                                        .limit(1),
+                                    supabase
+                                        .from('youtube_liked_videos')
+                                        .select('user_id')
+                                        .eq('user_id', user.id)
+                                        .limit(1)
+                                ]);
+                                const stillNoData = (subsCheck.data?.length ?? 0) === 0 && (likesCheck.data?.length ?? 0) === 0;
+                                
+                                if (stillNoData) {
+                                    // No YouTube data - redirect to beginning with message
+                                    alert('We couldn\'t find YouTube data for your account. Please sign in with YouTube to continue onboarding.');
+                                    router.push('/');
+                                    return;
+                                }
+                            } else {
+                                // No access token - redirect to beginning
+                                alert('We couldn\'t find YouTube data for your account. Please sign in with YouTube to continue onboarding.');
+                                router.push('/');
+                                return;
+                            }
+                        } catch (e) {
+                            // Sync failed - redirect to beginning
+                            alert('We couldn\'t find YouTube data for your account. Please sign in with YouTube to continue onboarding.');
+                            router.push('/');
+                            return;
+                        }
+                    }
+
+                    // YouTube data exists - start derive_interests in background
+                    try {
+                        YouTubeService.deriveInterests(user.id).catch(() => {
+                            // Silently fail - will be retried later if needed
+                        });
+                    } catch (error) {
+                        // Silently fail
+                    }
+                } catch (error) {
+                    // Silently fail
+                }
+            };
+            
+            checkAndStartProcessing();
+        }
+    }, [step, user, router]);
+
+    // Start DNA v2 computation in background when page loads (derive_interests is handled on age page)
     useEffect(() => {
         if (!user || !session || hasStartedProcessing.current) return;
         hasStartedProcessing.current = true;
         
         const startBackendProcessing = async () => {
-            const supabase = createClient();
-            
             try {
-                // Check if user already has interests (skip if so)
-                const { data: profile } = await supabase
-                    .from('profiles')
-                    .select('interests')
-                    .eq('id', user.id)
-                    .single();
-
-                const existingInterests = (profile?.interests as string[]) || [];
-                if (existingInterests.length > 0) return;
-
-                // Check if YouTube data exists, if not sync it
-                const { data: ytSubs } = await supabase
-                    .from('youtube_subscriptions')
-                    .select('user_id')
-                    .eq('user_id', user.id)
-                    .limit(1);
-
-                const { data: ytLikes } = await supabase
-                    .from('youtube_liked_videos')
-                    .select('user_id')
-                    .eq('user_id', user.id)
-                    .limit(1);
-
-                const hasYouTubeData = (ytSubs?.length ?? 0) > 0 || (ytLikes?.length ?? 0) > 0;
-
-                if (!hasYouTubeData) {
-                    // Try to sync YouTube data
-                    try {
-                        const accessToken = await YouTubeService.getAccessToken();
-                        if (accessToken) {
-                            await YouTubeService.syncYouTubeData(user.id);
-                        }
-                    } catch (e) {
-                        // Continue anyway
-                    }
-                }
-
-                // Trigger interest derivation in background
-                try {
-                    YouTubeService.deriveInterests(user.id);
-                } catch (e) {
-                    // Continue anyway
-                }
-
                 // Trigger DNA v2 computation in background
-                try {
-                    fetch('/api/compute-dna-v2', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            user_id: user.id,
-                            trigger_source: 'NEW_USER_SIGNUP'
-                        })
-                    });
-                } catch (e) {
-                    // Continue anyway
-                }
+                fetch('/api/compute-dna-v2', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        user_id: user.id,
+                        trigger_source: 'NEW_USER_SIGNUP'
+                    })
+                }).catch(() => {
+                    // Silently fail
+                });
             } catch (e) {
-                // Silently fail - wrapped page will handle retries
+                // Silently fail
             }
         };
 
         startBackendProcessing();
     }, [user, session]);
 
-    // Auto-add university from edu email when entering networks step
+    // Auto-add university from edu email when entering networks step (using LLM)
     useEffect(() => {
-        if (step === 'networks' && eduEmail) {
-            const universityName = extractUniversityName(eduEmail);
-            if (universityName) {
-                // Check if university not already added
-                const alreadyExists = networks.some(
-                    n => n.type === 'university' && n.name.toLowerCase() === universityName.toLowerCase()
-                );
-                if (!alreadyExists) {
-                    setNetworks(prev => [
-                        {
-                            id: 'university-' + Date.now(),
-                            type: 'university',
-                            name: universityName
+        if (step === 'networks' && user && !isParsingUniversity && !hasAttemptedUniversityParse.current) {
+            hasAttemptedUniversityParse.current = true;
+            
+            const fetchAndParseUniversity = async () => {
+                try {
+                    const supabase = createClient();
+                    
+                    // First, get the school email from database if not in state
+                    let schoolEmail = eduEmail;
+                    if (!schoolEmail) {
+                        const { data: profileExtras } = await supabase
+                            .from('user_profile_extras')
+                            .select('school_email')
+                            .eq('user_id', user.id)
+                            .single();
+                        
+                        if (profileExtras?.school_email) {
+                            schoolEmail = profileExtras.school_email;
+                            setEduEmail(schoolEmail); // Update state for consistency
+                        }
+                    }
+                    
+                    if (!schoolEmail) {
+                        hasAttemptedUniversityParse.current = false; // Reset so we can try again
+                        return;
+                    }
+                    
+                    const domain = schoolEmail.split('@')[1]?.toLowerCase();
+                    if (!domain || !domain.endsWith('.edu')) {
+                        hasAttemptedUniversityParse.current = false;
+                        return;
+                    }
+
+                    setIsParsingUniversity(true);
+
+                    const { data, error } = await supabase.functions.invoke('parse-university-name', {
+                        body: {
+                            email_domain: domain,
                         },
-                        ...prev
-                    ]);
+                    });
+
+                    if (error) {
+                        setIsParsingUniversity(false);
+                        hasAttemptedUniversityParse.current = false; // Reset on error
+                        return;
+                    }
+
+                    if (data?.university_name) {
+                        const universityName = data.university_name;
+                        // Check if university not already added (race condition protection)
+                        setNetworks(prev => {
+                            const alreadyExists = prev.some(
+                                n => n.type === 'university' && n.name.toLowerCase() === universityName.toLowerCase()
+                            );
+                            if (alreadyExists) {
+                                return prev;
+                            }
+                            return [
+                                {
+                                    id: 'university-' + Date.now(),
+                                    type: 'university',
+                                    name: universityName
+                                },
+                                ...prev
+                            ];
+                        });
+                    }
+                } catch (err) {
+                    hasAttemptedUniversityParse.current = false; // Reset on error
+                } finally {
+                    setIsParsingUniversity(false);
                 }
-            }
+            };
+
+            fetchAndParseUniversity();
         }
-    }, [step, eduEmail]);
+        
+        // Reset the ref when leaving networks step
+        if (step !== 'networks') {
+            hasAttemptedUniversityParse.current = false;
+        }
+    }, [step, user, eduEmail, isParsingUniversity]);
 
     // Simulate processing when on processing step
     useEffect(() => {
@@ -219,8 +282,8 @@ export default function OnboardingPage() {
             case 'age': return 20;
             case 'email': return 35;
             case 'email-verify': return 45;
-            case 'phone': return 55;
-            case 'phone-verify': return 65;
+            case 'phone': return 60; // Adjusted since we skip phone-verify
+            // case 'phone-verify': return 65; // COMMENTED OUT
             case 'networks': return 80;
             case 'processing': return processingProgress;
             default: return 0;
@@ -249,52 +312,175 @@ export default function OnboardingPage() {
         setStep('email');
     };
 
-    const handleEmailSubmit = () => {
-        // For now, just move to verification (would send email in production)
+    const handleEmailSubmit = async () => {
         if (eduEmail && !eduEmail.endsWith('.edu')) {
             setError('Please enter a valid .edu email address');
             return;
         }
-        setError('');
-        if (eduEmail) {
-            setStep('email-verify');
-        } else {
+        
+        if (!eduEmail) {
             // Skip email verification if no email provided
             setStep('phone');
-        }
-    };
-
-    const handleEmailVerify = () => {
-        // Placeholder verification - accepts "1234"
-        if (eduEmailCode !== '1234') {
-            setError('Invalid code. (Hint: use 1234)');
             return;
         }
+
+        if (!user) {
+            setError('User not authenticated');
+            return;
+        }
+
         setError('');
-        setStep('phone');
-    };
-
-    const handlePhoneSubmit = () => {
-        if (phoneNumber) {
-            setStep('phone-verify');
-        } else {
-            // Skip phone verification if no phone provided
-            setStep('networks');
+        setIsVerifyingEmail(true);
+        
+        try {
+            // Send verification code
+            const result = await VerificationService.sendSchoolEmailVerification(eduEmail, user.id);
+            
+            if (result.success) {
+                setError('');
+                setStep('email-verify');
+            } else {
+                setError(result.error || 'Failed to send verification code');
+            }
+        } catch (err: any) {
+            setError(err?.message || 'Failed to send verification code.');
+        } finally {
+            setIsVerifyingEmail(false);
         }
     };
 
-    const handlePhoneVerify = () => {
-        // Placeholder verification - accepts "1234"
-        if (phoneCode !== '1234') {
-            setError('Invalid code. (Hint: use 1234)');
+    const handleEmailVerify = async () => {
+        if (!eduEmailCode || eduEmailCode.length !== 6) {
+            setError('Please enter the 6-digit verification code');
             return;
         }
+
+        if (!user || !eduEmail) {
+            setError('Missing required information');
+            return;
+        }
+
+        setError('');
+        
+        // Validate verification code
+        const result = await VerificationService.validateSchoolEmailCode(
+            eduEmail,
+            eduEmailCode,
+            user.id
+        );
+        
+        if (result.valid) {
+            setError('');
+            setStep('phone');
+        } else {
+            setError(result.error || 'Invalid verification code');
+        }
+    };
+
+    const handlePhoneSubmit = async () => {
+        // PHONE VERIFICATION COMMENTED OUT FOR NOW
+        // Just save phone number and move to networks
+        
+        if (!user) {
+            setError('User not authenticated');
+            return;
+        }
+
+        // Format phone number to E.164 format if provided
+        if (phoneNumber) {
+            let formattedPhone = phoneNumber.trim();
+            if (!formattedPhone.startsWith('+')) {
+                // If no country code, assume US (+1)
+                formattedPhone = formattedPhone.replace(/\D/g, ''); // Remove non-digits
+                if (formattedPhone.length === 10) {
+                    formattedPhone = '+1' + formattedPhone;
+                } else {
+                    setError('Please enter a valid phone number with country code');
+                    return;
+                }
+            }
+
+            // Save phone number to user_profile_extras (not profiles table)
+            try {
+                const supabase = createClient();
+                await supabase
+                    .from('user_profile_extras')
+                    .upsert({ 
+                        user_id: user.id,
+                        contact_phone: formattedPhone,
+                        updated_at: new Date().toISOString(),
+                    }, { onConflict: 'user_id' });
+            } catch (e) {
+                // Continue anyway
+            }
+        }
+
         setError('');
         setStep('networks');
+
+        // PHONE VERIFICATION CODE (COMMENTED OUT)
+        // if (!phoneNumber) {
+        //     // Skip phone verification if no phone provided
+        //     setStep('networks');
+        //     return;
+        // }
+        // // Format phone number to E.164 format if needed
+        // let formattedPhone = phoneNumber.trim();
+        // if (!formattedPhone.startsWith('+')) {
+        //     // If no country code, assume US (+1)
+        //     formattedPhone = formattedPhone.replace(/\D/g, ''); // Remove non-digits
+        //     if (formattedPhone.length === 10) {
+        //         formattedPhone = '+1' + formattedPhone;
+        //     } else {
+        //         setError('Please enter a valid phone number with country code');
+        //         return;
+        //     }
+        // }
+        // setError('');
+        // // Send verification code
+        // const result = await VerificationService.sendPhoneVerification(formattedPhone, user.id);
+        // if (result.success) {
+        //     setPhoneNumber(formattedPhone); // Update with formatted number
+        //     setStep('phone-verify');
+        //     // In development, log the code for testing
+        //     if (result.code) {
+        //         console.log('Verification code (dev only):', result.code);
+        //     }
+        // } else {
+        //     setError(result.error || 'Failed to send verification code');
+        // }
     };
+
+    // PHONE VERIFICATION COMMENTED OUT
+    // const handlePhoneVerify = async () => {
+    //     if (!phoneCode || phoneCode.length !== 6) {
+    //         setError('Please enter the 6-digit verification code');
+    //         return;
+    //     }
+    //     if (!user || !phoneNumber) {
+    //         setError('Missing required information');
+    //         return;
+    //     }
+    //     setError('');
+    //     // Validate verification code
+    //     const result = await VerificationService.validatePhoneCode(
+    //         phoneNumber,
+    //         phoneCode,
+    //         user.id
+    //     );
+    //     if (result.valid) {
+    //         setError('');
+    //         setStep('networks');
+    //     } else {
+    //         setError(result.error || 'Invalid verification code');
+    //     }
+    // };
 
     const handleAddNetwork = () => {
         if (!newNetworkName.trim()) return;
+        
+        // Maximum 5 networks total
+        if (networks.length >= 5) return;
         
         const newNetwork: Network = {
             id: Date.now().toString(),
@@ -399,8 +585,19 @@ export default function OnboardingPage() {
                         
                         {error && <p className={styles.error}>{error}</p>}
                         
-                        <button onClick={handleEmailSubmit} className={styles.primaryButton}>
-                            {eduEmail ? 'Verify Email' : 'Continue'}
+                        <button 
+                            onClick={handleEmailSubmit} 
+                            className={styles.primaryButton}
+                            disabled={isVerifyingEmail}
+                        >
+                            {isVerifyingEmail ? (
+                                <>
+                                    <span className={styles.spinner}></span>
+                                    Verifying...
+                                </>
+                            ) : (
+                                eduEmail ? 'Verify Email' : 'Continue'
+                            )}
                         </button>
                         
                         <span onClick={() => setStep('phone')} className={styles.skipLink}>
@@ -428,9 +625,9 @@ export default function OnboardingPage() {
                         <input
                             type="text"
                             value={eduEmailCode}
-                            onChange={(e) => setEduEmailCode(e.target.value)}
-                            placeholder="Enter 4-digit code"
-                            maxLength={4}
+                            onChange={(e) => setEduEmailCode(e.target.value.replace(/\D/g, ''))}
+                            placeholder="Enter 6-digit code"
+                            maxLength={6}
                             className={styles.codeInput}
                         />
                         
@@ -472,8 +669,8 @@ export default function OnboardingPage() {
                     </div>
                 )}
 
-                {/* Phone Verification Step */}
-                {step === 'phone-verify' && (
+                {/* Phone Verification Step - COMMENTED OUT */}
+                {false && step === 'phone-verify' && (
                     <div className={styles.stepContent}>
                         <button 
                             onClick={() => { setStep('phone'); setPhoneCode(''); setError(''); }}
@@ -491,15 +688,15 @@ export default function OnboardingPage() {
                         <input
                             type="text"
                             value={phoneCode}
-                            onChange={(e) => setPhoneCode(e.target.value)}
-                            placeholder="Enter 4-digit code"
-                            maxLength={4}
+                            onChange={(e) => setPhoneCode(e.target.value.replace(/\D/g, ''))}
+                            placeholder="Enter 6-digit code"
+                            maxLength={6}
                             className={styles.codeInput}
                         />
                         
                         {error && <p className={styles.error}>{error}</p>}
                         
-                        <button onClick={handlePhoneVerify} className={styles.primaryButton}>
+                        <button onClick={() => {}} className={styles.primaryButton} disabled>
                             Verify
                         </button>
                         
@@ -513,7 +710,13 @@ export default function OnboardingPage() {
                 {step === 'networks' && (
                     <div className={styles.stepContent}>
                         <h1 className={styles.title}>Your Networks</h1>
-                        <p className={styles.subtitle}>Add at least {networks.length >= 3 ? '3' : `${3 - networks.length} more`} communities you're part of</p>
+                        <p className={styles.subtitle}>
+                            {networks.length < 3 
+                                ? `Add at least ${3 - networks.length} more ${3 - networks.length === 1 ? 'community' : 'communities'} you're part of`
+                                : networks.length < 5
+                                ? `You can add up to ${5 - networks.length} more ${5 - networks.length === 1 ? 'network' : 'networks'} (${networks.length}/5)`
+                                : 'You have reached the maximum of 5 networks'}
+                        </p>
                         
                         {/* Show university as a locked row if exists */}
                         {networks.filter(n => n.type === 'university').map(network => (
@@ -540,14 +743,13 @@ export default function OnboardingPage() {
                             </div>
                         ))}
                         
-                        {/* Show empty input rows for remaining slots */}
-                        {Array.from({ length: Math.max(0, 3 - networks.length) }).map((_, index) => (
-                            <div key={`empty-${index}`} className={styles.networkInput}>
+                        {/* Show empty input rows for remaining slots (up to 5 total) */}
+                        {networks.length < 5 && (
+                            <div className={styles.networkInput}>
                                 <select
-                                    value={index === 0 ? newNetworkType : 'work'}
-                                    onChange={(e) => index === 0 && setNewNetworkType(e.target.value as any)}
+                                    value={newNetworkType}
+                                    onChange={(e) => setNewNetworkType(e.target.value as any)}
                                     className={styles.networkSelect}
-                                    disabled={index !== 0}
                                 >
                                     <option value="work">Workplace</option>
                                     <option value="highschool">High School</option>
@@ -555,21 +757,25 @@ export default function OnboardingPage() {
                                 </select>
                                 <input
                                     type="text"
-                                    value={index === 0 ? newNetworkName : ''}
-                                    onChange={(e) => index === 0 && setNewNetworkName(e.target.value)}
+                                    value={newNetworkName}
+                                    onChange={(e) => setNewNetworkName(e.target.value)}
                                     placeholder="e.g. Google, Lincoln High, NYC"
                                     className={styles.networkNameInput}
-                                    disabled={index !== 0}
+                                    onKeyPress={(e) => {
+                                        if (e.key === 'Enter' && newNetworkName.trim()) {
+                                            handleAddNetwork();
+                                        }
+                                    }}
                                 />
                                 <button 
                                     onClick={handleAddNetwork} 
                                     className={styles.addButton}
-                                    disabled={index !== 0}
+                                    disabled={!newNetworkName.trim() || networks.length >= 5}
                                 >
                                     Add
                                 </button>
                             </div>
-                        ))}
+                        )}
                         
                         <button 
                             onClick={handleNetworksSubmit} 

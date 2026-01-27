@@ -39,9 +39,26 @@ export default function WrappedPage() {
         const supabase = createClient();
 
         try {
-            // Poll for interests (processing should have started on onboarding page)
+            // First check: Do interests already exist?
+            const { data: initialProfile } = await supabase
+                .from('profiles')
+                .select('interests')
+                .eq('id', user.id)
+                .single();
+
+            const existingInterests = (initialProfile?.interests as string[]) || [];
+            
+            if (existingInterests.length > 0) {
+                // Interests already exist - show 2-second loading animation then display
+                await new Promise(r => setTimeout(r, 2000));
+                setInterests(existingInterests);
+                setIsProcessing(false);
+                return;
+            }
+
+            // Interests don't exist yet - poll for them (derive_interests should be running from age page)
             let pollCount = 0;
-            const maxPolls = 20; // Reduced since processing started earlier
+            const maxPolls = 30; // Poll for up to 15 seconds (30 * 500ms)
             
             while (pollCount < maxPolls) {
                 const { data: profile } = await supabase
@@ -50,15 +67,15 @@ export default function WrappedPage() {
                     .eq('id', user.id)
                     .single();
 
-                const existingInterests = (profile?.interests as string[]) || [];
+                const interests = (profile?.interests as string[]) || [];
                 
-                if (existingInterests.length > 0) {
-                    setInterests(existingInterests);
+                if (interests.length > 0) {
+                    setInterests(interests);
                     setIsProcessing(false);
                     return;
                 }
 
-                await new Promise(r => setTimeout(r, 500)); // Poll faster
+                await new Promise(r => setTimeout(r, 500));
                 pollCount++;
             }
 
@@ -79,10 +96,11 @@ export default function WrappedPage() {
 
             if (!hasYouTubeData) {
                 setShowNoYouTubeDataModal(true);
+                setIsProcessing(false);
                 return;
             }
 
-            // Last resort: trigger processing again
+            // Last resort: trigger processing again (shouldn't be needed if age page worked)
             try {
                 await YouTubeService.deriveInterests(user.id);
             } catch (e) {}
