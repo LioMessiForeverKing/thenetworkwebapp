@@ -99,6 +99,12 @@ export default function GlowdownInvitationPage() {
   const [error, setError] = useState<string | null>(null);
   const [ticketCode, setTicketCode] = useState<string | null>(null);
 
+  // Validate form - all fields must be filled and checkbox checked
+  const isFormValid = name.trim() !== '' && 
+                      email.trim() !== '' && 
+                      obsession.trim() !== '' && 
+                      interestedInBeta === true;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -318,6 +324,7 @@ export default function GlowdownInvitationPage() {
                     placeholder="Your current obsession"
                     value={obsession}
                     onChange={(e) => setObsession(e.target.value)}
+                    required
                     className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-amber-500/50 transition-all"
                   />
                   <p className="text-[10px] text-white/40 text-left px-2 leading-relaxed">
@@ -347,12 +354,16 @@ export default function GlowdownInvitationPage() {
 
                 <button
                   type="submit"
-                  disabled={isSubmitting}
-                  className="inline-block w-full py-4 rounded-full text-base font-bold transition-all duration-300 hover:scale-[1.02] hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={isSubmitting || !isFormValid}
+                  className="inline-block w-full py-4 rounded-full text-base font-bold transition-all duration-300 hover:scale-[1.02] hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                   style={{
-                    background: 'linear-gradient(90deg, #f59e0b 0%, #f97316 50%, #ec4899 100%)',
-                    color: '#000',
-                    boxShadow: '0 4px 20px rgba(245,158,11,0.4)',
+                    background: isFormValid && !isSubmitting
+                      ? 'linear-gradient(90deg, #f59e0b 0%, #f97316 50%, #ec4899 100%)'
+                      : 'linear-gradient(90deg, #4b5563 0%, #374151 50%, #1f2937 100%)',
+                    color: isFormValid && !isSubmitting ? '#000' : '#9ca3af',
+                    boxShadow: isFormValid && !isSubmitting 
+                      ? '0 4px 20px rgba(245,158,11,0.4)' 
+                      : 'none',
                   }}
                 >
                   {isSubmitting ? 'Registering...' : "I'm in"}
