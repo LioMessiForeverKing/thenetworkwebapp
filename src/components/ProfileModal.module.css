@@ -296,6 +296,30 @@
     cursor: not-allowed;
 }
 
+.unfriendButton {
+    padding: 12px 32px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #ffffff;
+    background: rgba(255, 59, 48, 0.8);
+    border: 1px solid rgba(255, 59, 48, 0.5);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    width: 100%;
+}
+
+.unfriendButton:hover:not(:disabled) {
+    background: rgba(255, 59, 48, 1);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(255, 59, 48, 0.3);
+}
+
+.unfriendButton:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
 /* Shared Networks Section - Most prominent */
 .sharedNetworksSection {
     margin-bottom: 16px;
@@ -515,6 +539,11 @@
 }
 
 .embeddedModal .addFriendButton {
+    padding: 10px 20px;
+    font-size: 13px;
+}
+
+.embeddedModal .unfriendButton {
     padding: 10px 20px;
     font-size: 13px;
 }

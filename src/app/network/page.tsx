@@ -594,6 +594,11 @@ export default function Home() {
     connections: Connection[],
     userId: string
   ) => {
+    console.log('🟣 [PROCESS_CONNECTIONS] Starting to process connections', { 
+      connectionCount: connections.length,
+      userId 
+    });
+
     const loadedPeople: NetworkPerson[] = [];
 
     // Get current user's profile
@@ -616,12 +621,22 @@ export default function Home() {
       conn.sender_id === userId ? conn.receiver_id : conn.sender_id
     ))];
 
+    console.log('🟣 [PROCESS_CONNECTIONS] Extracted friend IDs', { 
+      friendIds,
+      friendCount: friendIds.length 
+    });
+
     // Fetch friend profiles
     if (friendIds.length > 0) {
       const { data: profiles } = await supabase
         .from('profiles')
         .select('*')
         .in('id', friendIds);
+
+      console.log('🟣 [PROCESS_CONNECTIONS] Fetched profiles', { 
+        profileCount: profiles?.length || 0,
+        profileIds: profiles?.map(p => p.id) 
+      });
 
       // Fetch compatibility scores from user_matches table
       const { data: matches } = await supabase
@@ -665,24 +680,47 @@ export default function Home() {
       }
     }
 
+    console.log('🟣 [PROCESS_CONNECTIONS] Final loaded people', { 
+      count: loadedPeople.length,
+      peopleIds: loadedPeople.map(p => ({ id: p.id, name: p.name }))
+    });
+
     setPeople(loadedPeople);
     setIsLoadingNetwork(false);
+    console.log('🟣 [PROCESS_CONNECTIONS] Network state updated');
   };
 
   // Function to load network data
   const loadNetworkData = useCallback(async () => {
-    if (!user) return;
+    console.log('🔵 [LOAD_NETWORK] Starting loadNetworkData', { userId: user?.id });
+    
+    if (!user) {
+      console.log('🔵 [LOAD_NETWORK] No user, returning early');
+      return;
+    }
 
     setIsLoadingNetwork(true);
     const supabase = createClient();
 
     try {
       // 1. Fetch ACCEPTED connections (user_connections table)
+      console.log('🔵 [LOAD_NETWORK] Fetching accepted connections from user_connections');
       const { data: connections, error: connError } = await supabase
         .from('user_connections')
         .select('*')
         .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
         .eq('status', 'accepted');
+
+      console.log('🔵 [LOAD_NETWORK] Connections fetched', { 
+        count: connections?.length || 0, 
+        connections: connections?.map(c => ({ 
+          id: c.id, 
+          sender: c.sender_id, 
+          receiver: c.receiver_id,
+          status: c.status 
+        })),
+        error: connError 
+      });
 
       // 2. Fetch PENDING requests (incoming)
       const { data: pending } = await supabase
@@ -692,6 +730,7 @@ export default function Home() {
         .eq('status', 'pending');
 
       if (connError || !connections || connections.length === 0) {
+        console.log('🔵 [LOAD_NETWORK] No connections in user_connections, trying friend_requests');
         // Try friend_requests table as fallback (some accepts only update friend_requests)
         const { data: friendRequests, error: frError } = await supabase
           .from('friend_requests')
@@ -699,18 +738,27 @@ export default function Home() {
           .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
           .eq('status', 'accepted');
 
+        console.log('🔵 [LOAD_NETWORK] Friend requests fetched', { 
+          count: friendRequests?.length || 0, 
+          error: frError 
+        });
+
         if (frError || !friendRequests || friendRequests.length === 0) {
+          console.log('🔵 [LOAD_NETWORK] No connections found, setting to just current user');
           setPeople([createCurrentUserNode(user.id, 'You', '#8E5BFF')]);
           setIsLoadingNetwork(false);
           return;
         }
 
+        console.log('🔵 [LOAD_NETWORK] Processing connections from friend_requests');
         await processConnections(supabase, friendRequests, user.id);
         return;
       }
 
+      console.log('🔵 [LOAD_NETWORK] Processing connections from user_connections');
       await processConnections(supabase, connections, user.id);
     } catch (e) {
+      console.error('🔵 [LOAD_NETWORK] Error loading network data:', e);
       setPeople([createCurrentUserNode(user.id, 'You', '#8E5BFF')]);
       setIsLoadingNetwork(false);
     }
@@ -1967,6 +2015,50 @@ export default function Home() {
                       setSelectedPerson(null);
                     }}
                     isEmbedded={true}
+                    onUnfriend={async () => {
+                      console.log('🟢 [NETWORK] onUnfriend callback called', { 
+                        selectedPersonId: selectedPerson?.id,
+                        selectedPersonName: selectedPerson?.name,
+                        currentPeopleCount: people.length,
+                        expandedFriendId
+                      });
+
+                      // Clear expanded friend network if the unfriended person was expanded
+                      if (expandedFriendId === selectedPerson?.id) {
+                        console.log('🟢 [NETWORK] Clearing expanded friend network');
+                        setExpandedFriendId(null);
+                        setFriendOfFriendData([]);
+                        setMutualConnectionIds(new Set());
+                      }
+                      
+                      // Immediately remove the person from the people array
+                      if (selectedPerson) {
+                        console.log('🟢 [NETWORK] Removing person from people array immediately', { 
+                          personId: selectedPerson.id,
+                          beforeCount: people.length
+                        });
+                        setPeople(prev => {
+                          const filtered = prev.filter(p => p.id !== selectedPerson.id);
+                          console.log('🟢 [NETWORK] People array filtered', { 
+                            beforeCount: prev.length,
+                            afterCount: filtered.length,
+                            removedIds: prev.filter(p => p.id === selectedPerson.id).map(p => p.id)
+                          });
+                          return filtered;
+                        });
+                      }
+                      
+                      // Refresh network data after unfriending (this will ensure DB is in sync)
+                      console.log('🟢 [NETWORK] Calling loadNetworkData to refresh from DB');
+                      await loadNetworkData();
+                      console.log('🟢 [NETWORK] loadNetworkData completed');
+                      
+                      // Close the profile panel
+                      console.log('🟢 [NETWORK] Closing profile panel');
+                      setExpandedPanel(null);
+                      setSelectedPerson(null);
+                      console.log('🟢 [NETWORK] onUnfriend callback completed');
+                    }}
                   />
                 </div>
               )}

@@ -11,6 +11,7 @@ interface ProfileModalProps {
     person: NetworkPerson;
     onClose: () => void;
     isEmbedded?: boolean;
+    onUnfriend?: () => void;
 }
 
 // Parse vector from database (handles both string and array formats)
@@ -82,7 +83,7 @@ interface SharedNetwork {
     type: string;
 }
 
-export default function ProfileModal({ person, onClose, isEmbedded = false }: ProfileModalProps) {
+export default function ProfileModal({ person, onClose, isEmbedded = false, onUnfriend }: ProfileModalProps) {
     const { user } = useAuth();
     const router = useRouter();
     const [compatibilityDescription, setCompatibilityDescription] = useState<string>('');
@@ -95,6 +96,7 @@ export default function ProfileModal({ person, onClose, isEmbedded = false }: Pr
     const [isConnected, setIsConnected] = useState<boolean>(false);
     const [requestStatus, setRequestStatus] = useState<RequestStatus>('checking');
     const [isSending, setIsSending] = useState(false);
+    const [isUnfriending, setIsUnfriending] = useState(false);
     // Overlap score for discovery users
     const [overlapScore, setOverlapScore] = useState<number | null>(null);
     const [overlapLevel, setOverlapLevel] = useState<string | null>(null);
@@ -576,6 +578,119 @@ export default function ProfileModal({ person, onClose, isEmbedded = false }: Pr
         }
     };
 
+    const handleUnfriend = async () => {
+        console.log('🔴 [UNFRIEND] Starting unfriend process', { 
+            personId: person?.id, 
+            personName: person?.name,
+            isUnfriending,
+            isConnected 
+        });
+
+        if (!person || isUnfriending || !isConnected) {
+            console.log('🔴 [UNFRIEND] Early return - conditions not met', { 
+                hasPerson: !!person, 
+                isUnfriending, 
+                isConnected 
+            });
+            return;
+        }
+
+        setIsUnfriending(true);
+        const supabase = createClient();
+
+        try {
+            const { data: { user: authUser } } = await supabase.auth.getUser();
+            if (!authUser) {
+                console.log('🔴 [UNFRIEND] No authenticated user');
+                return;
+            }
+
+            console.log('🔴 [UNFRIEND] Deleting connections', { 
+                currentUserId: authUser.id, 
+                targetUserId: person.id 
+            });
+
+            // Delete from user_connections table (both directions)
+            // Delete where current user is sender
+            console.log('🔴 [UNFRIEND] Deleting user_connections (sender -> receiver)');
+            const { data: delete1Data, error: error1 } = await supabase
+                .from('user_connections')
+                .delete()
+                .eq('sender_id', authUser.id)
+                .eq('receiver_id', person.id)
+                .select();
+
+            console.log('🔴 [UNFRIEND] Delete 1 result:', { 
+                deleted: delete1Data, 
+                error: error1 
+            });
+
+            // Delete where current user is receiver
+            console.log('🔴 [UNFRIEND] Deleting user_connections (receiver -> sender)');
+            const { data: delete2Data, error: error2 } = await supabase
+                .from('user_connections')
+                .delete()
+                .eq('sender_id', person.id)
+                .eq('receiver_id', authUser.id)
+                .select();
+
+            console.log('🔴 [UNFRIEND] Delete 2 result:', { 
+                deleted: delete2Data, 
+                error: error2 
+            });
+
+            // Also delete from friend_requests table (both directions)
+            // Delete where current user is sender
+            console.log('🔴 [UNFRIEND] Deleting friend_requests (sender -> receiver)');
+            const { data: delete3Data, error: error3 } = await supabase
+                .from('friend_requests')
+                .delete()
+                .eq('sender_id', authUser.id)
+                .eq('receiver_id', person.id)
+                .select();
+
+            console.log('🔴 [UNFRIEND] Delete 3 result:', { 
+                deleted: delete3Data, 
+                error: error3 
+            });
+
+            // Delete where current user is receiver
+            console.log('🔴 [UNFRIEND] Deleting friend_requests (receiver -> sender)');
+            const { data: delete4Data, error: error4 } = await supabase
+                .from('friend_requests')
+                .delete()
+                .eq('sender_id', person.id)
+                .eq('receiver_id', authUser.id)
+                .select();
+
+            console.log('🔴 [UNFRIEND] Delete 4 result:', { 
+                deleted: delete4Data, 
+                error: error4 
+            });
+
+            if (error1 || error2 || error3 || error4) {
+                console.error('🔴 [UNFRIEND] Error unfriending user:', { error1, error2, error3, error4 });
+                return;
+            }
+
+            console.log('🔴 [UNFRIEND] All deletes successful. Updating local state and calling callback');
+            
+            // Update local state
+            setIsConnected(false);
+            setRequestStatus('none');
+
+            // Call the callback to refresh the network
+            console.log('🔴 [UNFRIEND] Calling onUnfriend callback');
+            onUnfriend?.();
+            console.log('🔴 [UNFRIEND] onUnfriend callback completed');
+        } catch (error) {
+            console.error('🔴 [UNFRIEND] Exception during unfriend:', error);
+        } finally {
+            setIsUnfriending(false);
+            console.log('🔴 [UNFRIEND] Process completed');
+        }
+    };
+
     const getButtonText = () => {
         if (person.isDiscoveryNode) return 'Discovery User';
         if (requestStatus === 'checking') return 'Checking...';
@@ -739,6 +854,19 @@ export default function ProfileModal({ person, onClose, isEmbedded = false }: Pr
                         disabled={isButtonDisabled}
                     >
                         {isSending ? 'Sending...' : getButtonText()}
+                    </button>
+                </div>
+            )}
+
+            {/* Unfriend Button - Only show if connected */}
+            {isConnected && (
+                <div className={styles.actions}>
+                    <button
+                        className={styles.unfriendButton}
+                        onClick={handleUnfriend}
+                        disabled={isUnfriending}
+                    >
+                        {isUnfriending ? 'Removing...' : 'Unfriend'}
                     </button>
                 </div>
             )}
