@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 
-import { renderHtmlBody } from '../../../../supabase/functions/send-ticket-email/template';
+import { renderHtmlBody } from '@/lib/email-template';
 
 export default function EmailPreviewPage() {
   const [name, setName] = useState('Alex');
