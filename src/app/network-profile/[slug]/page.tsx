@@ -2232,13 +2232,32 @@ export default function NetworkProfilePage() {
                             )}
                         </div>
                     ) : (
-                            (profileExtras.networks || []).map((network, index) => {
-                                const networkData = networkDistribution.find(nd => nd.network === network);
-                                const friends = networkData?.friends || [];
-                                const networkKey = `${network}-${index}`;
-                                const isExpanded = expandedNetworkCards.has(networkKey);
-                                const displayedFriends = isExpanded ? friends : friends.slice(0, 5);
-                                const hasMore = friends.length > 5;
+                            (() => {
+                                // Sort networks: TheNetwork first, New York second, then everything else
+                                const networks = [...(profileExtras.networks || [])];
+                                const sortedNetworks = networks.sort((a, b) => {
+                                    const aLower = a?.toLowerCase() || '';
+                                    const bLower = b?.toLowerCase() || '';
+                                    
+                                    // TheNetwork always comes first
+                                    if (aLower === 'thenetwork') return -1;
+                                    if (bLower === 'thenetwork') return 1;
+                                    
+                                    // New York comes second
+                                    if (aLower === 'new york' || aLower === 'nyc') return -1;
+                                    if (bLower === 'new york' || bLower === 'nyc') return 1;
+                                    
+                                    // Everything else sorted alphabetically
+                                    return aLower.localeCompare(bLower);
+                                });
+                                
+                                return sortedNetworks.map((network, index) => {
+                                    const networkData = networkDistribution.find(nd => nd.network === network);
+                                    const friends = networkData?.friends || [];
+                                    const networkKey = `${network}-${index}`;
+                                    const isExpanded = expandedNetworkCards.has(networkKey);
+                                    const displayedFriends = isExpanded ? friends : friends.slice(0, 5);
+                                    const hasMore = friends.length > 5;
                                 
                                 return (
                                     <div key={networkKey} className={`${styles.clusterCard} ${friends.length === 0 ? styles.clusterCardMinimized : ''}`}>
@@ -2297,7 +2316,8 @@ export default function NetworkProfilePage() {
                                         )}
                                     </div>
                                 );
-                            })
+                            });
+                        })()
                         )}
                 </div>
                 </>
