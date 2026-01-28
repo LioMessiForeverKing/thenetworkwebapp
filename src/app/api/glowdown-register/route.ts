@@ -81,6 +81,7 @@ export async function POST(request: NextRequest) {
             p_party_ticket_code: ticketCode,
             p_interested_in_beta: interestedInBeta || false,
             p_school: 'McMaster University',
+            p_obsession: obsession?.trim() || null,
           });
 
         if (updateError || !updateSuccess) {
@@ -102,6 +103,7 @@ export async function POST(request: NextRequest) {
           p_interested_in_beta: interestedInBeta || false,
           p_party_id: partyDetails.id,
           p_party_ticket_code: ticketCode,
+          p_obsession: obsession?.trim() || null,
         });
 
       if (insertError) {
@@ -143,6 +145,7 @@ export async function POST(request: NextRequest) {
               p_party_ticket_code: ticketCode,
               p_interested_in_beta: null, // Already set
               p_school: 'McMaster University',
+              p_obsession: obsession?.trim() || null,
             });
 
           if (updateError || !updateSuccess) {
