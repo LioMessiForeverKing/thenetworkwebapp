@@ -149,6 +149,13 @@
     margin: 0;
 }
 
+.classYearDisplay {
+    font-size: 18px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.6);
+    margin-left: 8px;
+}
+
 .networkHandleRow {
     margin-bottom: 2px;
 }

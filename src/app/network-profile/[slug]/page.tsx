@@ -144,6 +144,7 @@ interface ProfileExtras {
     high_school?: string;
     company?: string;
     job_description?: string;
+    class_year?: number;
 }
 
 interface InterestCluster {
@@ -351,6 +352,7 @@ export default function NetworkProfilePage() {
     const [editLinkedIn, setEditLinkedIn] = useState('');
     const [editInstagram, setEditInstagram] = useState('');
     const [editNetworkHandle, setEditNetworkHandle] = useState('');
+    const [handleError, setHandleError] = useState('');
     
     // Edit Networks Modal
     const [showNetworksModal, setShowNetworksModal] = useState(false);
@@ -360,6 +362,7 @@ export default function NetworkProfilePage() {
     const [showEducationModal, setShowEducationModal] = useState(false);
     const [editCollege, setEditCollege] = useState('');
     const [editHighSchool, setEditHighSchool] = useState('');
+    const [editClassYear, setEditClassYear] = useState('');
     
     // Edit Work Modal
     const [showWorkModal, setShowWorkModal] = useState(false);
@@ -471,7 +474,7 @@ export default function NetworkProfilePage() {
             // 2. Fetch profile extras (always set to fetched value or {} so we never show stale data)
             const { data: extras } = await supabase
                 .from('user_profile_extras')
-                .select('status_text, working_on, working_on_updated_at, gender, age, hometown, looking_for, contact_email, contact_phone, linkedin_url, instagram_url, network_handle, networks, college, high_school, company, job_description')
+                .select('status_text, working_on, working_on_updated_at, gender, age, hometown, looking_for, contact_email, contact_phone, linkedin_url, instagram_url, network_handle, networks, college, high_school, company, job_description, class_year')
                 .eq('user_id', targetUserId)
                 .maybeSingle();
             
@@ -492,6 +495,7 @@ export default function NetworkProfilePage() {
                 setEditNetworks([nets[0] || '', nets[1] || '', nets[2] || '', nets[3] || '']);
                 setEditCollege(e.college || '');
                 setEditHighSchool(e.high_school || '');
+                setEditClassYear(e.class_year?.toString() || '');
                 setEditCompany(e.company || '');
                 setEditJobDescription(e.job_description || '');
             }
@@ -911,6 +915,7 @@ export default function NetworkProfilePage() {
         setEditLinkedIn(profileExtras.linkedin_url || '');
         setEditInstagram(profileExtras.instagram_url || '');
         setEditNetworkHandle(profileExtras.network_handle || '');
+        setHandleError(''); // Clear any previous errors
         setShowContactModal(true);
     };
 
@@ -925,9 +930,50 @@ export default function NetworkProfilePage() {
         if (!user) return;
         
         setIsSaving(true);
+        setHandleError('');
         const supabase = createClient();
         
         try {
+            // Check if handle is provided and validate uniqueness
+            if (editNetworkHandle && editNetworkHandle.trim()) {
+                const normalizedHandle = editNetworkHandle.replace('@', '').replace('.thenetwork', '').trim().toLowerCase();
+                const fullHandle = `${normalizedHandle}.thenetwork`;
+                
+                // Check if this handle is already taken by another user
+                // We need to check all handles and normalize them for comparison
+                const { data: allHandles, error: checkError } = await supabase
+                    .from('user_profile_extras')
+                    .select('user_id, network_handle')
+                    .not('network_handle', 'is', null);
+                
+                if (checkError) {
+                    console.error('Error checking handle:', checkError);
+                    setHandleError('Error checking handle availability. Please try again.');
+                    setIsSaving(false);
+                    return;
+                }
+                
+                // Normalize and compare handles (case-insensitive, ignore @ and .thenetwork variations)
+                const normalizedFullHandle = fullHandle.toLowerCase();
+                const isTaken = allHandles?.some(entry => {
+                    if (!entry.network_handle) return false;
+                    const normalizedExisting = entry.network_handle
+                        .replace('@', '')
+                        .replace('.thenetwork', '')
+                        .trim()
+                        .toLowerCase();
+                    const normalizedExistingFull = `${normalizedExisting}.thenetwork`;
+                    return normalizedExistingFull === normalizedFullHandle && entry.user_id !== user.id;
+                });
+                
+                if (isTaken) {
+                    setHandleError('This handle has already been taken.');
+                    setIsSaving(false);
+                    return;
+                }
+            }
+            
+            // Save the contact info
             const { error } = await supabase
                 .from('user_profile_extras')
                 .upsert({
@@ -942,6 +988,7 @@ export default function NetworkProfilePage() {
             
             if (error) {
                 console.error('Error saving contact info:', error);
+                setHandleError('Error saving changes. Please try again.');
             } else {
                 // Update local state
                 setProfileExtras(prev => ({
@@ -953,9 +1000,11 @@ export default function NetworkProfilePage() {
                     network_handle: editNetworkHandle || undefined,
                 }));
                 setShowContactModal(false);
+                setHandleError('');
             }
         } catch (error) {
             console.error('Error saving contact info:', error);
+            setHandleError('An unexpected error occurred. Please try again.');
         } finally {
             setIsSaving(false);
         }
@@ -1022,6 +1071,7 @@ export default function NetworkProfilePage() {
     const openEducationModal = () => {
         setEditCollege(profileExtras.college || '');
         setEditHighSchool(profileExtras.high_school || '');
+        setEditClassYear(profileExtras.class_year?.toString() || '');
         setShowEducationModal(true);
     };
 
@@ -1033,12 +1083,25 @@ export default function NetworkProfilePage() {
         const supabase = createClient();
         
         try {
+            // Validate class year if provided
+            let classYearValue: number | null = null;
+            if (editClassYear && editClassYear.trim()) {
+                const year = parseInt(editClassYear.trim());
+                if (isNaN(year) || year < 1900 || year > 2100) {
+                    alert('Please enter a valid 4-digit year (e.g., 2026)');
+                    setIsSaving(false);
+                    return;
+                }
+                classYearValue = year;
+            }
+            
             const { error } = await supabase
                 .from('user_profile_extras')
                 .upsert({
                     user_id: user.id,
                     college: editCollege || null,
                     high_school: editHighSchool || null,
+                    class_year: classYearValue,
                     updated_at: new Date().toISOString(),
                 }, { onConflict: 'user_id' });
             
@@ -1049,6 +1112,7 @@ export default function NetworkProfilePage() {
                     ...prev,
                     college: editCollege || undefined,
                     high_school: editHighSchool || undefined,
+                    class_year: classYearValue || undefined,
                 }));
                 setShowEducationModal(false);
             }
@@ -1339,6 +1403,12 @@ export default function NetworkProfilePage() {
                     <div className={styles.headerInfo}>
                         <div className={styles.nameRow}>
                             <h1 className={styles.profileName}>{displayName}</h1>
+                            {/* Class Year Display */}
+                            {profileExtras.college && profileExtras.class_year && (
+                                <span className={styles.classYearDisplay}>
+                                    {profileExtras.college} '{String(profileExtras.class_year).slice(-2)}
+                                </span>
+                            )}
                         </div>
                         
                         {/* Network Handle */}
@@ -1794,7 +1864,14 @@ export default function NetworkProfilePage() {
                             </div>
                             <div className={styles.infoRow}>
                                 <span className={styles.infoLabel}>College:</span>
-                                <span className={styles.infoValue}>{profileExtras.college || 'Not set'}</span>
+                                <span className={styles.infoValue}>
+                                    {profileExtras.college || 'Not set'}
+                                    {profileExtras.college && profileExtras.class_year && (
+                                        <span style={{ marginLeft: '8px', color: 'rgba(255, 255, 255, 0.6)' }}>
+                                            '{String(profileExtras.class_year).slice(-2)}
+                                        </span>
+                                    )}
+                                </span>
                             </div>
                             <div className={styles.infoRow}>
                                 <span className={styles.infoLabel}>High School:</span>
@@ -2534,7 +2611,10 @@ export default function NetworkProfilePage() {
 
             {/* Edit Contact Info Modal */}
             {showContactModal && (
-                <div className={styles.modalOverlay} onClick={() => setShowContactModal(false)}>
+                <div className={styles.modalOverlay} onClick={() => {
+                    setShowContactModal(false);
+                    setHandleError(''); // Clear error when closing modal
+                }}>
                     <div className={styles.editModalContent} onClick={(e) => e.stopPropagation()}>
                         <div className={styles.modalHeader}>
                             <h3 className={styles.modalTitle}>Edit Contact Info</h3>
@@ -2608,11 +2688,29 @@ export default function NetworkProfilePage() {
                                         onChange={(e) => {
                                             const value = e.target.value.replace(/[^a-zA-Z0-9._-]/g, '').toLowerCase();
                                             setEditNetworkHandle(value);
+                                            setHandleError(''); // Clear error when user types
                                         }}
                                         placeholder="yourhandle"
                                     />
                                     <span className={styles.handleSuffix}>.thenetwork</span>
                                 </div>
+                                {handleError && (
+                                    <div style={{ 
+                                        color: '#ef4444', 
+                                        fontSize: '14px', 
+                                        marginTop: '8px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '6px'
+                                    }}>
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <circle cx="12" cy="12" r="10"/>
+                                            <line x1="12" y1="8" x2="12" y2="12"/>
+                                            <line x1="12" y1="16" x2="12.01" y2="16"/>
+                                        </svg>
+                                        {handleError}
+                                    </div>
+                                )}
                             </div>
 
                             {/* Save Button */}
@@ -2712,6 +2810,29 @@ export default function NetworkProfilePage() {
                                     onChange={(e) => setEditHighSchool(e.target.value)}
                                     placeholder="e.g. Phillips Exeter Academy '02"
                                 />
+                            </div>
+
+                            {/* Class Year */}
+                            <div className={styles.formGroup}>
+                                <label className={styles.formLabel}>Class Year</label>
+                                <input 
+                                    type="number"
+                                    className={styles.formInput}
+                                    value={editClassYear}
+                                    onChange={(e) => {
+                                        const value = e.target.value;
+                                        // Only allow 4-digit years
+                                        if (value === '' || (value.length <= 4 && /^\d+$/.test(value))) {
+                                            setEditClassYear(value);
+                                        }
+                                    }}
+                                    placeholder="2026"
+                                    min="1900"
+                                    max="2100"
+                                />
+                                <p className={styles.formHint} style={{ marginTop: '4px', fontSize: '12px', color: 'rgba(255, 255, 255, 0.5)' }}>
+                                    Enter your graduation year (4 digits, e.g., 2026)
+                                </p>
                             </div>
 
                             {/* Save Button */}
