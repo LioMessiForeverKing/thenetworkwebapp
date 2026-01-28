@@ -1169,15 +1169,65 @@ export default function NetworkProfilePage() {
     const isUniversityName = (name: string): boolean => {
         const lowerName = name.toLowerCase().trim();
         
-        // Keywords that indicate a university
-        const universityKeywords = [
-            'university', 'college', 'institute of technology', 'polytechnic',
-            'school of', 'academy', 'institut', ' u ', 'univ ', 'univ.', ' tech',
-            'state u', 'caltech', 'mit ', 'ucla', 'ucsd', 'ucsc', 'ucsb', 'uci', 'ucr', 'ucb',
-            'nyu', 'usc', 'unc', 'umich', 'upenn', 'uva', 'ut ', 'uf ', 'uw ', 'osu', 'psu'
+        // Exclude common company patterns that might contain university-like words
+        const companyExclusions = [
+            'scale ai', 'openai', 'anthropic', 'cohere', 'mistral', 'deepmind',
+            'google', 'meta', 'facebook', 'microsoft', 'amazon', 'apple', 'tesla',
+            'nvidia', 'amd', 'intel', 'ibm', 'oracle', 'salesforce', 'adobe',
+            'netflix', 'spotify', 'uber', 'lyft', 'airbnb', 'stripe', 'square',
+            'palantir', 'databricks', 'snowflake', 'mongodb', 'elastic',
+            'inc.', 'corp', 'llc', 'ltd', 'technologies', 'tech', 'labs', 'ai',
+            'capital', 'ventures', 'partners', 'group', 'holdings', 'systems'
         ];
         
-        // Common standalone university names (without "University" in the name)
+        // Check exclusions first - if it matches a company pattern, it's not a university
+        for (const exclusion of companyExclusions) {
+            if (lowerName === exclusion || lowerName.startsWith(exclusion + ' ') || lowerName.endsWith(' ' + exclusion)) {
+                return false;
+            }
+            // If the name contains a company exclusion as a whole word, it's likely a company
+            const words = lowerName.split(/\s+/);
+            if (words.includes(exclusion)) {
+                return false;
+            }
+        }
+        
+        // Strong university indicators (must be present as whole words or phrases)
+        const strongUniversityIndicators = [
+            'university', 'college', 'institute of technology', 'polytechnic',
+            'school of', 'state university', 'state college'
+        ];
+        
+        // Check for strong indicators (as whole words/phrases)
+        for (const indicator of strongUniversityIndicators) {
+            // Check if indicator appears as a whole word/phrase
+            const regex = new RegExp(`\\b${indicator.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
+            if (regex.test(lowerName)) {
+                return true;
+            }
+        }
+        
+        // Specific university keywords that must appear as whole words
+        const universityKeywords = [
+            'academy', 'institut', 'univ ', 'univ.', 'state u', 'caltech', 'mit ', 
+            'ucla', 'ucsd', 'ucsc', 'ucsb', 'uci', 'ucr', 'ucb', 'nyu', 'usc', 
+            'unc', 'umich', 'upenn', 'uva', 'ut ', 'uf ', 'uw ', 'osu', 'psu'
+        ];
+        
+        // Check for keywords (as whole words where applicable)
+        for (const keyword of universityKeywords) {
+            const trimmedKeyword = keyword.trim();
+            // For multi-word keywords, check if they appear in the name
+            if (keyword.includes(' ')) {
+                if (lowerName.includes(keyword)) return true;
+            } else {
+                // For single words, check as whole word
+                const regex = new RegExp(`\\b${trimmedKeyword}\\b`, 'i');
+                if (regex.test(lowerName)) return true;
+            }
+        }
+        
+        // Common standalone university names (exact match or as whole word)
         const knownUniversities = [
             'harvard', 'yale', 'princeton', 'stanford', 'columbia', 'brown', 'dartmouth', 'cornell',
             'berkeley', 'caltech', 'mit', 'duke', 'northwestern', 'vanderbilt', 'rice', 'notre dame',
@@ -1199,14 +1249,17 @@ export default function NetworkProfilePage() {
             'tsinghua', 'peking', 'fudan', 'sjtu', 'zju', 'nus', 'ntu', 'hku', 'cuhk'
         ];
         
-        // Check for keywords
-        for (const keyword of universityKeywords) {
-            if (lowerName.includes(keyword)) return true;
-        }
-        
-        // Check for known university names
+        // Check for known university names (exact match or as whole word)
         for (const uni of knownUniversities) {
-            if (lowerName.includes(uni) || lowerName === uni) return true;
+            if (lowerName === uni) return true;
+            // Check if it appears as a whole phrase
+            if (uni.includes(' ')) {
+                if (lowerName.includes(uni)) return true;
+            } else {
+                // For single words, check as whole word
+                const regex = new RegExp(`\\b${uni}\\b`, 'i');
+                if (regex.test(lowerName)) return true;
+            }
         }
         
         return false;
